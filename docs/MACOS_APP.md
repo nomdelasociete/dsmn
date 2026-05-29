@@ -19,6 +19,61 @@ The menu bar symbol changes by state:
 - `exclamationmark.triangle`: status unavailable, or dsmn wants to prevent
   sleep but the helper has not applied the power lock.
 
+## First-run setup
+
+The important readiness signal is `Power lock`, not music playback or the
+screen state. `Power lock: on` means dsmn successfully owns the macOS
+`disablesleep` setting through its privileged helper.
+
+1. Launch the archived `dsmn.app`.
+2. Open the menu bar icon.
+3. If the menu says `Setup: install helper`, click `1. Install Helper`.
+4. If the menu says `Setup: approve Login Items`, click `2. Open Login Items`,
+   enable dsmn in System Settings, then return to the menu and click `Refresh`.
+5. Setup is ready when the menu says `Helper: enabled`.
+
+When dsmn is idle, `Power lock: off` is expected. It should switch to
+`Power lock: on` only while a manual timer is active or auto mode is actively
+protecting a detected agent session.
+
+## Test protocol
+
+Use a timestamp log instead of music playback. Some apps pause audio when the
+lid closes even if the Mac stays awake.
+
+Start a visible heartbeat:
+
+```sh
+rm -f /tmp/dsmn-ticks.log
+while true; do date '+%Y-%m-%d %H:%M:%S'; sleep 5; done | tee /tmp/dsmn-ticks.log
+```
+
+For the deterministic test, click `Keep Awake 30m` in the dsmn menu. Wait for:
+
+- `Active - 30m`
+- `Helper: enabled`
+- `Power lock: on`
+
+Then unplug the Mac, close the lid for 60-90 seconds, reopen it, and check:
+
+```sh
+tail -n 30 /tmp/dsmn-ticks.log
+```
+
+If timestamps continued every five seconds while the lid was closed, dsmn kept
+the Mac awake. A large timestamp gap means the machine slept.
+
+For the auto-mode test, keep a Claude Code, Codex, or Grok Build session
+running, click `Auto On`, and wait for `Active - auto` plus `Power lock: on`.
+The same lid-close timestamp test should then pass.
+
+You can also inspect the current state from the archived app bundle:
+
+```sh
+/Users/jb/Documents/Github/NomDeLaSociete/dsmn/dist/export/dsmn.app/Contents/Library/Helpers/dsmnctl doctor
+pmset -g custom | rg 'disablesleep'
+```
+
 ## Run locally
 
 ```sh
@@ -42,8 +97,8 @@ bundle, it also embeds the helper executable and LaunchDaemon plist and can ask
 - `Auto On` / `Auto Off`
 - `Stop`
 - `Refresh`
-- `Install Helper`
-- `Open Login Items`
+- `1. Install Helper`
+- `2. Open Login Items`
 - `Unregister Helper`
 - `Quit`
 

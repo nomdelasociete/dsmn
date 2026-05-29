@@ -47,8 +47,8 @@ struct DSMNCTL {
             let report = try preferHelper({ try helper.stop() }, fallback: { try controller.stop() })
             try printReport(report, json: json)
         case "doctor":
-            let report = try controller.status()
-            printDoctor(report)
+            let status = try readStatus(helper: helper, controller: controller)
+            printDoctor(status.report, source: status.source)
         case "repair":
             let report = try controller.repairState()
             try printReport(report, json: json)
@@ -69,6 +69,22 @@ struct DSMNCTL {
         }
 
         return try fallback()
+    }
+
+    private enum StatusSource {
+        case helper
+        case local
+    }
+
+    private static func readStatus(
+        helper: DSMNHelperXPCClient,
+        controller: DSMNController
+    ) throws -> (report: StatusReport, source: StatusSource) {
+        if let report = try? helper.status() {
+            return (report, .helper)
+        }
+
+        return (try controller.status(), .local)
     }
 
     private static func runAuto(
@@ -168,14 +184,27 @@ struct DSMNCTL {
         }
     }
 
-    private static func printDoctor(_ report: StatusReport) {
+    private static func printDoctor(_ report: StatusReport, source: StatusSource) {
         print("dsmn doctor")
+        print("Status source: \(source == .helper ? "helper" : "local fallback")")
+        print("Status: \(report.decision.shouldPreventSleep ? "active" : "inactive")")
+        print("Auto: \(report.state.autoEnabled ? "on" : "off")")
+        print("Power lock: \(report.state.ownsSleepDisable ? "on" : "off")")
         print("Agents detected: \(report.agents.count)")
         for agent in report.agents {
             print("- \(agent.kind.displayName) pid=\(agent.pid) executable=\(agent.executable)")
         }
-        print("Decision: \(report.decision.shouldPreventSleep ? "would prevent sleep" : "would not prevent sleep")")
-        print("Note: dsmnctl is currently dry-run; power changes require the helper milestone.")
+        print("Decision: \(report.decision.shouldPreventSleep ? "prevent sleep" : "allow sleep")")
+
+        if source == .local {
+            print("Warning: helper unavailable; closed-lid prevention will not work.")
+        } else if report.decision.shouldPreventSleep && !report.state.ownsSleepDisable {
+            print("Warning: dsmn wants to prevent sleep, but the power lock is off.")
+        } else if report.state.ownsSleepDisable {
+            print("Ready: dsmn owns the macOS power lock.")
+        } else {
+            print("Ready: helper works; enable manual or auto mode to test.")
+        }
     }
 
     private static func formatDuration(seconds: Int) -> String {

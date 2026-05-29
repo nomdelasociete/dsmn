@@ -8,6 +8,14 @@ struct DSMNMenuView: View {
     var body: some View {
         Text(store.statusLine)
 
+        if let setupLine = store.setupLine {
+            Text(setupLine)
+        }
+
+        if let powerLockLine = store.powerLockLine {
+            Text(powerLockLine)
+        }
+
         if let errorMessage = store.errorMessage {
             Text(short(errorMessage))
         }
@@ -20,11 +28,13 @@ struct DSMNMenuView: View {
             store.keepAwake(minutes: 30)
         }
         .keyboardShortcut("3")
+        .disabled(!store.canRunAwakeCommands)
 
         Button("Keep Awake 90m") {
             store.keepAwake(minutes: 90)
         }
         .keyboardShortcut("9")
+        .disabled(!store.canRunAwakeCommands)
 
         Divider()
 
@@ -32,6 +42,7 @@ struct DSMNMenuView: View {
             store.toggleAuto()
         }
         .keyboardShortcut("a")
+        .disabled(!store.canRunAwakeCommands)
 
         Button("Stop") {
             store.stop()
@@ -50,13 +61,13 @@ struct DSMNMenuView: View {
         Divider()
 
         if store.canInstallHelper {
-            Button("Install Helper") {
+            Button("1. Install Helper") {
                 store.installHelper()
             }
         }
 
         if store.helperNeedsApproval {
-            Button("Open Login Items") {
+            Button("2. Open Login Items") {
                 store.openHelperSettings()
             }
         }

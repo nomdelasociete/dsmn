@@ -15,7 +15,7 @@ enum HelperRegistrationStatus: String, Equatable {
         case .enabled:
             "enabled"
         case .requiresApproval:
-            "needs approval"
+            "approval required"
         case .notFound:
             "not found"
         }

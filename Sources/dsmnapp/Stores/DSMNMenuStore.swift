@@ -80,6 +80,33 @@ final class DSMNMenuStore: ObservableObject {
         "Helper: \(helperStatus.displayName)"
     }
 
+    var setupLine: String? {
+        switch helperStatus {
+        case .notRegistered, .notFound:
+            "Setup: install helper"
+        case .requiresApproval:
+            "Setup: approve Login Items"
+        case .enabled:
+            if let report, report.decision.shouldPreventSleep && !report.state.ownsSleepDisable {
+                "Power lock: pending"
+            } else {
+                nil
+            }
+        }
+    }
+
+    var powerLockLine: String? {
+        guard let report else {
+            return nil
+        }
+
+        return "Power lock: \(report.state.ownsSleepDisable ? "on" : "off")"
+    }
+
+    var canRunAwakeCommands: Bool {
+        helperStatus == .enabled
+    }
+
     var canInstallHelper: Bool {
         helperStatus == .notRegistered || helperStatus == .notFound
     }
