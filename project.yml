@@ -1,0 +1,100 @@
+name: dsmn
+options:
+  minimumXcodeGenVersion: 2.45.0
+  deploymentTarget:
+    macOS: "13.0"
+settings:
+  base:
+    DEVELOPMENT_TEAM: JSFMAD28GS
+    CODE_SIGN_STYLE: Automatic
+    CODE_SIGN_IDENTITY: Apple Development
+    MACOSX_DEPLOYMENT_TARGET: "13.0"
+    SWIFT_VERSION: "6.0"
+    ENABLE_HARDENED_RUNTIME: YES
+targets:
+  DSMNCore:
+    type: framework
+    platform: macOS
+    sources:
+      - path: Sources/DSMNCore
+    info:
+      path: macos/DSMNCore/Info.plist
+      properties:
+        CFBundleIdentifier: com.nomdelasociete.dsmn.core
+        CFBundleName: DSMNCore
+        CFBundlePackageType: FMWK
+        CFBundleShortVersionString: "0.1.0"
+        CFBundleVersion: "1"
+        LSMinimumSystemVersion: "13.0"
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.nomdelasociete.dsmn.core
+        PRODUCT_NAME: DSMNCore
+  dsmn:
+    type: application
+    platform: macOS
+    sources:
+      - path: Sources/dsmnapp
+    dependencies:
+      - target: DSMNCore
+        embed: true
+    info:
+      path: macos/dsmn/Info.plist
+      properties:
+        CFBundleDisplayName: dsmn
+        CFBundleIdentifier: com.nomdelasociete.dsmn
+        CFBundleName: dsmn
+        CFBundleShortVersionString: "0.1.0"
+        CFBundleVersion: "1"
+        LSMinimumSystemVersion: "13.0"
+        LSUIElement: true
+        NSPrincipalClass: NSApplication
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.nomdelasociete.dsmn
+        PRODUCT_NAME: dsmn
+  dsmnd:
+    type: tool
+    platform: macOS
+    sources:
+      - path: Sources/dsmnd
+    dependencies:
+      - target: DSMNCore
+    settings:
+      base:
+        OTHER_SWIFT_FLAGS: "$(inherited) -parse-as-library"
+        PRODUCT_BUNDLE_IDENTIFIER: com.nomdelasociete.dsmn.helper
+        PRODUCT_NAME: dsmnd
+  dsmnctl:
+    type: tool
+    platform: macOS
+    sources:
+      - path: Sources/dsmnctl
+    dependencies:
+      - target: DSMNCore
+    settings:
+      base:
+        OTHER_SWIFT_FLAGS: "$(inherited) -parse-as-library"
+        PRODUCT_BUNDLE_IDENTIFIER: com.nomdelasociete.dsmn.dsmnctl
+        PRODUCT_NAME: dsmnctl
+schemes:
+  dsmn:
+    build:
+      targets:
+        dsmn: all
+        dsmnd: all
+        dsmnctl: all
+    run:
+      config: Debug
+  dsmnd:
+    build:
+      targets:
+        dsmnd: all
+    run:
+      config: Debug
+  dsmnctl:
+    build:
+      targets:
+        dsmnctl: all
+    run:
+      config: Debug

@@ -1,0 +1,96 @@
+{
+  "$schema": "https://www.raycast.com/schemas/extension.json",
+  "name": "dsmn",
+  "title": "dsmn",
+  "description": "Remote control for dsmn, don't stop me now.",
+  "icon": "assets/icon.svg",
+  "author": "NomDeLaSociete",
+  "platforms": [
+    "macOS"
+  ],
+  "license": "MIT",
+  "commands": [
+    {
+      "name": "keep-awake-for",
+      "title": "Keep Awake For...",
+      "subtitle": "dsmn",
+      "description": "Keep the Mac awake for a manual duration",
+      "mode": "view"
+    },
+    {
+      "name": "toggle-auto",
+      "title": "Toggle Auto Mode",
+      "subtitle": "dsmn",
+      "description": "Toggle dsmn auto mode",
+      "mode": "no-view"
+    },
+    {
+      "name": "auto-on",
+      "title": "Auto On",
+      "subtitle": "dsmn",
+      "description": "Enable dsmn auto mode",
+      "mode": "no-view"
+    },
+    {
+      "name": "auto-off",
+      "title": "Auto Off",
+      "subtitle": "dsmn",
+      "description": "Disable dsmn auto mode",
+      "mode": "no-view"
+    },
+    {
+      "name": "stop",
+      "title": "Stop",
+      "subtitle": "dsmn",
+      "description": "Stop all dsmn modes",
+      "mode": "no-view"
+    },
+    {
+      "name": "status",
+      "title": "Status",
+      "subtitle": "dsmn",
+      "description": "Show dsmn status",
+      "mode": "view"
+    },
+    {
+      "name": "menu-bar",
+      "title": "Menu Bar",
+      "subtitle": "dsmn",
+      "description": "Show dsmn in the Raycast menu bar",
+      "mode": "menu-bar",
+      "interval": "1m"
+    }
+  ],
+  "preferences": [
+    {
+      "name": "dsmnctlPath",
+      "title": "dsmnctl Path",
+      "description": "Path to the dsmnctl executable. Leave empty to use ../.build/debug/dsmnctl during local development.",
+      "type": "textfield",
+      "required": false
+    },
+    {
+      "name": "defaultMinutes",
+      "title": "Default Duration",
+      "description": "Default manual duration in minutes.",
+      "type": "textfield",
+      "required": false,
+      "default": "90"
+    }
+  ],
+  "dependencies": {
+    "@raycast/api": "^1.91.0",
+    "react": "^19.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.10",
+    "@types/react": "^19.0.10",
+    "typescript": "^5.8.2"
+  },
+  "scripts": {
+    "build": "ray build -e dist",
+    "dev": "ray develop",
+    "lint": "ray lint"
+  }
+}
+

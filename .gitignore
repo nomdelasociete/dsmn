@@ -1,0 +1,13 @@
+.build/
+.swiftpm/
+dist/
+DerivedData/
+macos/*/Info.plist
+xcuserdata/
+*.xcodeproj/project.xcworkspace/xcuserdata/
+*.xcworkspace/xcuserdata/
+
+node_modules/
+
+.DS_Store
+*.log
