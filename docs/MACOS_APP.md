@@ -10,6 +10,14 @@ It is intentionally menu-bar-only:
 - official SF Symbol for the menu bar status item;
 - compact Coffee-style actions.
 
+The menu bar symbol changes by state:
+
+- `figure.run`: off or loading;
+- `figure.run.circle`: auto armed, waiting for an agent;
+- `figure.run.circle.fill`: auto actively preventing sleep;
+- `timer.circle.fill`: manual timer actively preventing sleep;
+- `exclamationmark.triangle`: status unavailable before any report is loaded.
+
 ## Run locally
 
 ```sh
