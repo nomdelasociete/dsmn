@@ -27,8 +27,7 @@ send intent; they never modify system sleep settings directly.
 
 ## Current status
 
-This repository currently contains the foundation plus the first privileged
-helper integration slice:
+This repository currently contains a working signed macOS app stack:
 
 - SwiftPM package
 - core state and decision engine
@@ -39,10 +38,11 @@ helper integration slice:
 - `dsmnd` LaunchDaemon executable with an XPC Mach service
 - Xcode-built `dsmn.app` that embeds the signed helper and LaunchDaemon plist
 - menu bar controls for helper registration through `SMAppService`
-- Raycast extension scaffold
+- Raycast extension for manual duration, auto mode, stop, status, and menu bar
+- Developer ID archive and notarization scripts
 
-The remaining production milestone is packaging/notarization plus a real
-installation pass from `/Applications`.
+The current local distributable is exported at `dist/export/dsmn.app`; the
+notarized zip is written to `dist/dsmn-notarized.zip`.
 
 ## Local development
 
@@ -65,6 +65,15 @@ xcodegen generate
 xcodebuild -project dsmn.xcodeproj -scheme dsmn -configuration Debug build
 ```
 
+Distribution build:
+
+```sh
+./scripts/archive.sh
+./scripts/verify_bundle.sh dist/export/dsmn.app
+AC_NOTARY_PROFILE=dsmn-notary ./scripts/notarize.sh dist/export/dsmn.app
+ditto -c -k --keepParent dist/export/dsmn.app dist/dsmn-notarized.zip
+```
+
 Use `DSMN_STATE_DIR` to avoid writing to the default state directory while testing:
 
 ```sh
@@ -83,6 +92,7 @@ Set `DSMN_APPLY_PMSET=0` to force dry-run behavior while debugging the helper.
 
 ## Documentation
 
+- `AGENTS.md`
 - `docs/ARCHITECTURE.md`
 - `docs/SAFETY.md`
 - `docs/RAYCAST.md`
