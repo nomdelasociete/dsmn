@@ -48,7 +48,7 @@ struct DSMNCTL {
             try printReport(report, json: json)
         case "doctor":
             let status = try readStatus(helper: helper, controller: controller)
-            printDoctor(status.report, source: status.source)
+            printDoctor(status.report, source: status.source, liveSleepDisabled: readLiveSleepDisabled())
         case "repair":
             let report = try controller.repairState()
             try printReport(report, json: json)
@@ -184,12 +184,30 @@ struct DSMNCTL {
         }
     }
 
-    private static func printDoctor(_ report: StatusReport, source: StatusSource) {
+    private static func readLiveSleepDisabled() -> Bool? {
+        guard let output = try? ProcessCommandRunner().run("/usr/bin/pmset", arguments: ["-g", "live"]),
+              output.exitCode == 0
+        else {
+            return nil
+        }
+
+        for line in output.stdout.components(separatedBy: .newlines) {
+            let parts = line.split(whereSeparator: { $0 == " " || $0 == "\t" })
+            if parts.first == "SleepDisabled", let value = parts.dropFirst().first {
+                return value == "1"
+            }
+        }
+
+        return nil
+    }
+
+    private static func printDoctor(_ report: StatusReport, source: StatusSource, liveSleepDisabled: Bool?) {
         print("dsmn doctor")
         print("Status source: \(source == .helper ? "helper" : "local fallback")")
         print("Status: \(report.decision.shouldPreventSleep ? "active" : "inactive")")
         print("Auto: \(report.state.autoEnabled ? "on" : "off")")
         print("Power lock: \(report.state.ownsSleepDisable ? "on" : "off")")
+        print("macOS SleepDisabled: \(formatOptionalFlag(liveSleepDisabled))")
         print("Agents detected: \(report.agents.count)")
         for agent in report.agents {
             print("- \(agent.kind.displayName) pid=\(agent.pid) executable=\(agent.executable)")
@@ -200,11 +218,21 @@ struct DSMNCTL {
             print("Warning: helper unavailable; closed-lid prevention will not work.")
         } else if report.decision.shouldPreventSleep && !report.state.ownsSleepDisable {
             print("Warning: dsmn wants to prevent sleep, but the power lock is off.")
+        } else if report.state.ownsSleepDisable && liveSleepDisabled == false {
+            print("Warning: dsmn state says locked, but macOS SleepDisabled is off.")
         } else if report.state.ownsSleepDisable {
             print("Ready: dsmn owns the macOS power lock.")
         } else {
             print("Ready: helper works; enable manual or auto mode to test.")
         }
+    }
+
+    private static func formatOptionalFlag(_ value: Bool?) -> String {
+        guard let value else {
+            return "unknown"
+        }
+
+        return value ? "on" : "off"
     }
 
     private static func formatDuration(seconds: Int) -> String {

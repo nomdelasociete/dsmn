@@ -23,7 +23,8 @@ The menu bar symbol changes by state:
 
 The important readiness signal is `Power lock`, not music playback or the
 screen state. `Power lock: on` means dsmn successfully owns the macOS
-`disablesleep` setting through its privileged helper.
+`disablesleep` setting through its privileged helper. macOS exposes the live
+system value as `SleepDisabled 1` in `pmset -g live`.
 
 1. Launch the archived `dsmn.app`.
 2. Open the menu bar icon.
@@ -71,7 +72,7 @@ You can also inspect the current state from the archived app bundle:
 
 ```sh
 /Users/jb/Documents/Github/NomDeLaSociete/dsmn/dist/export/dsmn.app/Contents/Library/Helpers/dsmnctl doctor
-pmset -g custom | rg 'disablesleep'
+pmset -g live | rg 'SleepDisabled'
 ```
 
 ## Run locally
