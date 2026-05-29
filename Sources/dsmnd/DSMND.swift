@@ -33,10 +33,22 @@ struct DSMND {
     }
 
     private static func serve() {
-        let delegate = DSMNHelperXPCDelegate()
+        let service = DSMNHelperXPCService()
+        service.startPeriodicReconcile(interval: reconcileInterval())
+
+        let delegate = DSMNHelperXPCDelegate(service: service)
         let listener = NSXPCListener(machServiceName: DSMNServiceConstants.helperMachServiceName)
         listener.delegate = delegate
         listener.resume()
         RunLoop.main.run()
+    }
+
+    private static func reconcileInterval() -> TimeInterval {
+        let rawValue = ProcessInfo.processInfo.environment["DSMN_RECONCILE_INTERVAL_SECONDS"] ?? ""
+        guard let interval = TimeInterval(rawValue), interval > 0 else {
+            return 30
+        }
+
+        return interval
     }
 }

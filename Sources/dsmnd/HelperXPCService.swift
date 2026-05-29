@@ -4,6 +4,7 @@ import Foundation
 final class DSMNHelperXPCService: NSObject, DSMNHelperXPCProtocol {
     private let controller: DSMNController
     private let powerManager: any PowerManaging
+    private var reconcileTimer: Timer?
 
     init(
         controller: DSMNController = DSMNController(store: StateStore.daemonStore()),
@@ -51,6 +52,29 @@ final class DSMNHelperXPCService: NSObject, DSMNHelperXPCProtocol {
         reply(encode {
             .success(run: try controller.reconcile(powerManager: powerManager))
         })
+    }
+
+    func startPeriodicReconcile(interval: TimeInterval) {
+        reconcileSilently()
+        reconcileTimer = Timer.scheduledTimer(
+            timeInterval: interval,
+            target: self,
+            selector: #selector(handlePeriodicReconcile),
+            userInfo: nil,
+            repeats: true
+        )
+    }
+
+    @objc private func handlePeriodicReconcile(_ timer: Timer) {
+        reconcileSilently()
+    }
+
+    private func reconcileSilently() {
+        do {
+            _ = try controller.reconcile(powerManager: powerManager)
+        } catch {
+            fputs("dsmnd: reconcile failed: \(error.localizedDescription)\n", stderr)
+        }
     }
 
     private func encode(_ operation: () throws -> DSMNHelperCommandResponse) -> String {

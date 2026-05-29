@@ -16,7 +16,8 @@ The menu bar symbol changes by state:
 - `figure.run.circle`: auto armed, waiting for an agent;
 - `figure.run.circle.fill`: auto actively preventing sleep;
 - `timer.circle.fill`: manual timer actively preventing sleep;
-- `exclamationmark.triangle`: status unavailable before any report is loaded.
+- `exclamationmark.triangle`: status unavailable, or dsmn wants to prevent
+  sleep but the helper has not applied the power lock.
 
 ## Run locally
 

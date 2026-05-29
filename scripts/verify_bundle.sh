@@ -30,5 +30,11 @@ fi
 codesign --verify --deep --strict --verbose=2 "$APP_PATH"
 codesign --verify --strict --verbose=2 "$HELPER_PATH"
 codesign --verify --strict --verbose=2 "$CTL_PATH"
+
+VERIFY_STATE_DIR="$(mktemp -d)"
+trap 'rm -rf "$VERIFY_STATE_DIR"' EXIT
+DSMN_STATE_DIR="$VERIFY_STATE_DIR" "$CTL_PATH" status --json >/dev/null
+DSMN_STATE_DIR="$VERIFY_STATE_DIR" DSMN_APPLY_PMSET=0 "$HELPER_PATH" daemon-once >/dev/null
+
 plutil -lint "$PLIST_PATH"
 plutil -p "$PLIST_PATH"

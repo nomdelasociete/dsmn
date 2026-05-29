@@ -54,6 +54,9 @@ only when running as root, unless `DSMN_APPLY_PMSET=0` forces dry-run mode.
 
 The daemon owns system state in `/Library/Application Support/dsmn`. User-facing
 local development state remains under `~/.dsmn` unless `DSMN_STATE_DIR` is set.
+In LaunchDaemon `serve` mode, the daemon reconciles immediately at startup and
+then every 30 seconds so auto mode follows agent processes without a menu or
+Raycast command having to run.
 
 ## App
 

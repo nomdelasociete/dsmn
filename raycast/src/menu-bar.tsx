@@ -57,6 +57,10 @@ function menuBarIcon(report: StatusReport | null): Image.ImageLike {
     return idleIcon;
   }
 
+  if (report.decision.shouldPreventSleep && !report.state.ownsSleepDisable) {
+    return { source: Icon.Warning, tintColor: Color.Orange };
+  }
+
   if (report.decision.shouldPreventSleep) {
     if (report.manualRemainingSeconds && report.manualRemainingSeconds > 0) {
       return { source: Icon.Stopwatch, tintColor: Color.Green };
@@ -75,6 +79,10 @@ function menuBarIcon(report: StatusReport | null): Image.ImageLike {
 function statusTitle(report: StatusReport | null): string {
   if (!report) {
     return "Loading";
+  }
+
+  if (report.decision.shouldPreventSleep && !report.state.ownsSleepDisable) {
+    return "Helper required";
   }
 
   if (report.decision.shouldPreventSleep) {

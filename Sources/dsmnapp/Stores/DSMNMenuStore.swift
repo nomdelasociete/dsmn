@@ -33,6 +33,10 @@ final class DSMNMenuStore: ObservableObject {
             return "figure.run"
         }
 
+        if report.decision.shouldPreventSleep && !report.state.ownsSleepDisable {
+            return "exclamationmark.triangle"
+        }
+
         if report.decision.shouldPreventSleep {
             if let remaining = report.manualRemainingSeconds, remaining > 0 {
                 return "timer.circle.fill"
@@ -51,6 +55,10 @@ final class DSMNMenuStore: ObservableObject {
     var statusLine: String {
         guard let report else {
             return errorMessage ?? "Loading"
+        }
+
+        if report.decision.shouldPreventSleep && !report.state.ownsSleepDisable {
+            return helperStatus == .enabled ? "Applying" : "Helper required"
         }
 
         if report.decision.shouldPreventSleep {
