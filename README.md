@@ -86,3 +86,4 @@ Set `DSMN_APPLY_PMSET=0` to force dry-run behavior while debugging the helper.
 - `docs/RAYCAST.md`
 - `docs/MACOS_APP.md`
 - `docs/PACKAGING.md`
+- `docs/HOOKS.md`
