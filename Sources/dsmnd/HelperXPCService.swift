@@ -21,8 +21,29 @@ final class DSMNHelperXPCService: NSObject, DSMNHelperXPCProtocol {
     }
 
     func enableManual(minutes: Int, withReply reply: @escaping (String) -> Void) {
+        enableManualV2(
+            minutes: minutes,
+            extendOnly: false,
+            requesterName: nil,
+            requesterContext: nil,
+            requesterEvent: nil,
+            withReply: reply
+        )
+    }
+
+    func enableManualV2(
+        minutes: Int,
+        extendOnly: Bool,
+        requesterName: String?,
+        requesterContext: String?,
+        requesterEvent: String?,
+        withReply reply: @escaping (String) -> Void
+    ) {
         reply(encode {
-            _ = try controller.enableManual(minutes: minutes)
+            let requester = requesterName.map {
+                ActivationRequester(name: $0, context: requesterContext, event: requesterEvent)
+            }
+            _ = try controller.enableManual(minutes: minutes, extendOnly: extendOnly, requester: requester)
             return .success(run: try controller.reconcile(powerManager: powerManager))
         })
     }

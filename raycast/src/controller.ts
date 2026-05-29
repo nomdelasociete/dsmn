@@ -17,6 +17,12 @@ export type StatusReport = {
     ownsSleepDisable: boolean;
     lastActivationReason?: string;
     lastStopReason?: string;
+    lastRequester?: {
+      name: string;
+      context?: string;
+      event?: string;
+      requestedAt: string;
+    };
   };
   snapshot?: {
     powerSource: "ac" | "battery" | "unknown";
@@ -90,6 +96,7 @@ export function renderStatusMarkdown(report: StatusReport): string {
     `**Status:** ${report.decision.shouldPreventSleep ? "active" : "inactive"}`,
     `**Auto:** ${report.state.autoEnabled ? "on" : "off"}`,
     `**Manual:** ${formatManual(report)}`,
+    `**Last request:** ${formatLastRequester(report)}`,
     `**Power:** ${formatPower(report)}`,
     `**Agents:** ${report.agents.length}`,
   ];
@@ -167,6 +174,15 @@ function formatManual(report: StatusReport): string {
   }
 
   return `${formatDuration(report.manualRemainingSeconds)} remaining`;
+}
+
+function formatLastRequester(report: StatusReport): string {
+  const requester = report.state.lastRequester;
+  if (!requester) {
+    return "unknown";
+  }
+
+  return requester.context ? `${requester.name} - ${requester.context}` : requester.name;
 }
 
 function formatPower(report: StatusReport): string {

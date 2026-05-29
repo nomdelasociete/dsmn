@@ -96,6 +96,14 @@ final class DSMNMenuStore: ObservableObject {
         return "Power lock: \(report.state.ownsSleepDisable ? "on" : "off")"
     }
 
+    var lastRequesterLine: String? {
+        guard let requester = report?.state.lastRequester else {
+            return nil
+        }
+
+        return "Last: \(requester.shortDisplayText(maxLength: 36))"
+    }
+
     var canRunAwakeCommands: Bool {
         helperStatus == .enabled
     }
@@ -152,10 +160,11 @@ final class DSMNMenuStore: ObservableObject {
 
     func keepAwake(minutes: Int) {
         Task {
+            let requester = ActivationRequester(name: "dsmn", context: "menu")
             await mutate(local: {
-                try $0.enableManual(minutes: minutes)
+                try $0.enableManual(minutes: minutes, requester: requester)
             }, helper: {
-                try await self.helper.enableManual(minutes: minutes)
+                try await self.helper.enableManual(minutes: minutes, requester: requester)
             })
         }
     }

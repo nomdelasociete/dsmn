@@ -50,6 +50,66 @@ public struct AgentProcess: Codable, Equatable, Sendable {
     }
 }
 
+public struct ActivationRequester: Codable, Equatable, Sendable {
+    public var name: String
+    public var context: String?
+    public var event: String?
+    public var requestedAt: Date
+
+    public init(name: String, context: String? = nil, event: String? = nil, requestedAt: Date = Date()) {
+        self.name = Self.clean(name) ?? "Unknown"
+        self.context = Self.clean(context)
+        self.event = Self.clean(event)
+        self.requestedAt = requestedAt
+    }
+
+    public func requested(at date: Date) -> ActivationRequester {
+        ActivationRequester(name: name, context: context, event: event, requestedAt: date)
+    }
+
+    public var displayText: String {
+        if let context {
+            return "\(name) - \(context)"
+        }
+
+        return name
+    }
+
+    public func shortDisplayText(maxLength: Int = 36) -> String {
+        Self.truncate(displayText, maxLength: maxLength)
+    }
+
+    private static func clean(_ value: String?) -> String? {
+        guard let value else {
+            return nil
+        }
+
+        let cleaned = value
+            .replacingOccurrences(of: "\n", with: " ")
+            .replacingOccurrences(of: "\r", with: " ")
+            .replacingOccurrences(of: "\t", with: " ")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !cleaned.isEmpty else {
+            return nil
+        }
+
+        return truncate(cleaned, maxLength: 120)
+    }
+
+    private static func truncate(_ value: String, maxLength: Int) -> String {
+        guard value.count > maxLength else {
+            return value
+        }
+
+        guard maxLength > 3 else {
+            return String(value.prefix(maxLength))
+        }
+
+        return String(value.prefix(maxLength - 3)) + "..."
+    }
+}
+
 public enum PowerSource: String, Codable, Sendable {
     case ac
     case battery
@@ -106,6 +166,7 @@ public struct DSMNState: Codable, Equatable, Sendable {
     public var ownsSleepDisable: Bool
     public var lastActivationReason: String?
     public var lastStopReason: String?
+    public var lastRequester: ActivationRequester?
     public var createdAt: Date
     public var updatedAt: Date
 
@@ -115,6 +176,7 @@ public struct DSMNState: Codable, Equatable, Sendable {
         ownsSleepDisable: Bool = false,
         lastActivationReason: String? = nil,
         lastStopReason: String? = nil,
+        lastRequester: ActivationRequester? = nil,
         createdAt: Date = Date(),
         updatedAt: Date = Date()
     ) {
@@ -123,6 +185,7 @@ public struct DSMNState: Codable, Equatable, Sendable {
         self.ownsSleepDisable = ownsSleepDisable
         self.lastActivationReason = lastActivationReason
         self.lastStopReason = lastStopReason
+        self.lastRequester = lastRequester
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }

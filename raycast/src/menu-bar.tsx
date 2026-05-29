@@ -41,9 +41,16 @@ export default function Command() {
   return (
     <MenuBarExtra icon={menuBarIcon(report)} isLoading={isLoading} title="" tooltip={statusTitle(report)}>
       <MenuBarExtra.Item title={statusTitle(report)} />
+      {lastRequesterTitle(report) ? <MenuBarExtra.Item title={lastRequesterTitle(report) ?? ""} /> : null}
       <MenuBarExtra.Separator />
-      <MenuBarExtra.Item title="Keep Awake 30m" onAction={() => run(["manual", "--minutes", "30"], "dsmn active for 30 minutes")} />
-      <MenuBarExtra.Item title="Keep Awake 90m" onAction={() => run(["manual", "--minutes", "90"], "dsmn active for 90 minutes")} />
+      <MenuBarExtra.Item
+        title="Keep Awake 30m"
+        onAction={() => run(["manual", "--minutes", "30", "--requester", "Raycast", "--context", "menu bar"], "dsmn active for 30 minutes")}
+      />
+      <MenuBarExtra.Item
+        title="Keep Awake 90m"
+        onAction={() => run(["manual", "--minutes", "90", "--requester", "Raycast", "--context", "menu bar"], "dsmn active for 90 minutes")}
+      />
       <MenuBarExtra.Item title={report?.state.autoEnabled ? "Auto Off" : "Auto On"} onAction={() => run(["auto", "toggle"], "dsmn auto toggled")} />
       <MenuBarExtra.Item title="Stop" onAction={() => run(["stop"], "dsmn stopped")} />
       <MenuBarExtra.Separator />
@@ -74,6 +81,16 @@ function menuBarIcon(report: StatusReport | null): Image.ImageLike {
   }
 
   return idleIcon;
+}
+
+function lastRequesterTitle(report: StatusReport | null): string | null {
+  const requester = report?.state.lastRequester;
+  if (!requester) {
+    return null;
+  }
+
+  const text = requester.context ? `Last: ${requester.name} - ${requester.context}` : `Last: ${requester.name}`;
+  return text.length <= 30 ? text : `${text.slice(0, 27)}...`;
 }
 
 function statusTitle(report: StatusReport | null): string {

@@ -51,10 +51,10 @@ final class HelperServiceClient {
         }.value
     }
 
-    func enableManual(minutes: Int) async throws -> StatusReport {
+    func enableManual(minutes: Int, requester: ActivationRequester? = nil) async throws -> StatusReport {
         let client = helperClient
         return try await Task.detached {
-            try client.enableManual(minutes: minutes)
+            try client.enableManual(minutes: minutes, requester: requester)
         }.value
     }
 

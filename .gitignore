@@ -8,6 +8,7 @@ xcuserdata/
 *.xcworkspace/xcuserdata/
 
 node_modules/
+raycast/raycast-env.d.ts
 
 .DS_Store
 *.log

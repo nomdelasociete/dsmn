@@ -77,10 +77,10 @@
 		54B36EE5329AD3B55A7E76C2 /* Embed Dependencies */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
-			dstPath = Contents/Library/LaunchDaemons;
+			dstPath = Contents/Library/Helpers;
 			dstSubfolderSpec = 1;
 			files = (
-				7AB68B7EEC2FFDBB33183F64 /* dsmnd in Embed Dependencies */,
+				0643E25D3C36B6DF1A393C9B /* dsmnctl in Embed Dependencies */,
 			);
 			name = "Embed Dependencies";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -109,10 +109,10 @@
 		9E6E5D8A4D39E0AEF8C45CD0 /* Embed Dependencies */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
-			dstPath = Contents/Library/Helpers;
+			dstPath = Contents/Library/LaunchDaemons;
 			dstSubfolderSpec = 1;
 			files = (
-				0643E25D3C36B6DF1A393C9B /* dsmnctl in Embed Dependencies */,
+				7AB68B7EEC2FFDBB33183F64 /* dsmnd in Embed Dependencies */,
 			);
 			name = "Embed Dependencies";
 			runOnlyForDeploymentPostprocessing = 0;

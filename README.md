@@ -38,6 +38,8 @@ This repository currently contains a working signed macOS app stack:
 - `dsmnd` LaunchDaemon executable with an XPC Mach service
 - Xcode-built `dsmn.app` that embeds the signed helper and LaunchDaemon plist
 - menu bar controls for helper registration through `SMAppService`
+- last-request visibility in the menu and CLI, including agent/session context
+  when hooks provide it
 - Raycast extension for manual duration, auto mode, stop, status, and menu bar
 - Developer ID archive and notarization scripts
 
@@ -50,7 +52,7 @@ notarized zip is written to `dist/dsmn-notarized.zip`.
 swift test
 swift run dsmn-app
 swift run dsmnctl status --json
-swift run dsmnctl manual --minutes 30
+swift run dsmnctl manual --minutes 30 --requester Terminal
 swift run dsmnctl auto toggle
 swift run dsmnctl stop
 swift run dsmnd

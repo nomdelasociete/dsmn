@@ -49,9 +49,9 @@ All installed hooks call the shared script:
 ~/.dsmn/dsmn-agent-hook.sh
 ```
 
-The script calls `dsmnctl manual --minutes 20 --extend-only` by default and
-falls back to `caffeinate -is -t 600` only if `dsmnctl` or the helper is
-unavailable.
+The script calls `dsmnctl manual --minutes 20 --extend-only --requester <agent>`
+by default, records the last requester when possible, and falls back to
+`caffeinate -is -t 600` only if `dsmnctl` or the helper is unavailable.
 
 ## Build And Test
 
@@ -105,4 +105,6 @@ SleepDisabled 1
   is unavailable, or when battery is at or below the configured threshold.
 - Hooks create bounded manual leases; repeated tool calls renew the lease
   without adding time or shortening a longer manual timer.
+- Hooks record the last requester, for example `Codex - dsmn - session abc12345`
+  when the hook payload exposes session context.
 - dsmn does not intentionally keep the display awake.

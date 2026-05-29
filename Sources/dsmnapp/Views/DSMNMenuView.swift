@@ -17,6 +17,10 @@ struct DSMNMenuView: View {
             Text(powerLockLine)
         }
 
+        if let lastRequesterLine = store.lastRequesterLine {
+            Text(lastRequesterLine)
+        }
+
         if let errorMessage = store.errorMessage {
             Text(short(errorMessage))
         }

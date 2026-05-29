@@ -81,6 +81,7 @@ struct DSMNCTL {
     private struct ManualOptions {
         var minutes: Int
         var extendOnly: Bool
+        var requester: ActivationRequester
     }
 
     private static func readStatus(
@@ -116,16 +117,21 @@ struct DSMNCTL {
     ) throws -> StatusReport {
         try validateManualDuration(options.minutes, maxMinutes: controller.decisionEngine.policy.maxManualDurationMinutes)
 
-        if options.extendOnly {
-            return try preferHelper(
-                { try extendManualWithHelper(minutes: options.minutes, helper: helper) },
-                fallback: { try controller.enableManual(minutes: options.minutes, extendOnly: true) }
-            )
-        }
-
         return try preferHelper(
-            { try helper.enableManual(minutes: options.minutes) },
-            fallback: { try controller.enableManual(minutes: options.minutes) }
+            {
+                try helper.enableManual(
+                    minutes: options.minutes,
+                    extendOnly: options.extendOnly,
+                    requester: options.requester
+                )
+            },
+            fallback: {
+                try controller.enableManual(
+                    minutes: options.minutes,
+                    extendOnly: options.extendOnly,
+                    requester: options.requester
+                )
+            }
         )
     }
 
@@ -139,45 +145,67 @@ struct DSMNCTL {
         }
     }
 
-    private static func extendManualWithHelper(
-        minutes: Int,
-        helper: DSMNHelperXPCClient
-    ) throws -> StatusReport {
-        let current = try helper.status()
-        let requestedUntil = Date().addingTimeInterval(TimeInterval(minutes * 60))
+    private static func parseManualOptions(arguments: [String]) throws -> ManualOptions {
+        var minutes: Int?
+        var extendOnly = false
+        var requesterName = "Terminal"
+        var requesterContext: String?
+        var requesterEvent: String?
+        var index = 0
 
-        if let manualUntil = current.state.manualUntil, manualUntil > requestedUntil {
-            return try helper.reconcile().status
+        while index < arguments.count {
+            let argument = arguments[index]
+
+            switch argument {
+            case "--extend-only":
+                extendOnly = true
+                index += 1
+            case "--minutes":
+                guard arguments.indices.contains(index + 1) else {
+                    throw DSMNError.invalidDuration("use dsmnctl manual --minutes <n>")
+                }
+                guard let parsed = Int(arguments[index + 1]) else {
+                    throw DSMNError.invalidDuration(arguments[index + 1])
+                }
+                minutes = parsed
+                index += 2
+            case "--requester", "--source":
+                guard arguments.indices.contains(index + 1) else {
+                    throw DSMNError.invalidCommand("\(argument) requires a value")
+                }
+                requesterName = arguments[index + 1]
+                index += 2
+            case "--context":
+                guard arguments.indices.contains(index + 1) else {
+                    throw DSMNError.invalidCommand("\(argument) requires a value")
+                }
+                requesterContext = arguments[index + 1]
+                index += 2
+            case "--event":
+                guard arguments.indices.contains(index + 1) else {
+                    throw DSMNError.invalidCommand("\(argument) requires a value")
+                }
+                requesterEvent = arguments[index + 1]
+                index += 2
+            default:
+                if minutes == nil, let parsed = Int(argument) {
+                    minutes = parsed
+                    index += 1
+                } else {
+                    throw DSMNError.invalidCommand("manual \(argument)")
+                }
+            }
         }
 
-        return try helper.enableManual(minutes: minutes)
-    }
-
-    private static func parseManualOptions(arguments: [String]) throws -> ManualOptions {
-        var values = arguments
-        let extendOnly = values.contains("--extend-only")
-        values.removeAll { $0 == "--extend-only" }
+        guard let minutes else {
+            throw DSMNError.invalidDuration("use dsmnctl manual --minutes <n>")
+        }
 
         return ManualOptions(
-            minutes: try parseMinutes(arguments: values),
-            extendOnly: extendOnly
+            minutes: minutes,
+            extendOnly: extendOnly,
+            requester: ActivationRequester(name: requesterName, context: requesterContext, event: requesterEvent)
         )
-    }
-
-    private static func parseMinutes(arguments: [String]) throws -> Int {
-        if let index = arguments.firstIndex(of: "--minutes"), arguments.indices.contains(index + 1) {
-            guard let minutes = Int(arguments[index + 1]) else {
-                throw DSMNError.invalidDuration(arguments[index + 1])
-            }
-
-            return minutes
-        }
-
-        if let first = arguments.first, let minutes = Int(first) {
-            return minutes
-        }
-
-        throw DSMNError.invalidDuration("use dsmnctl manual --minutes <n>")
     }
 
     private static func parseAutoAction(arguments: [String]) throws -> AutoAction {
@@ -255,6 +283,13 @@ struct DSMNCTL {
             print("Manual: off")
         }
 
+        if let requester = report.state.lastRequester {
+            print("Last request: \(requester.displayText)")
+            if let event = requester.event {
+                print("Last event: \(event)")
+            }
+        }
+
         if report.agents.isEmpty {
             print("Agents: none")
         } else {
@@ -315,6 +350,12 @@ struct DSMNCTL {
         print("Auto: \(report.state.autoEnabled ? "on" : "off")")
         print("Power lock: \(report.state.ownsSleepDisable ? "on" : "off")")
         print("macOS SleepDisabled: \(formatOptionalFlag(liveSleepDisabled))")
+        if let requester = report.state.lastRequester {
+            print("Last request: \(requester.displayText)")
+            if let event = requester.event {
+                print("Last event: \(event)")
+            }
+        }
         print("Agents detected: \(report.agents.count)")
         for agent in report.agents {
             print("- \(agent.kind.displayName) pid=\(agent.pid) executable=\(agent.executable)")
@@ -366,7 +407,7 @@ struct DSMNCTL {
 
             Commands:
               status [--json]
-              manual --minutes <n> [--extend-only] [--json]
+              manual --minutes <n> [--extend-only] [--requester <name>] [--context <text>] [--event <name>] [--json]
               auto [on|off|toggle] [--json]
               stop [--json]
               doctor

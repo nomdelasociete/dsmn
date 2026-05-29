@@ -11,6 +11,14 @@ public enum DSMNServiceConstants {
 public protocol DSMNHelperXPCProtocol {
     func status(withReply reply: @escaping (String) -> Void)
     func enableManual(minutes: Int, withReply reply: @escaping (String) -> Void)
+    func enableManualV2(
+        minutes: Int,
+        extendOnly: Bool,
+        requesterName: String?,
+        requesterContext: String?,
+        requesterEvent: String?,
+        withReply reply: @escaping (String) -> Void
+    )
     func setAuto(enabled: Bool, withReply reply: @escaping (String) -> Void)
     func toggleAuto(withReply reply: @escaping (String) -> Void)
     func stop(withReply reply: @escaping (String) -> Void)
@@ -76,8 +84,31 @@ public final class DSMNHelperXPCClient: @unchecked Sendable {
         }
     }
 
-    public func enableManual(minutes: Int) throws -> StatusReport {
-        try request { proxy, reply in
+    public func enableManual(
+        minutes: Int,
+        extendOnly: Bool = false,
+        requester: ActivationRequester? = nil
+    ) throws -> StatusReport {
+        if extendOnly || requester != nil {
+            do {
+                return try request { proxy, reply in
+                    proxy.enableManualV2(
+                        minutes: minutes,
+                        extendOnly: extendOnly,
+                        requesterName: requester?.name,
+                        requesterContext: requester?.context,
+                        requesterEvent: requester?.event,
+                        withReply: reply
+                    )
+                }
+            } catch {
+                if extendOnly {
+                    return try extendManualWithLegacyHelper(minutes: minutes)
+                }
+            }
+        }
+
+        return try request { proxy, reply in
             proxy.enableManual(minutes: minutes, withReply: reply)
         }
     }
@@ -110,6 +141,19 @@ public final class DSMNHelperXPCClient: @unchecked Sendable {
         }
 
         return run
+    }
+
+    private func extendManualWithLegacyHelper(minutes: Int) throws -> StatusReport {
+        let current = try status()
+        let requestedUntil = Date().addingTimeInterval(TimeInterval(minutes * 60))
+
+        if let manualUntil = current.state.manualUntil, manualUntil > requestedUntil {
+            return try reconcile().status
+        }
+
+        return try request { proxy, reply in
+            proxy.enableManual(minutes: minutes, withReply: reply)
+        }
     }
 
     private func request(

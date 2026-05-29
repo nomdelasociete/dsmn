@@ -13,7 +13,10 @@ export default function Command() {
 
   async function submit(values: Values) {
     const minutes = parseMinutes(values);
-    await runDsmnctlWithHUD(["manual", "--minutes", String(minutes)], `dsmn active for ${minutes} minutes`);
+    await runDsmnctlWithHUD(
+      ["manual", "--minutes", String(minutes), "--requester", "Raycast", "--context", "manual"],
+      `dsmn active for ${minutes} minutes`
+    );
   }
 
   return (
@@ -47,4 +50,3 @@ function parseMinutes(values: Values): number {
 
   return Math.floor(minutes);
 }
-
