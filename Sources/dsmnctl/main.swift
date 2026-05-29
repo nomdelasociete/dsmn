@@ -20,6 +20,7 @@ struct DSMNCTL {
 
         let store = try StateStore.defaultStore()
         let controller = DSMNController(store: store)
+        let helper = DSMNHelperXPCClient()
 
         guard let command = arguments.first else {
             let report = try controller.status()
@@ -29,30 +30,59 @@ struct DSMNCTL {
 
         switch command {
         case "status":
-            let report = try controller.status()
+            let report = try preferHelper({ try helper.status() }, fallback: { try controller.status() })
             try printReport(report, json: json)
         case "manual":
             let minutes = try parseMinutes(arguments: Array(arguments.dropFirst()))
-            let report = try controller.enableManual(minutes: minutes)
+            let report = try preferHelper(
+                { try helper.enableManual(minutes: minutes) },
+                fallback: { try controller.enableManual(minutes: minutes) }
+            )
             try printReport(report, json: json)
         case "auto":
             let action = try parseAutoAction(arguments: Array(arguments.dropFirst()))
-            let report = try controller.setAuto(action)
+            let report = try runAuto(action, helper: helper, controller: controller)
             try printReport(report, json: json)
         case "stop":
-            let report = try controller.stop()
+            let report = try preferHelper({ try helper.stop() }, fallback: { try controller.stop() })
             try printReport(report, json: json)
         case "doctor":
             let report = try controller.status()
             printDoctor(report)
         case "repair":
-            let report = try controller.stop()
+            let report = try controller.repairState()
             try printReport(report, json: json)
             print("repair: dry-run state repaired; helper power cleanup is not implemented yet")
         case "help", "--help", "-h":
             printHelp()
         default:
             throw DSMNError.invalidCommand(command)
+        }
+    }
+
+    private static func preferHelper(
+        _ helperOperation: () throws -> StatusReport,
+        fallback: () throws -> StatusReport
+    ) throws -> StatusReport {
+        if let report = try? helperOperation() {
+            return report
+        }
+
+        return try fallback()
+    }
+
+    private static func runAuto(
+        _ action: AutoAction,
+        helper: DSMNHelperXPCClient,
+        controller: DSMNController
+    ) throws -> StatusReport {
+        switch action {
+        case .on:
+            return try preferHelper({ try helper.setAuto(true) }, fallback: { try controller.setAuto(.on) })
+        case .off:
+            return try preferHelper({ try helper.setAuto(false) }, fallback: { try controller.setAuto(.off) })
+        case .toggle:
+            return try preferHelper({ try helper.toggleAuto() }, fallback: { try controller.setAuto(.toggle) })
         }
     }
 

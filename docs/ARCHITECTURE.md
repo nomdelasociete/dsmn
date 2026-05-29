@@ -37,7 +37,7 @@ dsmnctl repair
 
 ## Helper
 
-`dsmnd` will become a privileged LaunchDaemon registered through the app with
+`dsmnd` is the privileged LaunchDaemon executable registered through the app with
 `SMAppService`. It is the only component allowed to call `pmset`.
 
 The helper must:
@@ -45,22 +45,33 @@ The helper must:
 - apply `pmset -a disablesleep 1` only when the decision engine says active;
 - release with `pmset -a disablesleep 0` when no longer needed;
 - persist ownership so recovery is possible after crash or reboot;
-- expose status to the app and CLI.
+- expose status to the app and CLI over the Mach service
+  `com.nomdelasociete.dsmn.helper`.
 
-Today `dsmnd` runs the same reconciliation path but defaults to dry-run power
-operations. It only executes `pmset` when `DSMN_APPLY_PMSET=1` is present.
+The development one-shot command runs the same reconciliation path but defaults
+to dry-run power operations. The LaunchDaemon `serve` mode executes power changes
+only when running as root, unless `DSMN_APPLY_PMSET=0` forces dry-run mode.
+
+The daemon owns system state in `/Library/Application Support/dsmn`. User-facing
+local development state remains under `~/.dsmn` unless `DSMN_STATE_DIR` is set.
 
 ## App
 
-`dsmn.app` will be a SwiftUI menu bar app.
+`dsmn.app` is a SwiftUI menu bar app.
 
 The macOS menu bar item is icon-only. The icon should use an official SF Symbol
 for the menu bar if a good one fits. App and Raycast branding must not use an SF
 Symbol as a logo.
 
-The current development entrypoint is `swift run dsmn-app`. It is a SwiftPM-hosted
-menu-bar app that writes `dsmn` state but does not install or communicate with the
-future privileged helper yet.
+The current development entrypoint is `swift run dsmn-app`. The Xcode-built app
+embeds:
+
+- `Contents/Library/LaunchDaemons/dsmnd`
+- `Contents/Library/LaunchDaemons/com.nomdelasociete.dsmn.helper.plist`
+
+It can register or unregister the helper with `SMAppService.daemon(plistName:)`.
+For local development before approval/notarization, it falls back to local state
+when the helper is not registered.
 
 The Xcode entrypoint is generated from `project.yml` with XcodeGen. It builds:
 
@@ -71,5 +82,6 @@ The Xcode entrypoint is generated from `project.yml` with XcodeGen. It builds:
 
 ## Raycast
 
-The Raycast extension is a remote control. It invokes `dsmnctl` or the app URL
-scheme. It never runs `sudo`, `pmset`, or `caffeinate`.
+The Raycast extension is a remote control. It invokes `dsmnctl`. `dsmnctl` tries
+the helper XPC service first and falls back to local state for development. It
+never runs `sudo`, `pmset`, or `caffeinate`.

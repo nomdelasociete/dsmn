@@ -35,9 +35,21 @@ targets:
     platform: macOS
     sources:
       - path: Sources/dsmnapp
+      - path: macos/LaunchDaemons/com.nomdelasociete.dsmn.helper.plist
+        buildPhase:
+          copyFiles:
+            destination: wrapper
+            subpath: Contents/Library/LaunchDaemons
     dependencies:
       - target: DSMNCore
         embed: true
+      - target: dsmnd
+        embed: true
+        link: false
+        codeSign: true
+        copy:
+          destination: wrapper
+          subpath: Contents/Library/LaunchDaemons
     info:
       path: macos/dsmn/Info.plist
       properties:

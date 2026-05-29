@@ -33,9 +33,12 @@ dsmnctl stop
 dsmnctl status --json
 ```
 
+`dsmnctl` tries the privileged helper over XPC first. If the helper is not
+registered, it falls back to local development state so the extension remains
+usable before installation.
+
 Raycast is not allowed to:
 
 - call `pmset`;
 - call `sudo`;
 - make power-management decisions itself.
-

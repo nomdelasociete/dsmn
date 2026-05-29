@@ -6,8 +6,10 @@ final class DSMNMenuStore: ObservableObject {
     @Published private(set) var report: StatusReport?
     @Published private(set) var errorMessage: String?
     @Published private(set) var isRefreshing = false
+    @Published private(set) var helperStatus: HelperRegistrationStatus = .notFound
 
     private let controller: DSMNController?
+    private let helper = HelperServiceClient()
     private let setupError: Error?
 
     init() {
@@ -46,6 +48,22 @@ final class DSMNMenuStore: ObservableObject {
         return "Off"
     }
 
+    var helperStatusLine: String {
+        "Helper: \(helperStatus.displayName)"
+    }
+
+    var canInstallHelper: Bool {
+        helperStatus == .notRegistered || helperStatus == .notFound
+    }
+
+    var canUnregisterHelper: Bool {
+        helperStatus == .enabled || helperStatus == .requiresApproval
+    }
+
+    var helperNeedsApproval: Bool {
+        helperStatus == .requiresApproval
+    }
+
     func refresh() async {
         guard let controller else {
             errorMessage = setupError?.localizedDescription
@@ -58,9 +76,8 @@ final class DSMNMenuStore: ObservableObject {
         }
 
         do {
-            report = try await Task.detached {
-                try controller.status()
-            }.value
+            helperStatus = helper.registrationStatus
+            report = try await readStatus(controller: controller)
             errorMessage = nil
         } catch {
             errorMessage = error.localizedDescription
@@ -69,37 +86,48 @@ final class DSMNMenuStore: ObservableObject {
 
     func keepAwake(minutes: Int) {
         Task {
-            await mutate {
+            await mutate(local: {
                 try $0.enableManual(minutes: minutes)
-            }
+            }, helper: {
+                try await self.helper.enableManual(minutes: minutes)
+            })
         }
     }
 
     func toggleAuto() {
         Task {
-            await mutate {
+            await mutate(local: {
                 try $0.setAuto(.toggle)
-            }
+            }, helper: {
+                try await self.helper.toggleAuto()
+            })
         }
     }
 
     func setAuto(_ enabled: Bool) {
         Task {
-            await mutate {
+            await mutate(local: {
                 try $0.setAuto(enabled ? .on : .off)
-            }
+            }, helper: {
+                try await self.helper.setAuto(enabled)
+            })
         }
     }
 
     func stop() {
         Task {
-            await mutate {
+            await mutate(local: {
                 try $0.stop()
-            }
+            }, helper: {
+                try await self.helper.stop()
+            })
         }
     }
 
-    private func mutate(_ operation: @escaping @Sendable (DSMNController) throws -> StatusReport) async {
+    private func mutate(
+        local localOperation: @escaping @Sendable (DSMNController) throws -> StatusReport,
+        helper helperOperation: @escaping () async throws -> StatusReport
+    ) async {
         guard let controller else {
             errorMessage = setupError?.localizedDescription
             return
@@ -111,13 +139,67 @@ final class DSMNMenuStore: ObservableObject {
         }
 
         do {
-            report = try await Task.detached {
-                try operation(controller)
-            }.value
+            helperStatus = helper.registrationStatus
+            if helperStatus == .enabled {
+                report = try await helperOperation()
+            } else {
+                report = try await Task.detached {
+                    try localOperation(controller)
+                }.value
+            }
             errorMessage = nil
         } catch {
             errorMessage = error.localizedDescription
         }
+    }
+
+    func installHelper() {
+        Task {
+            isRefreshing = true
+            defer {
+                isRefreshing = false
+            }
+
+            do {
+                helperStatus = try helper.register()
+                errorMessage = helperStatus == .requiresApproval ? "Approve helper in System Settings" : nil
+            } catch {
+                errorMessage = error.localizedDescription
+                helperStatus = helper.registrationStatus
+            }
+        }
+    }
+
+    func unregisterHelper() {
+        Task {
+            isRefreshing = true
+            defer {
+                isRefreshing = false
+            }
+
+            do {
+                helperStatus = try helper.unregister()
+                errorMessage = nil
+                await refresh()
+            } catch {
+                errorMessage = error.localizedDescription
+                helperStatus = helper.registrationStatus
+            }
+        }
+    }
+
+    func openHelperSettings() {
+        helper.openLoginItemsSettings()
+    }
+
+    private func readStatus(controller: DSMNController) async throws -> StatusReport {
+        if helperStatus == .enabled {
+            return try await helper.status()
+        }
+
+        return try await Task.detached {
+            try controller.status()
+        }.value
     }
 
     private func formatDuration(_ seconds: Int) -> String {

@@ -61,6 +61,28 @@ final class DaemonReconcileTests: XCTestCase {
         XCTAssertFalse(try store.load().ownsSleepDisable)
     }
 
+    func testStopPreservesOwnershipUntilReconcileReleasesPower() throws {
+        let now = Date(timeIntervalSince1970: 1_000)
+        let store = try makeStore()
+        try store.save(DSMNState(autoEnabled: true, ownsSleepDisable: true))
+        let controller = DSMNController(
+            store: store,
+            processListing: StaticProcessListing([]),
+            snapshotProvider: StaticSystemSnapshotProvider(SystemSnapshot(now: now, powerSource: .ac))
+        )
+
+        let stopped = try controller.stop(now: now)
+
+        XCTAssertFalse(stopped.state.autoEnabled)
+        XCTAssertTrue(stopped.state.ownsSleepDisable)
+
+        let powerManager = RecordingPowerManager(dryRun: false)
+        let report = try controller.reconcile(powerManager: powerManager, now: now)
+
+        XCTAssertEqual(powerManager.requests, [false])
+        XCTAssertFalse(report.status.state.ownsSleepDisable)
+    }
+
     private func makeStore() throws -> StateStore {
         let directory = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
             .appendingPathComponent("dsmn-\(UUID().uuidString)", isDirectory: true)
@@ -89,4 +111,3 @@ private final class RecordingPowerManager: PowerManaging, @unchecked Sendable {
         )
     }
 }
-

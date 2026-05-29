@@ -27,15 +27,20 @@ send intent; they never modify system sleep settings directly.
 
 ## Current status
 
-This repository currently contains the foundation:
+This repository currently contains the foundation plus the first privileged
+helper integration slice:
 
 - SwiftPM package
 - core state and decision engine
-- `dsmnctl` dry-run CLI
-- `dsmnd` daemon runner with dry-run `pmset` operations by default
+- `dsmnctl` CLI, which tries the helper XPC service before falling back to local
+  development state
+- `dsmnd` LaunchDaemon executable with an XPC Mach service
+- Xcode-built `dsmn.app` that embeds the signed helper and LaunchDaemon plist
+- menu bar controls for helper registration through `SMAppService`
 - Raycast extension scaffold
 
-The privileged helper and signed macOS app bundle are the next milestone.
+The remaining production milestone is packaging/notarization plus a real
+installation pass from `/Applications`.
 
 ## Local development
 
@@ -47,6 +52,7 @@ swift run dsmnctl manual --minutes 30
 swift run dsmnctl auto toggle
 swift run dsmnctl stop
 swift run dsmnd
+swift run dsmnd daemon-once
 ./script/build_and_run.sh
 ```
 
@@ -63,11 +69,12 @@ Use `DSMN_STATE_DIR` to avoid writing to the default state directory while testi
 DSMN_STATE_DIR=/tmp/dsmn-dev swift run dsmnctl status
 ```
 
-`dsmnd` does not execute `pmset` unless explicitly enabled:
+The one-shot `dsmnd` development command does not execute `pmset` unless
+explicitly enabled:
 
 ```sh
 DSMN_APPLY_PMSET=1 swift run dsmnd
 ```
 
-That command is intended for the future privileged helper context, not ordinary
-Raycast execution.
+The LaunchDaemon `serve` mode is intended to run as root from `SMAppService`.
+Set `DSMN_APPLY_PMSET=0` to force dry-run behavior while debugging the helper.

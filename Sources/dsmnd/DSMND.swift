@@ -6,7 +6,13 @@ import Foundation
 struct DSMND {
     static func main() {
         do {
-            let store = try StateStore.defaultStore()
+            let arguments = Array(CommandLine.arguments.dropFirst())
+            if arguments.first == "serve" {
+                serve()
+                return
+            }
+
+            let store = arguments.first == "daemon-once" ? StateStore.daemonStore() : try StateStore.defaultStore()
             let controller = DSMNController(store: store)
             let dryRun = ProcessInfo.processInfo.environment["DSMN_APPLY_PMSET"] != "1"
             let powerManager = PMSetPowerManager(dryRun: dryRun)
@@ -24,5 +30,13 @@ struct DSMND {
             fputs("dsmnd: \(error.localizedDescription)\n", stderr)
             exit(1)
         }
+    }
+
+    private static func serve() {
+        let delegate = DSMNHelperXPCDelegate()
+        let listener = NSXPCListener(machServiceName: DSMNServiceConstants.helperMachServiceName)
+        listener.delegate = delegate
+        listener.resume()
+        RunLoop.main.run()
     }
 }

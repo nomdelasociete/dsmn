@@ -58,6 +58,14 @@ public struct StateStore: Sendable {
         throw DSMNError.stateDirectoryUnavailable
     }
 
+    public static func daemonStore(environment: [String: String] = ProcessInfo.processInfo.environment) -> StateStore {
+        if let override = environment["DSMN_STATE_DIR"], !override.isEmpty {
+            return StateStore(directory: URL(fileURLWithPath: override, isDirectory: true))
+        }
+
+        return StateStore(directory: URL(fileURLWithPath: "/Library/Application Support/dsmn", isDirectory: true))
+    }
+
     private var encoder: JSONEncoder {
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
@@ -71,4 +79,3 @@ public struct StateStore: Sendable {
         return decoder
     }
 }
-

@@ -106,8 +106,18 @@ public struct DSMNController: Sendable {
         var state = try store.load()
         state.autoEnabled = false
         state.manualUntil = nil
-        state.ownsSleepDisable = false
         state.lastStopReason = "user_stop"
+        state.updatedAt = now
+        try store.save(state)
+        return try makeStatus(state: state, now: now)
+    }
+
+    public func repairState(now: Date = Date()) throws -> StatusReport {
+        var state = try store.load()
+        state.autoEnabled = false
+        state.manualUntil = nil
+        state.ownsSleepDisable = false
+        state.lastStopReason = "repair"
         state.updatedAt = now
         try store.save(state)
         return try makeStatus(state: state, now: now)
@@ -213,4 +223,3 @@ public struct StaticProcessListing: ProcessListing {
         processes
     }
 }
-

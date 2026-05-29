@@ -22,8 +22,9 @@ For the Xcode-built `.app` bundle:
 ./script/build_and_run.sh
 ```
 
-The current app writes state through `DSMNCore`. It does not execute `pmset`
-directly and does not install the privileged helper.
+The app writes state through `DSMNCore` in development mode. In the Xcode-built
+bundle, it also embeds the helper executable and LaunchDaemon plist and can ask
+`SMAppService` to register or unregister the helper.
 
 ## Menu actions
 
@@ -32,16 +33,25 @@ directly and does not install the privileged helper.
 - `Auto On` / `Auto Off`
 - `Stop`
 - `Refresh`
+- `Install Helper`
+- `Open Login Items`
+- `Unregister Helper`
 - `Quit`
 
 ## Next bundle step
 
-The production app should be packaged as `dsmn.app` with:
+The production app is packaged as `dsmn.app` with:
 
 - `LSUIElement` enabled;
 - helper registration through `SMAppService`;
 - signed helper embedded in the app bundle;
 - final app icon asset separate from SF Symbols.
+
+Still required for a production install:
+
+- copy the archived app to `/Applications`;
+- notarize the app before relying on LaunchDaemon registration;
+- approve the helper in System Settings when macOS requests it.
 
 ## Xcode project
 

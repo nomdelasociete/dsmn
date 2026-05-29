@@ -12,21 +12,33 @@
 		3859C15BC198D9FA919AC362 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0D529786998707F7F4A7C78 /* main.swift */; };
 		3EAAD859F9B5BF895A2D2B7E /* DSMNCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 74B444C620310ADFA67DB8E3 /* DSMNCore.framework */; };
 		44D1F403292D62A04AB4BEFC /* StatusReport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3619C42C42B624EEF07BA6AC /* StatusReport.swift */; };
+		4666E8007090B6F18D21E4D6 /* com.nomdelasociete.dsmn.helper.plist in CopyFiles */ = {isa = PBXBuildFile; fileRef = 1428E24E9C88059C6735E168 /* com.nomdelasociete.dsmn.helper.plist */; };
 		48B342822DB4A703A252BE4C /* DSMNMenuStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F2C7905739A9F21409A0728 /* DSMNMenuStore.swift */; };
 		6119B41483147AF7FA74C71D /* DSMNCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 74B444C620310ADFA67DB8E3 /* DSMNCore.framework */; };
 		6F0918E8F5D6C670806C0BC1 /* SystemSnapshotProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = F670FC14F66FBA7A602B5CBE /* SystemSnapshotProvider.swift */; };
 		726EF89C354B1FAA841B9DC6 /* DSMNMenuView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 849E36A9D8CE4CD95098D34D /* DSMNMenuView.swift */; };
+		7AB68B7EEC2FFDBB33183F64 /* dsmnd in Embed Dependencies */ = {isa = PBXBuildFile; fileRef = 4FF12FB4F2E9D0CA91282B07 /* dsmnd */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		809705EFBD76D07779E7138F /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7B4A2E7E5EA04A0BF90449F /* Models.swift */; };
-		824970F347D8189EECE0CBDE /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAE06F4F632C1BC18023B642 /* main.swift */; };
 		8BB43E1563BD73705526097D /* PowerDecisionEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4ED81C70EF47353A88BF55D1 /* PowerDecisionEngine.swift */; };
 		901BC43E9E0364F95FE9F074 /* DSMNCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 74B444C620310ADFA67DB8E3 /* DSMNCore.framework */; };
 		B3DFFD72854DAF3E6FE29A2B /* PowerManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 905431EEC13EC448A5EB8382 /* PowerManager.swift */; };
+		BA4E80D2B6B0BBFDEEA0B2FB /* HelperXPC.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61FE22C17B810CA959C3CACA /* HelperXPC.swift */; };
+		D22B79587D387496D7F5FBA3 /* HelperServiceClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5BBDCFF55A2F8F35800A50E /* HelperServiceClient.swift */; };
+		D366B9E2BC191D283E594B97 /* DSMND.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C89A4114361C6F9FACA4919 /* DSMND.swift */; };
 		D98AF5874BCF38EA0012AE27 /* CommandRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6D2A8150F5191D00E4A19F5 /* CommandRunner.swift */; };
+		DDE66F40FBEDA5D11D38322A /* HelperXPCService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B631CA4B883E9FCF612EA3B6 /* HelperXPCService.swift */; };
 		E1792FA739919FB2B00EA4CA /* StateStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC8C8661F0C29336DF4C864E /* StateStore.swift */; };
 		F1011D2B35C90E2C704D387C /* DSMNCore.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 74B444C620310ADFA67DB8E3 /* DSMNCore.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		4139B35D079E03F7CC44893B /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F82E026099EF30A0341DCD08 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = C05CA8E306CCA7792D28A714;
+			remoteInfo = dsmnd;
+		};
 		5CC696C0357021811B7B774E /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = F82E026099EF30A0341DCD08 /* Project object */;
@@ -51,6 +63,27 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
+		54B36EE5329AD3B55A7E76C2 /* Embed Dependencies */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = Contents/Library/LaunchDaemons;
+			dstSubfolderSpec = 1;
+			files = (
+				7AB68B7EEC2FFDBB33183F64 /* dsmnd in Embed Dependencies */,
+			);
+			name = "Embed Dependencies";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		54C9C4DA35A00E2EA0818978 /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = Contents/Library/LaunchDaemons;
+			dstSubfolderSpec = 1;
+			files = (
+				4666E8007090B6F18D21E4D6 /* com.nomdelasociete.dsmn.helper.plist in CopyFiles */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		666066B67BA79E75C1D837F7 /* Embed Frameworks */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -66,17 +99,21 @@
 
 /* Begin PBXFileReference section */
 		0F2C7905739A9F21409A0728 /* DSMNMenuStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DSMNMenuStore.swift; sourceTree = "<group>"; };
+		1428E24E9C88059C6735E168 /* com.nomdelasociete.dsmn.helper.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = com.nomdelasociete.dsmn.helper.plist; sourceTree = "<group>"; };
 		1A393D53B83902538C1B8CB1 /* dsmn.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = dsmn.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		3619C42C42B624EEF07BA6AC /* StatusReport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusReport.swift; sourceTree = "<group>"; };
 		4D67112750F54179C1E0BEEC /* AgentDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentDetector.swift; sourceTree = "<group>"; };
 		4ED81C70EF47353A88BF55D1 /* PowerDecisionEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerDecisionEngine.swift; sourceTree = "<group>"; };
 		4FF12FB4F2E9D0CA91282B07 /* dsmnd */ = {isa = PBXFileReference; includeInIndex = 0; path = dsmnd; sourceTree = BUILT_PRODUCTS_DIR; };
+		61FE22C17B810CA959C3CACA /* HelperXPC.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperXPC.swift; sourceTree = "<group>"; };
 		74B444C620310ADFA67DB8E3 /* DSMNCore.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = DSMNCore.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		849E36A9D8CE4CD95098D34D /* DSMNMenuView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DSMNMenuView.swift; sourceTree = "<group>"; };
 		905431EEC13EC448A5EB8382 /* PowerManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerManager.swift; sourceTree = "<group>"; };
+		9C89A4114361C6F9FACA4919 /* DSMND.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DSMND.swift; sourceTree = "<group>"; };
+		B631CA4B883E9FCF612EA3B6 /* HelperXPCService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperXPCService.swift; sourceTree = "<group>"; };
+		C5BBDCFF55A2F8F35800A50E /* HelperServiceClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperServiceClient.swift; sourceTree = "<group>"; };
 		C92E378A107B31D8A2594DF8 /* DSMNApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DSMNApp.swift; sourceTree = "<group>"; };
 		CC8C8661F0C29336DF4C864E /* StateStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StateStore.swift; sourceTree = "<group>"; };
-		DAE06F4F632C1BC18023B642 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		E0D529786998707F7F4A7C78 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		F0EF5AEFD1754A2A344509EC /* dsmnctl */ = {isa = PBXFileReference; includeInIndex = 0; path = dsmnctl; sourceTree = BUILT_PRODUCTS_DIR; };
 		F670FC14F66FBA7A602B5CBE /* SystemSnapshotProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemSnapshotProvider.swift; sourceTree = "<group>"; };
@@ -116,6 +153,7 @@
 			isa = PBXGroup;
 			children = (
 				8BF76EEC85DEFFD2F1748E1E /* App */,
+				6679BE90D4D9FB7F7D8B2F06 /* Services */,
 				25E5CA897F1F93BB96961FFA /* Stores */,
 				B82AEAA00A23BA592F9D53CF /* Views */,
 			);
@@ -131,6 +169,14 @@
 			path = Stores;
 			sourceTree = "<group>";
 		};
+		6679BE90D4D9FB7F7D8B2F06 /* Services */ = {
+			isa = PBXGroup;
+			children = (
+				C5BBDCFF55A2F8F35800A50E /* HelperServiceClient.swift */,
+			);
+			path = Services;
+			sourceTree = "<group>";
+		};
 		67637178DB7A2D741213A66C = {
 			isa = PBXGroup;
 			children = (
@@ -138,6 +184,7 @@
 				F55B336F1B1213CCB1E57D1F /* DSMNCore */,
 				DE542C038B4A0111D63B0326 /* dsmnctl */,
 				8A33A42A558F3C9FD3D953F9 /* dsmnd */,
+				7E75CA4261FA50B35401D411 /* LaunchDaemons */,
 				7281EFF6967FB7EE9DCDA49C /* Products */,
 			);
 			sourceTree = "<group>";
@@ -153,10 +200,20 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		7E75CA4261FA50B35401D411 /* LaunchDaemons */ = {
+			isa = PBXGroup;
+			children = (
+				1428E24E9C88059C6735E168 /* com.nomdelasociete.dsmn.helper.plist */,
+			);
+			name = LaunchDaemons;
+			path = macos/LaunchDaemons;
+			sourceTree = "<group>";
+		};
 		8A33A42A558F3C9FD3D953F9 /* dsmnd */ = {
 			isa = PBXGroup;
 			children = (
-				DAE06F4F632C1BC18023B642 /* main.swift */,
+				9C89A4114361C6F9FACA4919 /* DSMND.swift */,
+				B631CA4B883E9FCF612EA3B6 /* HelperXPCService.swift */,
 			);
 			name = dsmnd;
 			path = Sources/dsmnd;
@@ -192,6 +249,7 @@
 			children = (
 				4D67112750F54179C1E0BEEC /* AgentDetector.swift */,
 				F6D2A8150F5191D00E4A19F5 /* CommandRunner.swift */,
+				61FE22C17B810CA959C3CACA /* HelperXPC.swift */,
 				F7B4A2E7E5EA04A0BF90449F /* Models.swift */,
 				4ED81C70EF47353A88BF55D1 /* PowerDecisionEngine.swift */,
 				905431EEC13EC448A5EB8382 /* PowerManager.swift */,
@@ -266,13 +324,16 @@
 			buildConfigurationList = AC24F6A764A06F1BEEC469D6 /* Build configuration list for PBXNativeTarget "dsmn" */;
 			buildPhases = (
 				EEC53617805C01DF12FFAF38 /* Sources */,
+				54C9C4DA35A00E2EA0818978 /* CopyFiles */,
 				178846A376B2F1864E8F2B1E /* Frameworks */,
 				666066B67BA79E75C1D837F7 /* Embed Frameworks */,
+				54B36EE5329AD3B55A7E76C2 /* Embed Dependencies */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 				800DDF5BB95E7AD1B796171D /* PBXTargetDependency */,
+				0D7E3D7975D6CB21E3A0CCCC /* PBXTargetDependency */,
 			);
 			name = dsmn;
 			packageProductDependencies = (
@@ -343,7 +404,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				824970F347D8189EECE0CBDE /* main.swift in Sources */,
+				D366B9E2BC191D283E594B97 /* DSMND.swift in Sources */,
+				DDE66F40FBEDA5D11D38322A /* HelperXPCService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -353,6 +415,7 @@
 			files = (
 				07021235DBF2A577E657BF8B /* AgentDetector.swift in Sources */,
 				D98AF5874BCF38EA0012AE27 /* CommandRunner.swift in Sources */,
+				BA4E80D2B6B0BBFDEEA0B2FB /* HelperXPC.swift in Sources */,
 				809705EFBD76D07779E7138F /* Models.swift in Sources */,
 				8BB43E1563BD73705526097D /* PowerDecisionEngine.swift in Sources */,
 				B3DFFD72854DAF3E6FE29A2B /* PowerManager.swift in Sources */,
@@ -369,12 +432,18 @@
 				0552AC01999A4BA4032DCCD5 /* DSMNApp.swift in Sources */,
 				48B342822DB4A703A252BE4C /* DSMNMenuStore.swift in Sources */,
 				726EF89C354B1FAA841B9DC6 /* DSMNMenuView.swift in Sources */,
+				D22B79587D387496D7F5FBA3 /* HelperServiceClient.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		0D7E3D7975D6CB21E3A0CCCC /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = C05CA8E306CCA7792D28A714 /* dsmnd */;
+			targetProxy = 4139B35D079E03F7CC44893B /* PBXContainerItemProxy */;
+		};
 		800DDF5BB95E7AD1B796171D /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = 6CC9D4F9DB3A5A2B4510C935 /* DSMNCore */;

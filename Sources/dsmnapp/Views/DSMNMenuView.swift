@@ -12,6 +12,8 @@ struct DSMNMenuView: View {
             Text(short(errorMessage))
         }
 
+        Text(store.helperStatusLine)
+
         Divider()
 
         Button("Keep Awake 30m") {
@@ -45,6 +47,28 @@ struct DSMNMenuView: View {
         }
         .keyboardShortcut("r")
 
+        Divider()
+
+        if store.canInstallHelper {
+            Button("Install Helper") {
+                store.installHelper()
+            }
+        }
+
+        if store.helperNeedsApproval {
+            Button("Open Login Items") {
+                store.openHelperSettings()
+            }
+        }
+
+        if store.canUnregisterHelper {
+            Button("Unregister Helper") {
+                store.unregisterHelper()
+            }
+        }
+
+        Divider()
+
         Button("Quit") {
             NSApplication.shared.terminate(nil)
         }
@@ -67,4 +91,3 @@ struct DSMNMenuView: View {
         return String(value.prefix(27)) + "..."
     }
 }
-
