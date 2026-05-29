@@ -1,6 +1,7 @@
 import { Toast, getPreferenceValues, showHUD, showToast } from "@raycast/api";
 import { execFile } from "node:child_process";
 import { existsSync } from "node:fs";
+import { homedir } from "node:os";
 import path from "node:path";
 
 type Preferences = {
@@ -45,10 +46,10 @@ export function defaultMinutes(): number {
 }
 
 export async function runDsmnctl(args: string[]): Promise<string> {
-  const executable = resolveDsmnctlPath();
+  const { checkedPaths, executable } = resolveDsmnctlPath();
 
-  if (!existsSync(executable)) {
-    throw new Error(`dsmnctl not found at ${executable}. Run swift build or set the Raycast preference.`);
+  if (!executable) {
+    throw new Error(`dsmnctl not found. Checked: ${checkedPaths.join(", ")}. Install dsmn.app or set the Raycast preference.`);
   }
 
   return new Promise((resolve, reject) => {
@@ -130,17 +131,34 @@ export function formatDuration(seconds: number): string {
   return leftoverMinutes === 0 ? `${hours}h` : `${hours}h ${leftoverMinutes}m`;
 }
 
-function resolveDsmnctlPath(): string {
+function resolveDsmnctlPath(): { checkedPaths: string[]; executable?: string } {
   const preferences = getPreferenceValues<Preferences>();
   if (preferences.dsmnctlPath && preferences.dsmnctlPath.trim().length > 0) {
-    return preferences.dsmnctlPath.trim();
+    const configuredPath = preferences.dsmnctlPath.trim();
+    return {
+      checkedPaths: [configuredPath],
+      executable: existsSync(configuredPath) ? configuredPath : undefined,
+    };
   }
 
   if (process.env.DSMNCTL_PATH) {
-    return process.env.DSMNCTL_PATH;
+    return {
+      checkedPaths: [process.env.DSMNCTL_PATH],
+      executable: existsSync(process.env.DSMNCTL_PATH) ? process.env.DSMNCTL_PATH : undefined,
+    };
   }
 
-  return path.resolve(process.cwd(), "../.build/debug/dsmnctl");
+  const checkedPaths = [
+    "/Applications/dsmn.app/Contents/Library/Helpers/dsmnctl",
+    path.join(homedir(), "Applications/dsmn.app/Contents/Library/Helpers/dsmnctl"),
+    path.resolve(process.cwd(), "../.build/debug/dsmnctl"),
+    path.resolve(process.cwd(), "../DerivedData/Build/Products/Debug/dsmn.app/Contents/Library/Helpers/dsmnctl"),
+  ];
+
+  return {
+    checkedPaths,
+    executable: checkedPaths.find((candidate) => existsSync(candidate)),
+  };
 }
 
 function formatManual(report: StatusReport): string {

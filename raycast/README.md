@@ -16,10 +16,13 @@ npm install
 npm run dev
 ```
 
-By default the extension looks for:
+By default the extension looks for `dsmnctl` in:
 
 ```text
+/Applications/dsmn.app/Contents/Library/Helpers/dsmnctl
+~/Applications/dsmn.app/Contents/Library/Helpers/dsmnctl
 ../.build/debug/dsmnctl
+../DerivedData/Build/Products/Debug/dsmn.app/Contents/Library/Helpers/dsmnctl
 ```
 
 Set the `dsmnctl Path` preference when using an installed binary.
@@ -27,4 +30,3 @@ Set the `dsmnctl Path` preference when using an installed binary.
 The current SVG assets are placeholders for extension development. The final app
 menu bar icon should be selected from SF Symbols or drawn deliberately as a
 native macOS asset.
-

@@ -35,6 +35,7 @@ This checks:
 
 - the app signature;
 - the embedded `dsmnd` signature;
+- the embedded `dsmnctl` signature;
 - the LaunchDaemon plist at `Contents/Library/LaunchDaemons`;
 - the plist structure.
 

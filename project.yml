@@ -50,6 +50,13 @@ targets:
         copy:
           destination: wrapper
           subpath: Contents/Library/LaunchDaemons
+      - target: dsmnctl
+        embed: true
+        link: false
+        codeSign: true
+        copy:
+          destination: wrapper
+          subpath: Contents/Library/Helpers
     info:
       path: macos/dsmn/Info.plist
       properties:

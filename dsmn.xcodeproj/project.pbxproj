@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		0552AC01999A4BA4032DCCD5 /* DSMNApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C92E378A107B31D8A2594DF8 /* DSMNApp.swift */; };
+		0643E25D3C36B6DF1A393C9B /* dsmnctl in Embed Dependencies */ = {isa = PBXBuildFile; fileRef = F0EF5AEFD1754A2A344509EC /* dsmnctl */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		07021235DBF2A577E657BF8B /* AgentDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D67112750F54179C1E0BEEC /* AgentDetector.swift */; };
 		3859C15BC198D9FA919AC362 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0D529786998707F7F4A7C78 /* main.swift */; };
 		3EAAD859F9B5BF895A2D2B7E /* DSMNCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 74B444C620310ADFA67DB8E3 /* DSMNCore.framework */; };
@@ -32,6 +33,13 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
+		023866BEF6AD05320D794915 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = F82E026099EF30A0341DCD08 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 641C59614B1BBB23506B7B01;
+			remoteInfo = dsmnctl;
+		};
 		4139B35D079E03F7CC44893B /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = F82E026099EF30A0341DCD08 /* Project object */;
@@ -66,10 +74,10 @@
 		54B36EE5329AD3B55A7E76C2 /* Embed Dependencies */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
-			dstPath = Contents/Library/LaunchDaemons;
+			dstPath = Contents/Library/Helpers;
 			dstSubfolderSpec = 1;
 			files = (
-				7AB68B7EEC2FFDBB33183F64 /* dsmnd in Embed Dependencies */,
+				0643E25D3C36B6DF1A393C9B /* dsmnctl in Embed Dependencies */,
 			);
 			name = "Embed Dependencies";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -93,6 +101,17 @@
 				F1011D2B35C90E2C704D387C /* DSMNCore.framework in Embed Frameworks */,
 			);
 			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		9E6E5D8A4D39E0AEF8C45CD0 /* Embed Dependencies */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = Contents/Library/LaunchDaemons;
+			dstSubfolderSpec = 1;
+			files = (
+				7AB68B7EEC2FFDBB33183F64 /* dsmnd in Embed Dependencies */,
+			);
+			name = "Embed Dependencies";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXCopyFilesBuildPhase section */
@@ -328,12 +347,14 @@
 				178846A376B2F1864E8F2B1E /* Frameworks */,
 				666066B67BA79E75C1D837F7 /* Embed Frameworks */,
 				54B36EE5329AD3B55A7E76C2 /* Embed Dependencies */,
+				9E6E5D8A4D39E0AEF8C45CD0 /* Embed Dependencies */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 				800DDF5BB95E7AD1B796171D /* PBXTargetDependency */,
 				0D7E3D7975D6CB21E3A0CCCC /* PBXTargetDependency */,
+				CC5C19698E2F0EA7EC1B3353 /* PBXTargetDependency */,
 			);
 			name = dsmn;
 			packageProductDependencies = (
@@ -453,6 +474,11 @@
 			isa = PBXTargetDependency;
 			target = 6CC9D4F9DB3A5A2B4510C935 /* DSMNCore */;
 			targetProxy = 5CC696C0357021811B7B774E /* PBXContainerItemProxy */;
+		};
+		CC5C19698E2F0EA7EC1B3353 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 641C59614B1BBB23506B7B01 /* dsmnctl */;
+			targetProxy = 023866BEF6AD05320D794915 /* PBXContainerItemProxy */;
 		};
 		DAE9D2CC1698221CE102D9A1 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;

@@ -37,6 +37,15 @@ dsmnctl status --json
 registered, it falls back to local development state so the extension remains
 usable before installation.
 
+The Xcode app bundle embeds `dsmnctl` at:
+
+```text
+Contents/Library/Helpers/dsmnctl
+```
+
+The Raycast extension resolves `/Applications/dsmn.app/...` and
+`~/Applications/dsmn.app/...` automatically before using development paths.
+
 Raycast is not allowed to:
 
 - call `pmset`;
