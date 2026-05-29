@@ -6,7 +6,7 @@ available as a SwiftPM development entrypoint.
 It is intentionally menu-bar-only:
 
 - no Dock icon;
-- icon-only menu bar item;
+- status icon with an optional countdown while a manual lease is active;
 - official SF Symbol for the menu bar status item;
 - compact Coffee-style actions.
 
@@ -18,6 +18,10 @@ The menu bar symbol changes by state:
 - `timer.circle.fill`: manual timer actively preventing sleep;
 - `exclamationmark.triangle`: status unavailable, or dsmn wants to prevent
   sleep but the helper has not applied the power lock.
+
+The `Show Countdown` menu toggle controls whether active manual timers appear
+next to the status icon. Auto-only active mode has no countdown because it does
+not have a fixed expiry time.
 
 ## First-run setup
 
@@ -95,6 +99,7 @@ bundle, it also embeds the helper executable and LaunchDaemon plist and can ask
 
 - `Keep Awake 30m`
 - `Keep Awake 90m`
+- `Show Countdown`
 - `Auto On` / `Auto Off`
 - `Stop`
 - `Refresh`

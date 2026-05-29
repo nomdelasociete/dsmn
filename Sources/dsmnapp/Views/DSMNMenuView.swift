@@ -4,6 +4,7 @@ import SwiftUI
 
 struct DSMNMenuView: View {
     @ObservedObject var store: DSMNMenuStore
+    @AppStorage("showMenuBarCountdown") private var showMenuBarCountdown = true
 
     var body: some View {
         Text(store.statusLine)
@@ -21,6 +22,10 @@ struct DSMNMenuView: View {
         }
 
         Text(store.helperStatusLine)
+
+        Divider()
+
+        Toggle("Show Countdown", isOn: $showMenuBarCountdown)
 
         Divider()
 

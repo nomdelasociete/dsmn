@@ -11,6 +11,7 @@ final class DSMNMenuStore: ObservableObject {
     private let controller: DSMNController?
     private let helper = HelperServiceClient()
     private let setupError: Error?
+    private var refreshLoopTask: Task<Void, Never>?
 
     init() {
         do {
@@ -42,11 +43,11 @@ final class DSMNMenuStore: ObservableObject {
         }
 
         if report.decision.shouldPreventSleep {
-            if let remaining = report.manualRemainingSeconds, remaining > 0 {
+            if let remaining = report.state.manualRemainingSeconds(at: Date()), remaining > 0 {
                 return "Active - \(formatDuration(remaining))"
             }
 
-            return "Active - auto"
+            return report.state.autoEnabled ? "Active - auto" : "Active"
         }
 
         if report.state.autoEnabled {
@@ -58,6 +59,18 @@ final class DSMNMenuStore: ObservableObject {
 
     var helperStatusLine: String {
         "Helper: \(helperStatus.displayName)"
+    }
+
+    func menuBarCountdownText(at date: Date = Date()) -> String? {
+        MenuBarCountdownFormatter.text(report: report, at: date)
+    }
+
+    func menuBarAccessibilityLabel(at date: Date = Date()) -> String {
+        if let countdown = menuBarCountdownText(at: date) {
+            return "Active, \(countdown) remaining"
+        }
+
+        return statusLine
     }
 
     var setupLine: String? {
@@ -116,6 +129,24 @@ final class DSMNMenuStore: ObservableObject {
             errorMessage = nil
         } catch {
             errorMessage = error.localizedDescription
+        }
+    }
+
+    func startRefreshLoop() {
+        guard refreshLoopTask == nil else {
+            return
+        }
+
+        refreshLoopTask = Task { [weak self] in
+            while !Task.isCancelled {
+                await self?.refresh()
+
+                do {
+                    try await Task.sleep(for: .seconds(15))
+                } catch {
+                    break
+                }
+            }
         }
     }
 

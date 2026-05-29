@@ -63,9 +63,9 @@ Raycast command having to run.
 
 `dsmn.app` is a SwiftUI menu bar app.
 
-The macOS menu bar item is icon-only. The icon should use an official SF Symbol
-for the menu bar if a good one fits. App and Raycast branding must not use an SF
-Symbol as a logo.
+The macOS menu bar item uses an official SF Symbol and can optionally show a
+compact countdown next to the icon while a manual lease is active. App and
+Raycast branding must not use an SF Symbol as a logo.
 
 The current development entrypoint is `swift run dsmn-app`. The Xcode-built app
 embeds:

@@ -8,7 +8,7 @@ not enough.
 
 ## Product shape
 
-- Native macOS menu bar app with an icon-only menu bar item.
+- Native macOS menu bar app with a status icon and optional active countdown.
 - Privileged helper daemon owns power-management changes.
 - `dsmnctl` provides a local CLI contract for debugging and automation.
 - Raycast extension acts as a remote control, similar to Coffee-style duration and
