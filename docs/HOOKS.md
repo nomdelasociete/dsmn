@@ -1,8 +1,8 @@
 # Hooks
 
 Use `dsmnctl` from hooks instead of spawning long stacks of `caffeinate`
-processes. The hook is agent-agnostic: Claude Code, Codex, Grok Build, or any
-future tool should call the same `dsmn-agent-hook.sh` contract.
+processes. The hook is agent-agnostic: Claude Code, Codex, Grok Build, Pi, or
+any future tool should call the same `dsmn-agent-hook.sh` contract.
 
 The menu bar app does not need to be open for hooks. The required piece is the
 privileged helper registered by `dsmn.app`; `dsmnctl` talks to that helper over
@@ -29,6 +29,7 @@ dsmnctl install-hooks all
 dsmnctl install-hooks claude
 dsmnctl install-hooks codex
 dsmnctl install-hooks grok
+dsmnctl install-hooks pi
 ```
 
 The installer writes the executable hook to:
@@ -42,14 +43,21 @@ Then it installs:
 - Claude Code: `~/.claude/settings.json`
 - Codex: `~/.codex/hooks.json`
 - Grok Build: `~/.grok/hooks/dsmn.json`
+- Pi: `~/.pi/agent/extensions/dsmn.ts`
 
 For Codex, it also makes sure the current `features.hooks` flag is enabled in
 `~/.codex/config.toml`.
+
+For Pi, dsmn installs a native TypeScript extension in Pi's global extension
+directory. Existing Pi sessions may need `/reload` or a restart before they
+pick up the extension.
 
 ## Behavior
 
 - run on session start, user prompt submit, pre-tool-use, and post-tool-use
   events where the agent supports them;
+- for Pi, run on `session_start`, `input`, `turn_start`, `tool_call`,
+  `tool_result`, and `turn_end`;
 - call `dsmnctl manual --minutes 20`;
 - verify that `dsmnctl doctor` sees the helper and `macOS SleepDisabled: on`;
 - fall back to `caffeinate -is -t 600` only when `dsmnctl` or the helper are not

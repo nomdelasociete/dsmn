@@ -87,6 +87,10 @@ public struct AgentDetector: Sendable {
             return .grokBuild
         }
 
+        if matchesPi(executableName: executableName, command: command) {
+            return .pi
+        }
+
         return nil
     }
 
@@ -118,6 +122,15 @@ public struct AgentDetector: Sendable {
             || command.contains(" leader")
             || command.hasSuffix("/grok")
             || command.hasSuffix(" grok")
+    }
+
+    private func matchesPi(executableName: String, command: String) -> Bool {
+        executableName == "pi"
+            || command == "pi"
+            || command.hasPrefix("pi ")
+            || command.hasSuffix("/bin/pi")
+            || command.contains("/bin/pi ")
+            || command.contains("@earendil-works/pi-coding-agent")
     }
 
     private func isShellWrapper(_ process: RunningProcess) -> Bool {

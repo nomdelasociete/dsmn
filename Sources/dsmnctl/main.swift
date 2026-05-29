@@ -313,7 +313,7 @@ struct DSMNCTL {
               auto [on|off|toggle] [--json]
               stop [--json]
               doctor
-              install-hooks [all|claude|codex|grok] [--json]
+              install-hooks [all|claude|codex|grok|pi] [--json]
               repair
             """
         )

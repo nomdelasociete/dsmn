@@ -2,7 +2,7 @@ import XCTest
 @testable import DSMNCore
 
 final class AgentHookInstallerTests: XCTestCase {
-    func testInstallsSharedHookForClaudeCodexAndGrok() throws {
+    func testInstallsSharedHookForClaudeCodexGrokAndPi() throws {
         let home = temporaryHome()
         defer {
             try? FileManager.default.removeItem(at: home)
@@ -52,7 +52,7 @@ final class AgentHookInstallerTests: XCTestCase {
         let installer = AgentHookInstaller(homeDirectory: home, dsmnctlPath: "/Applications/dsmn.app/Contents/Library/Helpers/dsmnctl")
         let reports = try installer.install()
 
-        XCTAssertEqual(Set(reports.map(\.target)), Set(["claude", "codex", "grok"]))
+        XCTAssertEqual(Set(reports.map(\.target)), Set(["claude", "codex", "grok", "pi"]))
         XCTAssertTrue(FileManager.default.isExecutableFile(atPath: home.appendingPathComponent(".dsmn/dsmn-agent-hook.sh").path))
 
         let claude = try readJSON(home.appendingPathComponent(".claude/settings.json"))
@@ -78,6 +78,12 @@ final class AgentHookInstallerTests: XCTestCase {
             hookCommands(in: grok).filter { $0 == home.appendingPathComponent(".dsmn/dsmn-agent-hook.sh").path }.count,
             4
         )
+
+        let pi = try String(contentsOf: home.appendingPathComponent(".pi/agent/extensions/dsmn.ts"), encoding: .utf8)
+        XCTAssertTrue(pi.contains("from \"@earendil-works/pi-coding-agent\""))
+        XCTAssertTrue(pi.contains("pi.on(\"tool_call\""))
+        XCTAssertTrue(pi.contains("child.on(\"error\""))
+        XCTAssertTrue(pi.contains(home.appendingPathComponent(".dsmn/dsmn-agent-hook.sh").path))
     }
 
     func testInstallIsIdempotent() throws {
@@ -87,8 +93,8 @@ final class AgentHookInstallerTests: XCTestCase {
         }
 
         let installer = AgentHookInstaller(homeDirectory: home, dsmnctlPath: "/tmp/dsmnctl")
-        _ = try installer.install(targets: [.claude, .codex, .grok])
-        let secondReports = try installer.install(targets: [.claude, .codex, .grok])
+        _ = try installer.install(targets: [.claude, .codex, .grok, .pi])
+        let secondReports = try installer.install(targets: [.claude, .codex, .grok, .pi])
 
         XCTAssertTrue(secondReports.allSatisfy { !$0.changed })
     }

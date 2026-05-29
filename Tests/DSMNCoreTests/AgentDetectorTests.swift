@@ -47,6 +47,34 @@ final class AgentDetectorTests: XCTestCase {
         XCTAssertEqual(detector.detect(in: processes).map(\.kind), [.codex])
     }
 
+    func testDetectsPiBinary() {
+        let detector = AgentDetector()
+        let processes = [
+            RunningProcess(
+                pid: 106,
+                ppid: 1,
+                executable: "/Users/jb/.nvm/versions/node/v24.14.0/bin/pi",
+                command: "pi"
+            )
+        ]
+
+        XCTAssertEqual(detector.detect(in: processes).map(\.kind), [.pi])
+    }
+
+    func testDetectsPiNodeEntrypoint() {
+        let detector = AgentDetector()
+        let processes = [
+            RunningProcess(
+                pid: 107,
+                ppid: 1,
+                executable: "/Users/jb/.nvm/versions/node/v24.14.0/bin/node",
+                command: "node /Users/jb/.nvm/versions/node/v24.14.0/lib/node_modules/@earendil-works/pi-coding-agent/dist/cli.js"
+            )
+        ]
+
+        XCTAssertEqual(detector.detect(in: processes).map(\.kind), [.pi])
+    }
+
     func testIgnoresShellWrapper() {
         let detector = AgentDetector()
         let processes = [

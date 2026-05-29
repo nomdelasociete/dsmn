@@ -64,7 +64,7 @@ tail -n 30 /tmp/dsmn-ticks.log
 If timestamps continued every five seconds while the lid was closed, dsmn kept
 the Mac awake. A large timestamp gap means the machine slept.
 
-For the auto-mode test, keep a Claude Code, Codex, or Grok Build session
+For the auto-mode test, keep a Claude Code, Codex, Grok Build, or Pi session
 running, click `Auto On`, and wait for `Active - auto` plus `Power lock: on`.
 The same lid-close timestamp test should then pass.
 

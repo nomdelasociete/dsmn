@@ -28,7 +28,7 @@ export type StatusReport = {
     pid: number;
     executable: string;
     command: string;
-    kind: "claudeCode" | "codex" | "grokBuild";
+    kind: "claudeCode" | "codex" | "grokBuild" | "pi";
   }>;
   decision: {
     shouldPreventSleep: boolean;
@@ -196,5 +196,7 @@ function agentDisplayName(kind: StatusReport["agents"][number]["kind"]): string 
       return "Codex";
     case "grokBuild":
       return "Grok Build";
+    case "pi":
+      return "Pi";
   }
 }

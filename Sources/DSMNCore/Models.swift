@@ -4,6 +4,7 @@ public enum AgentKind: String, Codable, CaseIterable, Sendable {
     case claudeCode
     case codex
     case grokBuild
+    case pi
 
     public var displayName: String {
         switch self {
@@ -13,6 +14,8 @@ public enum AgentKind: String, Codable, CaseIterable, Sendable {
             "Codex"
         case .grokBuild:
             "Grok Build"
+        case .pi:
+            "Pi"
         }
     }
 }
@@ -146,4 +149,3 @@ public enum AutoAction: String, Sendable {
     case off
     case toggle
 }
-

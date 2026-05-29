@@ -4,6 +4,7 @@ public enum AgentHookTarget: String, CaseIterable, Codable, Hashable, Sendable {
     case claude
     case codex
     case grok
+    case pi
 
     public static func parse(_ value: String) throws -> AgentHookTarget {
         guard let target = AgentHookTarget(rawValue: value) else {
@@ -63,6 +64,8 @@ public struct AgentHookInstaller: Sendable {
                 return try installCodexHook()
             case .grok:
                 return try installGrokHook()
+            case .pi:
+                return try installPiHook()
             }
         }
     }
@@ -132,6 +135,30 @@ public struct AgentHookInstaller: Sendable {
         )
     }
 
+    private func installPiHook() throws -> AgentHookInstallReport {
+        let directory = homeDirectory
+            .appendingPathComponent(".pi", isDirectory: true)
+            .appendingPathComponent("agent", isDirectory: true)
+            .appendingPathComponent("extensions", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+
+        let path = directory.appendingPathComponent("dsmn.ts")
+        let payload = piExtension()
+        let current = try? String(contentsOf: path, encoding: .utf8)
+        let changed = current != payload
+
+        if changed {
+            try payload.write(to: path, atomically: true, encoding: .utf8)
+        }
+
+        return AgentHookInstallReport(
+            target: AgentHookTarget.pi.rawValue,
+            path: path.path,
+            changed: changed,
+            message: changed ? "installed" : "already installed"
+        )
+    }
+
     private func installHook(into root: inout [String: Any]) throws -> Bool {
         var changed = false
         var hooks = root["hooks"] as? [String: Any] ?? [:]
@@ -176,6 +203,45 @@ public struct AgentHookInstaller: Sendable {
                 ]
             ]
         ]
+    }
+
+    private func piExtension() -> String {
+        let hookPath = jsonStringLiteral(hookScriptPath.path)
+
+        return """
+        import type { ExtensionAPI } from "@earendil-works/pi-coding-agent";
+        import { spawn } from "node:child_process";
+
+        const hookPath = \(hookPath);
+
+        function trigger(eventName: string) {
+          try {
+            const child = spawn(hookPath, [], {
+              detached: true,
+              stdio: "ignore",
+              env: {
+                ...process.env,
+                DSMN_HOOK_AGENT: "pi",
+                DSMN_HOOK_EVENT: eventName,
+              },
+            });
+            child.on("error", () => {});
+            child.unref();
+          } catch {
+            // Keep Pi fail-open if dsmn is unavailable.
+          }
+        }
+
+        export default function (pi: ExtensionAPI) {
+          pi.on("session_start", async () => trigger("session_start"));
+          pi.on("input", async () => trigger("input"));
+          pi.on("turn_start", async () => trigger("turn_start"));
+          pi.on("tool_call", async () => trigger("tool_call"));
+          pi.on("tool_result", async () => trigger("tool_result"));
+          pi.on("turn_end", async () => trigger("turn_end"));
+        }
+
+        """
     }
 
     private func containsLegacyAwakeHook(_ group: [String: Any]) -> Bool {
@@ -428,5 +494,15 @@ public struct AgentHookInstaller: Sendable {
 
     private func shellSingleQuoted(_ value: String) -> String {
         "'\(value.replacingOccurrences(of: "'", with: "'\\''"))'"
+    }
+
+    private func jsonStringLiteral(_ value: String) -> String {
+        guard let data = try? JSONSerialization.data(withJSONObject: [value], options: [.withoutEscapingSlashes]),
+              let array = String(data: data, encoding: .utf8)
+        else {
+            return "\"\(value.replacingOccurrences(of: "\"", with: "\\\""))\""
+        }
+
+        return String(array.dropFirst().dropLast())
     }
 }

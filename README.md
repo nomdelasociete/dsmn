@@ -35,7 +35,7 @@ helper integration slice:
 - `dsmnctl` CLI, which tries the helper XPC service before falling back to local
   development state
 - `dsmnctl install-hooks`, which installs the shared agent hook for Claude Code,
-  Codex, and Grok Build
+  Codex, Grok Build, and Pi
 - `dsmnd` LaunchDaemon executable with an XPC Mach service
 - Xcode-built `dsmn.app` that embeds the signed helper and LaunchDaemon plist
 - menu bar controls for helper registration through `SMAppService`
