@@ -78,3 +78,11 @@ DSMN_APPLY_PMSET=1 swift run dsmnd
 
 The LaunchDaemon `serve` mode is intended to run as root from `SMAppService`.
 Set `DSMN_APPLY_PMSET=0` to force dry-run behavior while debugging the helper.
+
+## Documentation
+
+- `docs/ARCHITECTURE.md`
+- `docs/SAFETY.md`
+- `docs/RAYCAST.md`
+- `docs/MACOS_APP.md`
+- `docs/PACKAGING.md`
