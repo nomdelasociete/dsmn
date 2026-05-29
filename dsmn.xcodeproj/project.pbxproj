@@ -26,6 +26,7 @@
 		BA4E80D2B6B0BBFDEEA0B2FB /* HelperXPC.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61FE22C17B810CA959C3CACA /* HelperXPC.swift */; };
 		D22B79587D387496D7F5FBA3 /* HelperServiceClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5BBDCFF55A2F8F35800A50E /* HelperServiceClient.swift */; };
 		D366B9E2BC191D283E594B97 /* DSMND.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C89A4114361C6F9FACA4919 /* DSMND.swift */; };
+		D5AAB60F45FEDADAAA13104B /* AgentHookInstaller.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22FC037E46E8EBB70D7AB405 /* AgentHookInstaller.swift */; };
 		D98AF5874BCF38EA0012AE27 /* CommandRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6D2A8150F5191D00E4A19F5 /* CommandRunner.swift */; };
 		DDE66F40FBEDA5D11D38322A /* HelperXPCService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B631CA4B883E9FCF612EA3B6 /* HelperXPCService.swift */; };
 		E1792FA739919FB2B00EA4CA /* StateStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC8C8661F0C29336DF4C864E /* StateStore.swift */; };
@@ -74,10 +75,10 @@
 		54B36EE5329AD3B55A7E76C2 /* Embed Dependencies */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
-			dstPath = Contents/Library/Helpers;
+			dstPath = Contents/Library/LaunchDaemons;
 			dstSubfolderSpec = 1;
 			files = (
-				0643E25D3C36B6DF1A393C9B /* dsmnctl in Embed Dependencies */,
+				7AB68B7EEC2FFDBB33183F64 /* dsmnd in Embed Dependencies */,
 			);
 			name = "Embed Dependencies";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -106,10 +107,10 @@
 		9E6E5D8A4D39E0AEF8C45CD0 /* Embed Dependencies */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
-			dstPath = Contents/Library/LaunchDaemons;
+			dstPath = Contents/Library/Helpers;
 			dstSubfolderSpec = 1;
 			files = (
-				7AB68B7EEC2FFDBB33183F64 /* dsmnd in Embed Dependencies */,
+				0643E25D3C36B6DF1A393C9B /* dsmnctl in Embed Dependencies */,
 			);
 			name = "Embed Dependencies";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -120,6 +121,7 @@
 		0F2C7905739A9F21409A0728 /* DSMNMenuStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DSMNMenuStore.swift; sourceTree = "<group>"; };
 		1428E24E9C88059C6735E168 /* com.nomdelasociete.dsmn.helper.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = com.nomdelasociete.dsmn.helper.plist; sourceTree = "<group>"; };
 		1A393D53B83902538C1B8CB1 /* dsmn.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = dsmn.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		22FC037E46E8EBB70D7AB405 /* AgentHookInstaller.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentHookInstaller.swift; sourceTree = "<group>"; };
 		3619C42C42B624EEF07BA6AC /* StatusReport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusReport.swift; sourceTree = "<group>"; };
 		4D67112750F54179C1E0BEEC /* AgentDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentDetector.swift; sourceTree = "<group>"; };
 		4ED81C70EF47353A88BF55D1 /* PowerDecisionEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerDecisionEngine.swift; sourceTree = "<group>"; };
@@ -267,6 +269,7 @@
 			isa = PBXGroup;
 			children = (
 				4D67112750F54179C1E0BEEC /* AgentDetector.swift */,
+				22FC037E46E8EBB70D7AB405 /* AgentHookInstaller.swift */,
 				F6D2A8150F5191D00E4A19F5 /* CommandRunner.swift */,
 				61FE22C17B810CA959C3CACA /* HelperXPC.swift */,
 				F7B4A2E7E5EA04A0BF90449F /* Models.swift */,
@@ -435,6 +438,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				07021235DBF2A577E657BF8B /* AgentDetector.swift in Sources */,
+				D5AAB60F45FEDADAAA13104B /* AgentHookInstaller.swift in Sources */,
 				D98AF5874BCF38EA0012AE27 /* CommandRunner.swift in Sources */,
 				BA4E80D2B6B0BBFDEEA0B2FB /* HelperXPC.swift in Sources */,
 				809705EFBD76D07779E7138F /* Models.swift in Sources */,

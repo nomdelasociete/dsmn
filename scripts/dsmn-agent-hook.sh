@@ -4,7 +4,7 @@ set -u
 MODE="${DSMN_HOOK_MODE:-manual}"
 MINUTES="${DSMN_HOOK_MINUTES:-20}"
 FALLBACK_SECONDS="${DSMN_HOOK_FALLBACK_SECONDS:-600}"
-LOG_PATH="${DSMN_HOOK_LOG:-/tmp/dsmn-claude-hook.log}"
+LOG_PATH="${DSMN_HOOK_LOG:-/tmp/dsmn-agent-hook.log}"
 
 log_event() {
   printf '%s %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*" >>"$LOG_PATH" 2>/dev/null || true

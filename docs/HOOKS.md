@@ -1,22 +1,55 @@
 # Hooks
 
 Use `dsmnctl` from hooks instead of spawning long stacks of `caffeinate`
-processes.
+processes. The hook is agent-agnostic: Claude Code, Codex, Grok Build, or any
+future tool should call the same `dsmn-agent-hook.sh` contract.
 
 The menu bar app does not need to be open for hooks. The required piece is the
 privileged helper registered by `dsmn.app`; `dsmnctl` talks to that helper over
 XPC.
 
-## Claude Code
+## Install
 
-The repo ships a hook wrapper:
+dsmn can install the hook automatically:
 
 ```sh
-/Users/jb/Documents/Github/NomDeLaSociete/dsmn/scripts/claude-hook.sh
+/Users/jb/Documents/Github/NomDeLaSociete/dsmn/dist/export/dsmn.app/Contents/Library/Helpers/dsmnctl install-hooks
 ```
 
-Default behavior:
+Or from the repo:
 
+```sh
+/Users/jb/Documents/Github/NomDeLaSociete/dsmn/scripts/install-agent-hooks.sh
+```
+
+Supported targets:
+
+```sh
+dsmnctl install-hooks all
+dsmnctl install-hooks claude
+dsmnctl install-hooks codex
+dsmnctl install-hooks grok
+```
+
+The installer writes the executable hook to:
+
+```text
+~/.dsmn/dsmn-agent-hook.sh
+```
+
+Then it installs:
+
+- Claude Code: `~/.claude/settings.json`
+- Codex: `~/.codex/hooks.json`
+- Grok Build: `~/.grok/hooks/dsmn.json`
+
+For Codex, it also makes sure the current `features.hooks` flag is enabled in
+`~/.codex/config.toml`.
+
+## Behavior
+
+- run on session start, user prompt submit, pre-tool-use, and post-tool-use
+  events where the agent supports them;
 - call `dsmnctl manual --minutes 20`;
 - verify that `dsmnctl doctor` sees the helper and `macOS SleepDisabled: on`;
 - fall back to `caffeinate -is -t 600` only when `dsmnctl` or the helper are not
@@ -33,10 +66,10 @@ Optional environment overrides:
 DSMN_HOOK_MODE=auto      # use dsmnctl auto on instead of a manual timer
 DSMN_HOOK_MINUTES=30     # manual timer duration
 DSMNCTL_PATH=/path/to/dsmnctl
-DSMN_HOOK_LOG=/tmp/dsmn-claude-hook.log
+DSMN_HOOK_LOG=/tmp/dsmn-agent-hook.log
 ```
 
-Claude settings example:
+Manual hook JSON example:
 
 ```json
 {
@@ -46,7 +79,8 @@ Claude settings example:
         "hooks": [
           {
             "type": "command",
-            "command": "/Users/jb/Documents/Github/NomDeLaSociete/dsmn/scripts/claude-hook.sh"
+            "command": "/Users/jb/.dsmn/dsmn-agent-hook.sh",
+            "timeout": 5
           }
         ]
       }
@@ -62,7 +96,7 @@ After a hook fires:
 ```sh
 /Users/jb/Documents/Github/NomDeLaSociete/dsmn/dist/export/dsmn.app/Contents/Library/Helpers/dsmnctl doctor
 pmset -g live | rg 'SleepDisabled'
-tail -n 20 /tmp/dsmn-claude-hook.log
+tail -n 20 /tmp/dsmn-agent-hook.log
 ```
 
 Expected while protected:

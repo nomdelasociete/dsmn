@@ -49,6 +49,11 @@ struct DSMNCTL {
         case "doctor":
             let status = try readStatus(helper: helper, controller: controller)
             printDoctor(status.report, source: status.source, liveSleepDisabled: readLiveSleepDisabled())
+        case "install-hooks":
+            let targets = try parseHookTargets(arguments: Array(arguments.dropFirst()))
+            let installer = AgentHookInstaller(dsmnctlPath: executablePath())
+            let reports = try installer.install(targets: targets)
+            try printHookInstallReports(reports, json: json)
         case "repair":
             let report = try controller.repairState()
             try printReport(report, json: json)
@@ -130,6 +135,37 @@ struct DSMNCTL {
         return action
     }
 
+    private static func parseHookTargets(arguments: [String]) throws -> [AgentHookTarget] {
+        var targets: [AgentHookTarget] = []
+        var values = arguments
+        values.removeAll { $0 == "--target" || $0 == "--targets" }
+
+        if values.isEmpty || values.contains("all") {
+            return AgentHookTarget.allCases
+        }
+
+        for value in values {
+            targets.append(try AgentHookTarget.parse(value))
+        }
+
+        return Array(Set(targets)).sorted { $0.rawValue < $1.rawValue }
+    }
+
+    private static func executablePath() -> String? {
+        guard let first = CommandLine.arguments.first, !first.isEmpty else {
+            return nil
+        }
+
+        if first.hasPrefix("/") {
+            return first
+        }
+
+        return URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
+            .appendingPathComponent(first)
+            .standardizedFileURL
+            .path
+    }
+
     private static func printReport(_ report: StatusReport, json: Bool) throws {
         if json {
             let encoder = JSONEncoder()
@@ -181,6 +217,20 @@ struct DSMNCTL {
 
         if let stopReason = report.decision.stopReason {
             print("Stop reason: \(stopReason)")
+        }
+    }
+
+    private static func printHookInstallReports(_ reports: [AgentHookInstallReport], json: Bool) throws {
+        if json {
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+            let data = try encoder.encode(reports)
+            print(String(data: data, encoding: .utf8) ?? "[]")
+            return
+        }
+
+        for report in reports {
+            print("\(report.target): \(report.message) at \(report.path)")
         }
     }
 
@@ -263,6 +313,7 @@ struct DSMNCTL {
               auto [on|off|toggle] [--json]
               stop [--json]
               doctor
+              install-hooks [all|claude|codex|grok] [--json]
               repair
             """
         )
