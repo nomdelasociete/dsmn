@@ -58,20 +58,6 @@ final class HelperServiceClient {
         }.value
     }
 
-    func setAuto(_ enabled: Bool) async throws -> StatusReport {
-        let client = helperClient
-        return try await Task.detached {
-            try client.setAuto(enabled)
-        }.value
-    }
-
-    func toggleAuto() async throws -> StatusReport {
-        let client = helperClient
-        return try await Task.detached {
-            try client.toggleAuto()
-        }.value
-    }
-
     func stop() async throws -> StatusReport {
         let client = helperClient
         return try await Task.detached {

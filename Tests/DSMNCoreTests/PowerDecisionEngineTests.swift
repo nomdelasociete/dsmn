@@ -15,23 +15,8 @@ final class PowerDecisionEngineTests: XCTestCase {
         XCTAssertEqual(decision.reasons, ["manual_timer"])
     }
 
-    func testAutoWaitsWhenNoAgentsAreActive() {
+    func testAgentProcessAloneDoesNotPreventSleep() {
         let now = Date(timeIntervalSince1970: 1_000)
-        let state = DSMNState(autoEnabled: true)
-        let decision = PowerDecisionEngine().evaluate(
-            state: state,
-            agents: [],
-            snapshot: SystemSnapshot(now: now)
-        )
-
-        XCTAssertFalse(decision.shouldPreventSleep)
-        XCTAssertEqual(decision.reasons, ["auto_waiting_for_agents"])
-        XCTAssertEqual(decision.stopReason, "auto_waiting_for_agents")
-    }
-
-    func testAutoPreventsSleepWhenAgentIsActive() {
-        let now = Date(timeIntervalSince1970: 1_000)
-        let state = DSMNState(autoEnabled: true, autoEnabledAt: now)
         let agents = [
             AgentProcess(
                 pid: 200,
@@ -42,70 +27,14 @@ final class PowerDecisionEngineTests: XCTestCase {
             )
         ]
         let decision = PowerDecisionEngine().evaluate(
-            state: state,
-            agents: agents,
-            snapshot: SystemSnapshot(now: now)
-        )
-
-        XCTAssertTrue(decision.shouldPreventSleep)
-        XCTAssertEqual(decision.reasons, ["auto_agents_active"])
-    }
-
-    func testAutoPreventsSleepWhenHookActivityIsFresh() {
-        let now = Date(timeIntervalSince1970: 3_000)
-        let state = DSMNState(
-            autoEnabled: true,
-            autoEnabledAt: now.addingTimeInterval(-3_600),
-            lastRequester: ActivationRequester(
-                name: "Codex",
-                context: "dsmn - session abc12345",
-                requestedAt: now.addingTimeInterval(-60)
-            )
-        )
-        let agents = [
-            AgentProcess(pid: 200, ppid: 1, executable: "/opt/homebrew/bin/codex", command: "codex", kind: .codex)
-        ]
-
-        let decision = PowerDecisionEngine().evaluate(
-            state: state,
-            agents: agents,
-            snapshot: SystemSnapshot(now: now)
-        )
-
-        XCTAssertTrue(decision.shouldPreventSleep)
-        XCTAssertEqual(decision.reasons, ["auto_agents_active"])
-    }
-
-    func testAutoDoesNotPreventSleepWhenOnlyAgentProcessIsStale() {
-        let now = Date(timeIntervalSince1970: 3_000)
-        let state = DSMNState(
-            autoEnabled: true,
-            autoEnabledAt: now.addingTimeInterval(-3_600),
-            lastRequester: ActivationRequester(
-                name: "Claude Code",
-                context: "jb - session abc12345",
-                requestedAt: now.addingTimeInterval(-3_600)
-            )
-        )
-        let agents = [
-            AgentProcess(
-                pid: 201,
-                ppid: 1,
-                executable: "/Users/jb/Library/Application Support/Claude/claude-code/claude",
-                command: "claude --dangerously-skip-permissions",
-                kind: .claudeCode
-            )
-        ]
-
-        let decision = PowerDecisionEngine().evaluate(
-            state: state,
+            state: DSMNState(),
             agents: agents,
             snapshot: SystemSnapshot(now: now)
         )
 
         XCTAssertFalse(decision.shouldPreventSleep)
-        XCTAssertEqual(decision.reasons, ["auto_activity_stale"])
-        XCTAssertEqual(decision.stopReason, "auto_activity_stale")
+        XCTAssertEqual(decision.reasons, [])
+        XCTAssertEqual(decision.stopReason, "not_armed")
     }
 
     func testLowBatteryBlocksSleepPrevention() {

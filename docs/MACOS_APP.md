@@ -13,15 +13,12 @@ It is intentionally menu-bar-only:
 The menu bar symbol changes by state:
 
 - `figure.run`: off or loading;
-- `figure.run.circle`: auto armed, waiting for an agent;
-- `figure.run.circle.fill`: auto actively preventing sleep;
 - `timer.circle.fill`: manual timer actively preventing sleep;
 - `exclamationmark.triangle`: status unavailable, or dsmn wants to prevent
   sleep but the helper has not applied the power lock.
 
 The `Show Countdown` menu toggle controls whether active manual timers appear
-next to the status icon. Auto-only active mode has no countdown because it does
-not have a fixed expiry time.
+next to the status icon.
 
 ## First-run setup
 
@@ -38,8 +35,7 @@ system value as `SleepDisabled 1` in `pmset -g live`.
 5. Setup is ready when the menu says `Helper: enabled`.
 
 When dsmn is idle, `Power lock: off` is expected. It should switch to
-`Power lock: on` only while a manual timer is active or auto mode is actively
-protecting a detected agent session.
+`Power lock: on` only while a manual timer is active.
 
 ## Test protocol
 
@@ -67,14 +63,6 @@ tail -n 30 /tmp/dsmn-ticks.log
 
 If timestamps continued every five seconds while the lid was closed, dsmn kept
 the Mac awake. A large timestamp gap means the machine slept.
-
-For the auto-mode test, keep a Claude Code, Codex, Grok Build, or Pi session
-running, click `Auto On`, and wait for `Active - auto` plus `Power lock: on`.
-The same lid-close timestamp test should then pass.
-
-Auto mode is intentionally bounded. A long-lived agent process alone is not
-enough to hold `SleepDisabled` forever; dsmn requires recent auto-enable or hook
-activity and goes idle after 30 minutes without it.
 
 You can also inspect the current state from the archived app bundle:
 
@@ -104,7 +92,6 @@ bundle, it also embeds the helper executable and LaunchDaemon plist and can ask
 - `Keep Awake 30m`
 - `Keep Awake 90m`
 - `Show Countdown`
-- `Auto On` / `Auto Off`
 - `Stop`
 - `Refresh`
 - `1. Install Helper`

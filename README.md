@@ -11,8 +11,8 @@ not enough.
 - Native macOS menu bar app with a status icon and optional active countdown.
 - Privileged helper daemon owns power-management changes.
 - `dsmnctl` provides a local CLI contract for debugging and automation.
-- Raycast extension acts as a remote control, similar to Coffee-style duration and
-  toggle commands.
+- Raycast extension acts as a remote control, similar to Coffee-style duration
+  commands.
 
 ## Safety rule
 
@@ -40,9 +40,7 @@ This repository currently contains a working signed macOS app stack:
 - menu bar controls for helper registration through `SMAppService`
 - last-request visibility in the menu and CLI, including agent/session context
   when hooks provide it
-- bounded auto mode: long-lived agent processes do not keep the Mac awake
-  forever without recent hook or auto-enable activity
-- Raycast extension for manual duration, auto mode, stop, status, and menu bar
+- Raycast extension for manual duration, stop, status, and menu bar
 - Developer ID archive and notarization scripts
 
 The current local distributable is exported at `dist/export/dsmn.app`; the
@@ -55,7 +53,6 @@ swift test
 swift run dsmn-app
 swift run dsmnctl status --json
 swift run dsmnctl manual --minutes 30 --requester Terminal
-swift run dsmnctl auto toggle
 swift run dsmnctl stop
 swift run dsmnd
 swift run dsmnd daemon-once

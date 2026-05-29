@@ -5,8 +5,6 @@ public enum MenuBarIconState: String, Codable, Equatable, Sendable {
     case off
     case warning
     case manualActive
-    case autoArmed
-    case autoActive
 
     public var systemImageName: String {
         switch self {
@@ -16,10 +14,6 @@ public enum MenuBarIconState: String, Codable, Equatable, Sendable {
             "exclamationmark.triangle.fill"
         case .manualActive:
             "timer.circle.fill"
-        case .autoArmed:
-            "figure.run.circle"
-        case .autoActive:
-            "figure.run.circle.fill"
         }
     }
 
@@ -34,10 +28,6 @@ public enum MenuBarIconState: String, Codable, Equatable, Sendable {
 
         if report.decision.shouldPreventSleep && !report.state.ownsSleepDisable {
             return .warning
-        }
-
-        if report.state.autoEnabled {
-            return report.decision.shouldPreventSleep ? .autoActive : .autoArmed
         }
 
         if report.decision.shouldPreventSleep {

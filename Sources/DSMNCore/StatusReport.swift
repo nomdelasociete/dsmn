@@ -100,32 +100,8 @@ public struct DSMNController: Sendable {
         return try makeStatus(state: state, now: now)
     }
 
-    public func setAuto(_ action: AutoAction, now: Date = Date()) throws -> StatusReport {
-        var state = try store.load()
-
-        switch action {
-        case .on:
-            state.autoEnabled = true
-            state.autoEnabledAt = now
-        case .off:
-            state.autoEnabled = false
-            state.autoEnabledAt = nil
-        case .toggle:
-            state.autoEnabled.toggle()
-            state.autoEnabledAt = state.autoEnabled ? now : nil
-        }
-
-        state.lastActivationReason = state.autoEnabled ? "auto_enabled" : state.lastActivationReason
-        state.lastStopReason = state.autoEnabled ? nil : "auto_disabled"
-        state.updatedAt = now
-        try store.save(state)
-        return try makeStatus(state: state, now: now)
-    }
-
     public func stop(now: Date = Date()) throws -> StatusReport {
         var state = try store.load()
-        state.autoEnabled = false
-        state.autoEnabledAt = nil
         state.manualUntil = nil
         state.lastStopReason = "user_stop"
         state.updatedAt = now
@@ -135,8 +111,6 @@ public struct DSMNController: Sendable {
 
     public func repairState(now: Date = Date()) throws -> StatusReport {
         var state = try store.load()
-        state.autoEnabled = false
-        state.autoEnabledAt = nil
         state.manualUntil = nil
         state.ownsSleepDisable = false
         state.lastStopReason = "repair"

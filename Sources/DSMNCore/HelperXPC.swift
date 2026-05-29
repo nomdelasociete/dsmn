@@ -19,8 +19,6 @@ public protocol DSMNHelperXPCProtocol {
         requesterEvent: String?,
         withReply reply: @escaping (String) -> Void
     )
-    func setAuto(enabled: Bool, withReply reply: @escaping (String) -> Void)
-    func toggleAuto(withReply reply: @escaping (String) -> Void)
     func stop(withReply reply: @escaping (String) -> Void)
     func reconcile(withReply reply: @escaping (String) -> Void)
 }
@@ -110,18 +108,6 @@ public final class DSMNHelperXPCClient: @unchecked Sendable {
 
         return try request { proxy, reply in
             proxy.enableManual(minutes: minutes, withReply: reply)
-        }
-    }
-
-    public func setAuto(_ enabled: Bool) throws -> StatusReport {
-        try request { proxy, reply in
-            proxy.setAuto(enabled: enabled, withReply: reply)
-        }
-    }
-
-    public func toggleAuto() throws -> StatusReport {
-        try request { proxy, reply in
-            proxy.toggleAuto(withReply: reply)
         }
     }
 

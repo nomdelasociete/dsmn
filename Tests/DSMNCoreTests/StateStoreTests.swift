@@ -13,7 +13,6 @@ final class StateStoreTests: XCTestCase {
         let createdAt = Date(timeIntervalSince1970: 1_000)
         let updatedAt = Date(timeIntervalSince1970: 2_000)
         let state = DSMNState(
-            autoEnabled: true,
             manualUntil: Date(timeIntervalSince1970: 3_000),
             ownsSleepDisable: true,
             lastActivationReason: "manual_timer",
@@ -36,8 +35,7 @@ final class StateStoreTests: XCTestCase {
 
         let store = StateStore(directory: directory)
 
-        XCTAssertFalse(try store.load().autoEnabled)
         XCTAssertNil(try store.load().manualUntil)
+        XCTAssertFalse(try store.load().ownsSleepDisable)
     }
 }
-

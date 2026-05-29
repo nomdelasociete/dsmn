@@ -18,27 +18,6 @@
       "mode": "view"
     },
     {
-      "name": "toggle-auto",
-      "title": "Toggle Auto Mode",
-      "subtitle": "dsmn",
-      "description": "Toggle dsmn auto mode",
-      "mode": "no-view"
-    },
-    {
-      "name": "auto-on",
-      "title": "Auto On",
-      "subtitle": "dsmn",
-      "description": "Enable dsmn auto mode",
-      "mode": "no-view"
-    },
-    {
-      "name": "auto-off",
-      "title": "Auto Off",
-      "subtitle": "dsmn",
-      "description": "Disable dsmn auto mode",
-      "mode": "no-view"
-    },
-    {
       "name": "stop",
       "title": "Stop",
       "subtitle": "dsmn",
@@ -93,4 +72,3 @@
     "lint": "ray lint"
   }
 }
-

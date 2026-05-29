@@ -71,14 +71,9 @@ The manual timer is intentional for hooks: every tool call renews a bounded
 lease. Hook renewals are not additive and never shorten a longer manual timer;
 dsmn releases the lease automatically if tool calls stop.
 
-Hooks also refresh auto-mode activity. This prevents `Auto On` from keeping the
-Mac awake forever just because Claude, Codex, Grok, or Pi left a long-lived
-process behind.
-
 Optional environment overrides:
 
 ```sh
-DSMN_HOOK_MODE=auto      # use dsmnctl auto on instead of a manual timer
 DSMN_HOOK_MINUTES=30     # manual timer duration
 DSMNCTL_PATH=/path/to/dsmnctl
 DSMN_HOOK_LOG=/tmp/dsmn-agent-hook.log

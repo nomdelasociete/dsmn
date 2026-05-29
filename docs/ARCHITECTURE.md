@@ -14,9 +14,7 @@ The effective state is:
 
 ```text
 manualActive = manualUntil > now
-autoFresh = max(autoEnabledAt, lastRequester.requestedAt) is less than 30m old
-autoActive = autoEnabled && detectedAgents.count > 0 && autoFresh
-effectiveActive = (manualActive || autoActive) && safetyOK
+effectiveActive = manualActive && safetyOK
 ```
 
 ## CLI
@@ -30,9 +28,6 @@ Planned stable commands:
 dsmnctl status --json
 dsmnctl manual --minutes 90
 dsmnctl manual --minutes 20 --extend-only
-dsmnctl auto on
-dsmnctl auto off
-dsmnctl auto toggle
 dsmnctl stop
 dsmnctl repair
 ```
@@ -57,8 +52,8 @@ only when running as root, unless `DSMN_APPLY_PMSET=0` forces dry-run mode.
 The daemon owns system state in `/Library/Application Support/dsmn`. User-facing
 local development state remains under `~/.dsmn` unless `DSMN_STATE_DIR` is set.
 In LaunchDaemon `serve` mode, the daemon reconciles immediately at startup and
-then every 30 seconds so auto mode follows agent processes without a menu or
-Raycast command having to run.
+then every 30 seconds so expired manual leases release the power lock even if no
+menu or Raycast command runs.
 
 ## App
 

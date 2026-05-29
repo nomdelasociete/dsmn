@@ -48,20 +48,6 @@ final class DSMNHelperXPCService: NSObject, DSMNHelperXPCProtocol {
         })
     }
 
-    func setAuto(enabled: Bool, withReply reply: @escaping (String) -> Void) {
-        reply(encode {
-            _ = try controller.setAuto(enabled ? .on : .off)
-            return .success(run: try controller.reconcile(powerManager: powerManager))
-        })
-    }
-
-    func toggleAuto(withReply reply: @escaping (String) -> Void) {
-        reply(encode {
-            _ = try controller.setAuto(.toggle)
-            return .success(run: try controller.reconcile(powerManager: powerManager))
-        })
-    }
-
     func stop(withReply reply: @escaping (String) -> Void) {
         reply(encode {
             _ = try controller.stop()

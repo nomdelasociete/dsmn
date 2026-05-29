@@ -12,7 +12,6 @@ type Preferences = {
 export type StatusReport = {
   generatedAt: string;
   state: {
-    autoEnabled: boolean;
     manualUntil?: string;
     ownsSleepDisable: boolean;
     lastActivationReason?: string;
@@ -94,7 +93,6 @@ export function renderStatusMarkdown(report: StatusReport): string {
     `# dsmn`,
     ``,
     `**Status:** ${report.decision.shouldPreventSleep ? "active" : "inactive"}`,
-    `**Auto:** ${report.state.autoEnabled ? "on" : "off"}`,
     `**Manual:** ${formatManual(report)}`,
     `**Last request:** ${formatLastRequester(report)}`,
     `**Power:** ${formatPower(report)}`,

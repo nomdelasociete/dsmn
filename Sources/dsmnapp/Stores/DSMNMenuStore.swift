@@ -47,15 +47,7 @@ final class DSMNMenuStore: ObservableObject {
                 return "Active - \(formatDuration(remaining))"
             }
 
-            return report.state.autoEnabled ? "Active - auto" : "Active"
-        }
-
-        if report.state.autoEnabled {
-            if report.decision.stopReason == "auto_activity_stale" {
-                return "Auto idle"
-            }
-
-            return "Auto armed"
+            return "Active"
         }
 
         return "Off"
@@ -169,26 +161,6 @@ final class DSMNMenuStore: ObservableObject {
                 try $0.enableManual(minutes: minutes, requester: requester)
             }, helper: {
                 try await self.helper.enableManual(minutes: minutes, requester: requester)
-            })
-        }
-    }
-
-    func toggleAuto() {
-        Task {
-            await mutate(local: {
-                try $0.setAuto(.toggle)
-            }, helper: {
-                try await self.helper.toggleAuto()
-            })
-        }
-    }
-
-    func setAuto(_ enabled: Bool) {
-        Task {
-            await mutate(local: {
-                try $0.setAuto(enabled ? .on : .off)
-            }, helper: {
-                try await self.helper.setAuto(enabled)
             })
         }
     }

@@ -36,10 +36,6 @@ struct DSMNCTL {
             let options = try parseManualOptions(arguments: Array(arguments.dropFirst()))
             let report = try runManual(options, helper: helper, controller: controller)
             try printReport(report, json: json)
-        case "auto":
-            let action = try parseAutoAction(arguments: Array(arguments.dropFirst()))
-            let report = try runAuto(action, helper: helper, controller: controller)
-            try printReport(report, json: json)
         case "stop":
             let report = try preferHelper({ try helper.stop() }, fallback: { try controller.stop() })
             try printReport(report, json: json)
@@ -93,21 +89,6 @@ struct DSMNCTL {
         }
 
         return (try controller.status(), .local)
-    }
-
-    private static func runAuto(
-        _ action: AutoAction,
-        helper: DSMNHelperXPCClient,
-        controller: DSMNController
-    ) throws -> StatusReport {
-        switch action {
-        case .on:
-            return try preferHelper({ try helper.setAuto(true) }, fallback: { try controller.setAuto(.on) })
-        case .off:
-            return try preferHelper({ try helper.setAuto(false) }, fallback: { try controller.setAuto(.off) })
-        case .toggle:
-            return try preferHelper({ try helper.toggleAuto() }, fallback: { try controller.setAuto(.toggle) })
-        }
     }
 
     private static func runManual(
@@ -208,18 +189,6 @@ struct DSMNCTL {
         )
     }
 
-    private static func parseAutoAction(arguments: [String]) throws -> AutoAction {
-        guard let first = arguments.first else {
-            return .toggle
-        }
-
-        guard let action = AutoAction(rawValue: first) else {
-            throw DSMNError.invalidCommand("auto \(first)")
-        }
-
-        return action
-    }
-
     private static func parseHookTargets(arguments: [String]) throws -> [AgentHookTarget] {
         var targets: [AgentHookTarget] = []
         var values = arguments
@@ -262,10 +231,6 @@ struct DSMNCTL {
         }
 
         print("Status: \(report.decision.shouldPreventSleep ? "active" : "inactive")")
-        print("Auto: \(report.state.autoEnabled ? "on" : "off")")
-        if report.state.autoEnabled {
-            print("Auto activity: \(formatAutoActivity(report))")
-        }
         print("Power: \(report.snapshot.powerSource.rawValue)")
 
         if let batteryPercent = report.snapshot.batteryPercent {
@@ -350,10 +315,6 @@ struct DSMNCTL {
         print("dsmn doctor")
         print("Status source: \(source == .helper ? "helper" : "local fallback")")
         print("Status: \(report.decision.shouldPreventSleep ? "active" : "inactive")")
-        print("Auto: \(report.state.autoEnabled ? "on" : "off")")
-        if report.state.autoEnabled {
-            print("Auto activity: \(formatAutoActivity(report))")
-        }
         print("Power lock: \(report.state.ownsSleepDisable ? "on" : "off")")
         print("macOS SleepDisabled: \(formatOptionalFlag(liveSleepDisabled))")
         if let requester = report.state.lastRequester {
@@ -377,7 +338,7 @@ struct DSMNCTL {
         } else if report.state.ownsSleepDisable {
             print("Ready: dsmn owns the macOS power lock.")
         } else {
-            print("Ready: helper works; enable manual or auto mode to test.")
+            print("Ready: helper works; enable a manual timer or run an agent hook to test.")
         }
     }
 
@@ -387,22 +348,6 @@ struct DSMNCTL {
         }
 
         return value ? "on" : "off"
-    }
-
-    private static func formatAutoActivity(_ report: StatusReport) -> String {
-        let maxAgeSeconds = PowerDecisionEngine().policy.maxAutoActivityAgeSeconds
-        guard let remaining = report.state.autoActivityRemainingSeconds(
-            at: report.generatedAt,
-            maxAgeSeconds: maxAgeSeconds
-        ) else {
-            return "waiting for activity"
-        }
-
-        if remaining > 0 {
-            return "fresh for \(formatDuration(seconds: remaining))"
-        }
-
-        return "stale"
     }
 
     private static func formatDuration(seconds: Int) -> String {
@@ -430,7 +375,6 @@ struct DSMNCTL {
             Commands:
               status [--json]
               manual --minutes <n> [--extend-only] [--requester <name>] [--context <text>] [--event <name>] [--json]
-              auto [on|off|toggle] [--json]
               stop [--json]
               doctor
               install-hooks [all|claude|codex|grok|pi] [--json]

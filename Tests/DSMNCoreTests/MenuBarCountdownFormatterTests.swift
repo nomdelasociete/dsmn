@@ -8,8 +8,8 @@ final class MenuBarCountdownFormatterTests: XCTestCase {
         XCTAssertNil(MenuBarCountdownFormatter.text(report: report, at: Date(timeIntervalSince1970: 1_000)))
     }
 
-    func testReturnsNilForAutoOnlyActiveState() {
-        let report = makeReport(autoEnabled: true, shouldPreventSleep: true)
+    func testReturnsNilWhenNoManualTimerExists() {
+        let report = makeReport(shouldPreventSleep: true)
 
         XCTAssertNil(MenuBarCountdownFormatter.text(report: report, at: Date(timeIntervalSince1970: 1_000)))
     }
@@ -29,14 +29,13 @@ final class MenuBarCountdownFormatterTests: XCTestCase {
     }
 
     private func makeReport(
-        autoEnabled: Bool = false,
         manualUntil: Date? = nil,
         shouldPreventSleep: Bool
     ) -> StatusReport {
         let now = Date(timeIntervalSince1970: 1_000)
         return StatusReport(
             generatedAt: now,
-            state: DSMNState(autoEnabled: autoEnabled, manualUntil: manualUntil, ownsSleepDisable: shouldPreventSleep),
+            state: DSMNState(manualUntil: manualUntil, ownsSleepDisable: shouldPreventSleep),
             snapshot: SystemSnapshot(now: now),
             agents: [],
             decision: PowerDecision(shouldPreventSleep: shouldPreventSleep, reasons: [], safetyBlocks: []),

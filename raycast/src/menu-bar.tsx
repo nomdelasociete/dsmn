@@ -51,7 +51,6 @@ export default function Command() {
         title="Keep Awake 90m"
         onAction={() => run(["manual", "--minutes", "90", "--requester", "Raycast", "--context", "menu bar"], "dsmn active for 90 minutes")}
       />
-      <MenuBarExtra.Item title={report?.state.autoEnabled ? "Auto Off" : "Auto On"} onAction={() => run(["auto", "toggle"], "dsmn auto toggled")} />
       <MenuBarExtra.Item title="Stop" onAction={() => run(["stop"], "dsmn stopped")} />
       <MenuBarExtra.Separator />
       <MenuBarExtra.Item title="Refresh" onAction={load} />
@@ -74,10 +73,6 @@ function menuBarIcon(report: StatusReport | null): Image.ImageLike {
     }
 
     return { source: Icon.Bolt, tintColor: Color.Green };
-  }
-
-  if (report.state.autoEnabled) {
-    return { source: Icon.CircleProgress, tintColor: Color.Yellow };
   }
 
   return idleIcon;
@@ -107,11 +102,7 @@ function statusTitle(report: StatusReport | null): string {
       return `Active - ${formatDuration(report.manualRemainingSeconds)} left`;
     }
 
-    return "Active - auto";
-  }
-
-  if (report.state.autoEnabled) {
-    return "Auto armed";
+    return "Active";
   }
 
   return "Off";

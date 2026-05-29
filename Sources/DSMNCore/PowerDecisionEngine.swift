@@ -43,23 +43,7 @@ public struct PowerDecisionEngine: Sendable {
             reasons.append("manual_timer")
         }
 
-        let autoHasFreshActivity = state.autoActivityIsFresh(
-            at: snapshot.now,
-            maxAgeSeconds: policy.maxAutoActivityAgeSeconds
-        )
-
-        if state.autoEnabled {
-            if agents.isEmpty {
-                reasons.append("auto_waiting_for_agents")
-            } else if autoHasFreshActivity {
-                reasons.append("auto_agents_active")
-            } else {
-                reasons.append("auto_activity_stale")
-            }
-        }
-
         let shouldPreventSleep = state.manualIsActive(at: snapshot.now)
-            || (state.autoEnabled && !agents.isEmpty && autoHasFreshActivity)
 
         return PowerDecision(
             shouldPreventSleep: shouldPreventSleep,
@@ -88,14 +72,6 @@ public struct PowerDecisionEngine: Sendable {
     private func inactiveReason(state: DSMNState, agents: [AgentProcess], at date: Date) -> String {
         if let manualUntil = state.manualUntil, manualUntil <= date {
             return "manual_expired"
-        }
-
-        if state.autoEnabled && agents.isEmpty {
-            return "auto_waiting_for_agents"
-        }
-
-        if state.autoEnabled && !state.autoActivityIsFresh(at: date, maxAgeSeconds: policy.maxAutoActivityAgeSeconds) {
-            return "auto_activity_stale"
         }
 
         return "not_armed"

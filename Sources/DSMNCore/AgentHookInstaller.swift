@@ -409,7 +409,6 @@ public struct AgentHookInstaller: Sendable {
         #!/usr/bin/env bash
         set -u
 
-        MODE="${DSMN_HOOK_MODE:-manual}"
         MINUTES="${DSMN_HOOK_MINUTES:-20}"
         FALLBACK_SECONDS="${DSMN_HOOK_FALLBACK_SECONDS:-600}"
         LOG_PATH="${DSMN_HOOK_LOG:-/tmp/dsmn-agent-hook.log}"
@@ -552,27 +551,11 @@ public struct AgentHookInstaller: Sendable {
         [[ -n "$REQUESTER_CONTEXT" ]] && manual_args+=(--context "$REQUESTER_CONTEXT")
         [[ -n "$REQUESTER_EVENT" ]] && manual_args+=(--event "$REQUESTER_EVENT")
 
-        case "$MODE" in
-        manual)
-          if ! "$ctl" "${manual_args[@]}" >/dev/null 2>&1; then
-            log_event "dsmn manual failed ctl=$ctl requester=$REQUESTER_NAME"
-            fallback_caffeinate
-            exit 0
-          fi
-          ;;
-        auto)
-          if ! "$ctl" auto on --json >/dev/null 2>&1; then
-            log_event "dsmn auto failed ctl=$ctl"
-            fallback_caffeinate
-            exit 0
-          fi
-          ;;
-        *)
-          log_event "invalid mode=$MODE"
+        if ! "$ctl" "${manual_args[@]}" >/dev/null 2>&1; then
+          log_event "dsmn manual failed ctl=$ctl requester=$REQUESTER_NAME"
           fallback_caffeinate
           exit 0
-          ;;
-        esac
+        fi
 
         doctor="$("$ctl" doctor 2>&1 || true)"
 
@@ -583,7 +566,7 @@ public struct AgentHookInstaller: Sendable {
         fi
 
         if grep -q "macOS SleepDisabled: on" <<<"$doctor"; then
-          log_event "dsmn active mode=$MODE minutes=$MINUTES requester=$REQUESTER_NAME context=$REQUESTER_CONTEXT event=$REQUESTER_EVENT"
+          log_event "dsmn active minutes=$MINUTES requester=$REQUESTER_NAME context=$REQUESTER_CONTEXT event=$REQUESTER_EVENT"
         else
           log_event "dsmn helper reachable but sleep lock is off"
         fi

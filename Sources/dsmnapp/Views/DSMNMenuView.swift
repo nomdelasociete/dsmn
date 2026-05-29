@@ -45,14 +45,6 @@ struct DSMNMenuView: View {
         .keyboardShortcut("9")
         .disabled(!store.canRunAwakeCommands)
 
-        Divider()
-
-        Button(autoTitle) {
-            store.toggleAuto()
-        }
-        .keyboardShortcut("a")
-        .disabled(!store.canRunAwakeCommands)
-
         Button("Stop") {
             store.stop()
         }
@@ -93,14 +85,6 @@ struct DSMNMenuView: View {
             NSApplication.shared.terminate(nil)
         }
         .keyboardShortcut("q")
-    }
-
-    private var autoTitle: String {
-        guard let report = store.report else {
-            return "Toggle Auto"
-        }
-
-        return report.state.autoEnabled ? "Auto Off" : "Auto On"
     }
 
     private func short(_ value: String) -> String {

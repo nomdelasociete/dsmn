@@ -100,13 +100,10 @@ SleepDisabled 1
 
 ## Safety Notes
 
-- Auto mode prevents sleep only while a supported agent process is detected and
-  recent hook or auto-enable activity is still fresh.
-- Auto mode releases the lock when activity is stale, when no agent is detected,
-  when the network route is unavailable, or when battery is at or below the
-  configured threshold.
 - Hooks create bounded manual leases; repeated tool calls renew the lease
   without adding time or shortening a longer manual timer.
 - Hooks record the last requester, for example `Codex - dsmn - session abc12345`
   when the hook payload exposes session context.
+- Long-lived agent processes alone do not keep the Mac awake; dsmn only stays
+  active while a manual timer is still valid.
 - dsmn does not intentionally keep the display awake.
