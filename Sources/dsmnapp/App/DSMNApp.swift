@@ -42,18 +42,17 @@ private struct DSMNMenuBarLabel: View {
     var date: Date
 
     var body: some View {
-        Group {
+        HStack(spacing: 4) {
             if showCountdown, let countdown = store.menuBarCountdownText(at: date) {
-                Label {
-                    Text(countdown)
-                        .monospacedDigit()
-                } icon: {
-                    icon
-                }
+                icon
+
+                Text(countdown)
+                    .monospacedDigit()
             } else {
                 icon
             }
         }
+        .fixedSize()
         .accessibilityLabel(store.menuBarAccessibilityLabel(at: date))
     }
 
