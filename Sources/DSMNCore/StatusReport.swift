@@ -65,7 +65,7 @@ public struct DSMNController: Sendable {
         return try makeStatus(state: state, now: now)
     }
 
-    public func enableManual(minutes: Int, now: Date = Date()) throws -> StatusReport {
+    public func enableManual(minutes: Int, now: Date = Date(), extendOnly: Bool = false) throws -> StatusReport {
         guard minutes > 0 else {
             throw DSMNError.invalidDuration("minutes must be greater than 0")
         }
@@ -75,8 +75,13 @@ public struct DSMNController: Sendable {
         }
 
         var state = try store.load()
-        state.manualUntil = now.addingTimeInterval(TimeInterval(minutes * 60))
-        state.lastActivationReason = "manual_timer"
+        let requestedUntil = now.addingTimeInterval(TimeInterval(minutes * 60))
+        if extendOnly, let manualUntil = state.manualUntil, manualUntil > requestedUntil {
+            return try makeStatus(state: state, now: now)
+        }
+
+        state.manualUntil = requestedUntil
+        state.lastActivationReason = extendOnly ? "manual_lease" : "manual_timer"
         state.lastStopReason = nil
         state.updatedAt = now
         try store.save(state)

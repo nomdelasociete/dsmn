@@ -28,6 +28,7 @@ Planned stable commands:
 ```sh
 dsmnctl status --json
 dsmnctl manual --minutes 90
+dsmnctl manual --minutes 20 --extend-only
 dsmnctl auto on
 dsmnctl auto off
 dsmnctl auto toggle

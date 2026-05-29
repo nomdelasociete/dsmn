@@ -49,8 +49,9 @@ All installed hooks call the shared script:
 ~/.dsmn/dsmn-agent-hook.sh
 ```
 
-The script calls `dsmnctl manual --minutes 20` by default and falls back to
-`caffeinate -is -t 600` only if `dsmnctl` or the helper is unavailable.
+The script calls `dsmnctl manual --minutes 20 --extend-only` by default and
+falls back to `caffeinate -is -t 600` only if `dsmnctl` or the helper is
+unavailable.
 
 ## Build And Test
 
@@ -102,5 +103,6 @@ SleepDisabled 1
 - Auto mode prevents sleep while a supported agent process is detected.
 - Auto mode releases the lock when no agent is detected, when the network route
   is unavailable, or when battery is at or below the configured threshold.
-- Hooks create bounded manual leases; repeated tool calls extend the lease.
+- Hooks create bounded manual leases; repeated tool calls renew the lease
+  without adding time or shortening a longer manual timer.
 - dsmn does not intentionally keep the display awake.

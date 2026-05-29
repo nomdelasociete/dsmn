@@ -53,7 +53,10 @@ final class AgentHookInstallerTests: XCTestCase {
         let reports = try installer.install()
 
         XCTAssertEqual(Set(reports.map(\.target)), Set(["claude", "codex", "grok", "pi"]))
-        XCTAssertTrue(FileManager.default.isExecutableFile(atPath: home.appendingPathComponent(".dsmn/dsmn-agent-hook.sh").path))
+        let hookScriptURL = home.appendingPathComponent(".dsmn/dsmn-agent-hook.sh")
+        XCTAssertTrue(FileManager.default.isExecutableFile(atPath: hookScriptURL.path))
+        let hookScript = try String(contentsOf: hookScriptURL, encoding: .utf8)
+        XCTAssertTrue(hookScript.contains(#"manual --minutes "$MINUTES" --extend-only --json"#))
 
         let claude = try readJSON(home.appendingPathComponent(".claude/settings.json"))
         let claudeCommands = hookCommands(in: claude)

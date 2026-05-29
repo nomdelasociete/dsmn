@@ -58,15 +58,16 @@ pick up the extension.
   events where the agent supports them;
 - for Pi, run on `session_start`, `input`, `turn_start`, `tool_call`,
   `tool_result`, and `turn_end`;
-- call `dsmnctl manual --minutes 20`;
+- call `dsmnctl manual --minutes 20 --extend-only`;
 - verify that `dsmnctl doctor` sees the helper and `macOS SleepDisabled: on`;
 - fall back to `caffeinate -is -t 600` only when `dsmnctl` or the helper are not
   available;
 - never use `caffeinate -d`, so the fallback does not intentionally keep the
   display awake.
 
-The manual timer is intentional for hooks: every tool call extends a bounded
-lease, and dsmn releases it automatically if tool calls stop.
+The manual timer is intentional for hooks: every tool call renews a bounded
+lease. Hook renewals are not additive and never shorten a longer manual timer;
+dsmn releases the lease automatically if tool calls stop.
 
 Optional environment overrides:
 

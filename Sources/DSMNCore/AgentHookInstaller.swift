@@ -454,7 +454,7 @@ public struct AgentHookInstaller: Sendable {
 
         case "$MODE" in
         manual)
-          if ! "$ctl" manual --minutes "$MINUTES" --json >/dev/null 2>&1; then
+          if ! "$ctl" manual --minutes "$MINUTES" --extend-only --json >/dev/null 2>&1; then
             log_event "dsmn manual failed ctl=$ctl"
             fallback_caffeinate
             exit 0

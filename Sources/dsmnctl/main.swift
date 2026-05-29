@@ -33,11 +33,8 @@ struct DSMNCTL {
             let report = try preferHelper({ try helper.status() }, fallback: { try controller.status() })
             try printReport(report, json: json)
         case "manual":
-            let minutes = try parseMinutes(arguments: Array(arguments.dropFirst()))
-            let report = try preferHelper(
-                { try helper.enableManual(minutes: minutes) },
-                fallback: { try controller.enableManual(minutes: minutes) }
-            )
+            let options = try parseManualOptions(arguments: Array(arguments.dropFirst()))
+            let report = try runManual(options, helper: helper, controller: controller)
             try printReport(report, json: json)
         case "auto":
             let action = try parseAutoAction(arguments: Array(arguments.dropFirst()))
@@ -81,6 +78,11 @@ struct DSMNCTL {
         case local
     }
 
+    private struct ManualOptions {
+        var minutes: Int
+        var extendOnly: Bool
+    }
+
     private static func readStatus(
         helper: DSMNHelperXPCClient,
         controller: DSMNController
@@ -105,6 +107,61 @@ struct DSMNCTL {
         case .toggle:
             return try preferHelper({ try helper.toggleAuto() }, fallback: { try controller.setAuto(.toggle) })
         }
+    }
+
+    private static func runManual(
+        _ options: ManualOptions,
+        helper: DSMNHelperXPCClient,
+        controller: DSMNController
+    ) throws -> StatusReport {
+        try validateManualDuration(options.minutes, maxMinutes: controller.decisionEngine.policy.maxManualDurationMinutes)
+
+        if options.extendOnly {
+            return try preferHelper(
+                { try extendManualWithHelper(minutes: options.minutes, helper: helper) },
+                fallback: { try controller.enableManual(minutes: options.minutes, extendOnly: true) }
+            )
+        }
+
+        return try preferHelper(
+            { try helper.enableManual(minutes: options.minutes) },
+            fallback: { try controller.enableManual(minutes: options.minutes) }
+        )
+    }
+
+    private static func validateManualDuration(_ minutes: Int, maxMinutes: Int) throws {
+        guard minutes > 0 else {
+            throw DSMNError.invalidDuration("minutes must be greater than 0")
+        }
+
+        guard minutes <= maxMinutes else {
+            throw DSMNError.invalidDuration("minutes must be <= \(maxMinutes)")
+        }
+    }
+
+    private static func extendManualWithHelper(
+        minutes: Int,
+        helper: DSMNHelperXPCClient
+    ) throws -> StatusReport {
+        let current = try helper.status()
+        let requestedUntil = Date().addingTimeInterval(TimeInterval(minutes * 60))
+
+        if let manualUntil = current.state.manualUntil, manualUntil > requestedUntil {
+            return try helper.reconcile().status
+        }
+
+        return try helper.enableManual(minutes: minutes)
+    }
+
+    private static func parseManualOptions(arguments: [String]) throws -> ManualOptions {
+        var values = arguments
+        let extendOnly = values.contains("--extend-only")
+        values.removeAll { $0 == "--extend-only" }
+
+        return ManualOptions(
+            minutes: try parseMinutes(arguments: values),
+            extendOnly: extendOnly
+        )
     }
 
     private static func parseMinutes(arguments: [String]) throws -> Int {
@@ -309,7 +366,7 @@ struct DSMNCTL {
 
             Commands:
               status [--json]
-              manual --minutes <n> [--json]
+              manual --minutes <n> [--extend-only] [--json]
               auto [on|off|toggle] [--json]
               stop [--json]
               doctor
