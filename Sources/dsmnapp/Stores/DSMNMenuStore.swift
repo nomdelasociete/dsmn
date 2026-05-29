@@ -24,32 +24,12 @@ final class DSMNMenuStore: ObservableObject {
         }
     }
 
+    var menuBarIconState: MenuBarIconState {
+        MenuBarIconState.resolve(report: report, errorMessage: errorMessage)
+    }
+
     var menuBarSystemImage: String {
-        if errorMessage != nil, report == nil {
-            return "exclamationmark.triangle"
-        }
-
-        guard let report else {
-            return "figure.run"
-        }
-
-        if report.decision.shouldPreventSleep && !report.state.ownsSleepDisable {
-            return "exclamationmark.triangle"
-        }
-
-        if report.decision.shouldPreventSleep {
-            if let remaining = report.manualRemainingSeconds, remaining > 0 {
-                return "timer.circle.fill"
-            }
-
-            return "figure.run.circle.fill"
-        }
-
-        if report.state.autoEnabled {
-            return "figure.run.circle"
-        }
-
-        return "figure.run"
+        menuBarIconState.systemImageName
     }
 
     var statusLine: String {

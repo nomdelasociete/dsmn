@@ -14,13 +14,17 @@ struct DSMNApp: App {
     @StateObject private var store = DSMNMenuStore()
 
     var body: some Scene {
-        MenuBarExtra("", systemImage: store.menuBarSystemImage) {
+        MenuBarExtra {
             DSMNMenuView(store: store)
                 .task {
                     await store.refresh()
                 }
+        } label: {
+            Image(systemName: store.menuBarSystemImage)
+                .symbolRenderingMode(.hierarchical)
+                .id(store.menuBarIconState.rawValue)
+                .accessibilityLabel(store.statusLine)
         }
         .menuBarExtraStyle(.menu)
     }
 }
-

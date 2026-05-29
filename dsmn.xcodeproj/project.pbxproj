@@ -11,6 +11,7 @@
 		0643E25D3C36B6DF1A393C9B /* dsmnctl in Embed Dependencies */ = {isa = PBXBuildFile; fileRef = F0EF5AEFD1754A2A344509EC /* dsmnctl */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		07021235DBF2A577E657BF8B /* AgentDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D67112750F54179C1E0BEEC /* AgentDetector.swift */; };
 		3859C15BC198D9FA919AC362 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0D529786998707F7F4A7C78 /* main.swift */; };
+		3B1B0405B4D29F02793BD9E2 /* MenuBarIconState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3357CC5A02DEAA80CF0E7714 /* MenuBarIconState.swift */; };
 		3EAAD859F9B5BF895A2D2B7E /* DSMNCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 74B444C620310ADFA67DB8E3 /* DSMNCore.framework */; };
 		44D1F403292D62A04AB4BEFC /* StatusReport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3619C42C42B624EEF07BA6AC /* StatusReport.swift */; };
 		4666E8007090B6F18D21E4D6 /* com.nomdelasociete.dsmn.helper.plist in CopyFiles */ = {isa = PBXBuildFile; fileRef = 1428E24E9C88059C6735E168 /* com.nomdelasociete.dsmn.helper.plist */; };
@@ -122,6 +123,7 @@
 		1428E24E9C88059C6735E168 /* com.nomdelasociete.dsmn.helper.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = com.nomdelasociete.dsmn.helper.plist; sourceTree = "<group>"; };
 		1A393D53B83902538C1B8CB1 /* dsmn.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = dsmn.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		22FC037E46E8EBB70D7AB405 /* AgentHookInstaller.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentHookInstaller.swift; sourceTree = "<group>"; };
+		3357CC5A02DEAA80CF0E7714 /* MenuBarIconState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarIconState.swift; sourceTree = "<group>"; };
 		3619C42C42B624EEF07BA6AC /* StatusReport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusReport.swift; sourceTree = "<group>"; };
 		4D67112750F54179C1E0BEEC /* AgentDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentDetector.swift; sourceTree = "<group>"; };
 		4ED81C70EF47353A88BF55D1 /* PowerDecisionEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerDecisionEngine.swift; sourceTree = "<group>"; };
@@ -272,6 +274,7 @@
 				22FC037E46E8EBB70D7AB405 /* AgentHookInstaller.swift */,
 				F6D2A8150F5191D00E4A19F5 /* CommandRunner.swift */,
 				61FE22C17B810CA959C3CACA /* HelperXPC.swift */,
+				3357CC5A02DEAA80CF0E7714 /* MenuBarIconState.swift */,
 				F7B4A2E7E5EA04A0BF90449F /* Models.swift */,
 				4ED81C70EF47353A88BF55D1 /* PowerDecisionEngine.swift */,
 				905431EEC13EC448A5EB8382 /* PowerManager.swift */,
@@ -441,6 +444,7 @@
 				D5AAB60F45FEDADAAA13104B /* AgentHookInstaller.swift in Sources */,
 				D98AF5874BCF38EA0012AE27 /* CommandRunner.swift in Sources */,
 				BA4E80D2B6B0BBFDEEA0B2FB /* HelperXPC.swift in Sources */,
+				3B1B0405B4D29F02793BD9E2 /* MenuBarIconState.swift in Sources */,
 				809705EFBD76D07779E7138F /* Models.swift in Sources */,
 				8BB43E1563BD73705526097D /* PowerDecisionEngine.swift in Sources */,
 				B3DFFD72854DAF3E6FE29A2B /* PowerManager.swift in Sources */,
