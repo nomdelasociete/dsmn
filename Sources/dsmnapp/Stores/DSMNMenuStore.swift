@@ -51,6 +51,10 @@ final class DSMNMenuStore: ObservableObject {
         }
 
         if report.state.autoEnabled {
+            if report.decision.stopReason == "auto_activity_stale" {
+                return "Auto idle"
+            }
+
             return "Auto armed"
         }
 

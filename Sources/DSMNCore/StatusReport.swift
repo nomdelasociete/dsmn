@@ -106,10 +106,13 @@ public struct DSMNController: Sendable {
         switch action {
         case .on:
             state.autoEnabled = true
+            state.autoEnabledAt = now
         case .off:
             state.autoEnabled = false
+            state.autoEnabledAt = nil
         case .toggle:
             state.autoEnabled.toggle()
+            state.autoEnabledAt = state.autoEnabled ? now : nil
         }
 
         state.lastActivationReason = state.autoEnabled ? "auto_enabled" : state.lastActivationReason
@@ -122,6 +125,7 @@ public struct DSMNController: Sendable {
     public func stop(now: Date = Date()) throws -> StatusReport {
         var state = try store.load()
         state.autoEnabled = false
+        state.autoEnabledAt = nil
         state.manualUntil = nil
         state.lastStopReason = "user_stop"
         state.updatedAt = now
@@ -132,6 +136,7 @@ public struct DSMNController: Sendable {
     public func repairState(now: Date = Date()) throws -> StatusReport {
         var state = try store.load()
         state.autoEnabled = false
+        state.autoEnabledAt = nil
         state.manualUntil = nil
         state.ownsSleepDisable = false
         state.lastStopReason = "repair"

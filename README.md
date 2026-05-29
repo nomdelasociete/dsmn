@@ -40,6 +40,8 @@ This repository currently contains a working signed macOS app stack:
 - menu bar controls for helper registration through `SMAppService`
 - last-request visibility in the menu and CLI, including agent/session context
   when hooks provide it
+- bounded auto mode: long-lived agent processes do not keep the Mac awake
+  forever without recent hook or auto-enable activity
 - Raycast extension for manual duration, auto mode, stop, status, and menu bar
 - Developer ID archive and notarization scripts
 

@@ -14,7 +14,8 @@ The effective state is:
 
 ```text
 manualActive = manualUntil > now
-autoActive = autoEnabled && detectedAgents.count > 0
+autoFresh = max(autoEnabledAt, lastRequester.requestedAt) is less than 30m old
+autoActive = autoEnabled && detectedAgents.count > 0 && autoFresh
 effectiveActive = (manualActive || autoActive) && safetyOK
 ```
 

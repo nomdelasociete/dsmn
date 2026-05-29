@@ -61,6 +61,40 @@ final class DaemonReconcileTests: XCTestCase {
         XCTAssertFalse(try store.load().ownsSleepDisable)
     }
 
+    func testReconcileReleasesOwnedLockWhenAutoActivityIsStale() throws {
+        let now = Date(timeIntervalSince1970: 3_000)
+        let store = try makeStore()
+        try store.save(
+            DSMNState(
+                autoEnabled: true,
+                autoEnabledAt: now.addingTimeInterval(-3_600),
+                ownsSleepDisable: true,
+                lastRequester: ActivationRequester(name: "Claude Code", requestedAt: now.addingTimeInterval(-3_600))
+            )
+        )
+
+        let powerManager = RecordingPowerManager(dryRun: false)
+        let controller = DSMNController(
+            store: store,
+            processListing: StaticProcessListing([
+                RunningProcess(
+                    pid: 200,
+                    ppid: 1,
+                    executable: "/opt/homebrew/bin/claude",
+                    command: "claude --dangerously-skip-permissions"
+                )
+            ]),
+            snapshotProvider: StaticSystemSnapshotProvider(SystemSnapshot(now: now, powerSource: .ac))
+        )
+
+        let report = try controller.reconcile(powerManager: powerManager, now: now)
+
+        XCTAssertEqual(powerManager.requests, [false])
+        XCTAssertEqual(report.status.decision.stopReason, "auto_activity_stale")
+        XCTAssertFalse(report.status.state.ownsSleepDisable)
+        XCTAssertFalse(try store.load().ownsSleepDisable)
+    }
+
     func testStopPreservesOwnershipUntilReconcileReleasesPower() throws {
         let now = Date(timeIntervalSince1970: 1_000)
         let store = try makeStore()

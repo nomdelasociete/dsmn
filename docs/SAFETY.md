@@ -25,6 +25,7 @@ The helper must release sleep prevention when any hard stop applies:
 - manual timer expired;
 - auto mode is off and no manual timer is active;
 - no supported AI agent is active for the grace period;
+- auto mode has agent processes but no fresh hook or auto-enable activity;
 - battery is at or below the configured threshold while not on AC power;
 - no default network route is available for the configured grace period;
 - the lid has been reopened for the configured grace period;
@@ -37,6 +38,7 @@ Initial defaults:
 
 - battery stop threshold: 20%;
 - no-agent grace: 5 minutes;
+- maximum auto activity age: 30 minutes;
 - lid-open grace: 5 minutes;
 - no-route grace: 15 minutes;
 - maximum manual duration: 8 hours.

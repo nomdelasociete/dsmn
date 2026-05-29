@@ -263,6 +263,9 @@ struct DSMNCTL {
 
         print("Status: \(report.decision.shouldPreventSleep ? "active" : "inactive")")
         print("Auto: \(report.state.autoEnabled ? "on" : "off")")
+        if report.state.autoEnabled {
+            print("Auto activity: \(formatAutoActivity(report))")
+        }
         print("Power: \(report.snapshot.powerSource.rawValue)")
 
         if let batteryPercent = report.snapshot.batteryPercent {
@@ -348,6 +351,9 @@ struct DSMNCTL {
         print("Status source: \(source == .helper ? "helper" : "local fallback")")
         print("Status: \(report.decision.shouldPreventSleep ? "active" : "inactive")")
         print("Auto: \(report.state.autoEnabled ? "on" : "off")")
+        if report.state.autoEnabled {
+            print("Auto activity: \(formatAutoActivity(report))")
+        }
         print("Power lock: \(report.state.ownsSleepDisable ? "on" : "off")")
         print("macOS SleepDisabled: \(formatOptionalFlag(liveSleepDisabled))")
         if let requester = report.state.lastRequester {
@@ -381,6 +387,22 @@ struct DSMNCTL {
         }
 
         return value ? "on" : "off"
+    }
+
+    private static func formatAutoActivity(_ report: StatusReport) -> String {
+        let maxAgeSeconds = PowerDecisionEngine().policy.maxAutoActivityAgeSeconds
+        guard let remaining = report.state.autoActivityRemainingSeconds(
+            at: report.generatedAt,
+            maxAgeSeconds: maxAgeSeconds
+        ) else {
+            return "waiting for activity"
+        }
+
+        if remaining > 0 {
+            return "fresh for \(formatDuration(seconds: remaining))"
+        }
+
+        return "stale"
     }
 
     private static func formatDuration(seconds: Int) -> String {

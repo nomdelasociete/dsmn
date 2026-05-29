@@ -71,6 +71,10 @@ The manual timer is intentional for hooks: every tool call renews a bounded
 lease. Hook renewals are not additive and never shorten a longer manual timer;
 dsmn releases the lease automatically if tool calls stop.
 
+Hooks also refresh auto-mode activity. This prevents `Auto On` from keeping the
+Mac awake forever just because Claude, Codex, Grok, or Pi left a long-lived
+process behind.
+
 Optional environment overrides:
 
 ```sh

@@ -72,6 +72,10 @@ For the auto-mode test, keep a Claude Code, Codex, Grok Build, or Pi session
 running, click `Auto On`, and wait for `Active - auto` plus `Power lock: on`.
 The same lid-close timestamp test should then pass.
 
+Auto mode is intentionally bounded. A long-lived agent process alone is not
+enough to hold `SleepDisabled` forever; dsmn requires recent auto-enable or hook
+activity and goes idle after 30 minutes without it.
+
 You can also inspect the current state from the archived app bundle:
 
 ```sh

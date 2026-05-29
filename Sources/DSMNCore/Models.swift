@@ -141,6 +141,7 @@ public struct SystemSnapshot: Codable, Equatable, Sendable {
 public struct SafetyPolicy: Codable, Equatable, Sendable {
     public var minimumBatteryPercent: Int
     public var maxManualDurationMinutes: Int
+    public var maxAutoActivityAgeSeconds: Int
     public var noAgentGraceSeconds: Int
     public var lidOpenGraceSeconds: Int
     public var noRouteGraceSeconds: Int
@@ -148,12 +149,14 @@ public struct SafetyPolicy: Codable, Equatable, Sendable {
     public init(
         minimumBatteryPercent: Int = 20,
         maxManualDurationMinutes: Int = 8 * 60,
+        maxAutoActivityAgeSeconds: Int = 30 * 60,
         noAgentGraceSeconds: Int = 5 * 60,
         lidOpenGraceSeconds: Int = 5 * 60,
         noRouteGraceSeconds: Int = 15 * 60
     ) {
         self.minimumBatteryPercent = minimumBatteryPercent
         self.maxManualDurationMinutes = maxManualDurationMinutes
+        self.maxAutoActivityAgeSeconds = maxAutoActivityAgeSeconds
         self.noAgentGraceSeconds = noAgentGraceSeconds
         self.lidOpenGraceSeconds = lidOpenGraceSeconds
         self.noRouteGraceSeconds = noRouteGraceSeconds
@@ -162,6 +165,7 @@ public struct SafetyPolicy: Codable, Equatable, Sendable {
 
 public struct DSMNState: Codable, Equatable, Sendable {
     public var autoEnabled: Bool
+    public var autoEnabledAt: Date?
     public var manualUntil: Date?
     public var ownsSleepDisable: Bool
     public var lastActivationReason: String?
@@ -172,6 +176,7 @@ public struct DSMNState: Codable, Equatable, Sendable {
 
     public init(
         autoEnabled: Bool = false,
+        autoEnabledAt: Date? = nil,
         manualUntil: Date? = nil,
         ownsSleepDisable: Bool = false,
         lastActivationReason: String? = nil,
@@ -181,6 +186,7 @@ public struct DSMNState: Codable, Equatable, Sendable {
         updatedAt: Date = Date()
     ) {
         self.autoEnabled = autoEnabled
+        self.autoEnabledAt = autoEnabledAt
         self.manualUntil = manualUntil
         self.ownsSleepDisable = ownsSleepDisable
         self.lastActivationReason = lastActivationReason
@@ -200,6 +206,27 @@ public struct DSMNState: Codable, Equatable, Sendable {
 
     public func manualIsActive(at date: Date) -> Bool {
         guard let remaining = manualRemainingSeconds(at: date) else {
+            return false
+        }
+
+        return remaining > 0
+    }
+
+    public func autoActivityRemainingSeconds(at date: Date, maxAgeSeconds: Int) -> Int? {
+        let latestActivity = [autoEnabledAt, lastRequester?.requestedAt]
+            .compactMap { $0 }
+            .max()
+
+        guard let latestActivity else {
+            return nil
+        }
+
+        let elapsed = Int(date.timeIntervalSince(latestActivity).rounded(.down))
+        return max(0, maxAgeSeconds - elapsed)
+    }
+
+    public func autoActivityIsFresh(at date: Date, maxAgeSeconds: Int) -> Bool {
+        guard let remaining = autoActivityRemainingSeconds(at: date, maxAgeSeconds: maxAgeSeconds) else {
             return false
         }
 
