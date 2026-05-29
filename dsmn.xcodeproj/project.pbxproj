@@ -500,6 +500,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.nomdelasociete.dsmn.helper;
 				PRODUCT_NAME = dsmnd;
 				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
 			};
 			name = Debug;
 		};
@@ -531,6 +532,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.nomdelasociete.dsmn.helper;
 				PRODUCT_NAME = dsmnd;
 				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
 			};
 			name = Release;
 		};
@@ -613,6 +615,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.nomdelasociete.dsmn.dsmnctl;
 				PRODUCT_NAME = dsmnctl;
 				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
 			};
 			name = Debug;
 		};
@@ -728,6 +731,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.nomdelasociete.dsmn.dsmnctl;
 				PRODUCT_NAME = dsmnctl;
 				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
 			};
 			name = Release;
 		};

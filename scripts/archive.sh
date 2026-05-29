@@ -20,6 +20,9 @@ xcodebuild \
   -configuration Release \
   -destination "generic/platform=macOS" \
   -archivePath "$ARCHIVE_PATH" \
+  CODE_SIGN_STYLE=Manual \
+  DEVELOPMENT_TEAM=JSFMAD28GS \
+  CODE_SIGN_IDENTITY="Developer ID Application" \
   clean archive
 
 if [[ "$EXPORT" == "1" ]]; then

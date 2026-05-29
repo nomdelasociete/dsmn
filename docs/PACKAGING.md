@@ -19,6 +19,11 @@ The export options use Developer ID distribution for team `JSFMAD28GS`. If the
 Developer ID Application certificate is not installed, archive may succeed while
 export fails. That is a signing setup issue, not an app build issue.
 
+The archive script forces Release archive signing with manual
+`Developer ID Application` settings for team `JSFMAD28GS`. The tool targets are
+marked `SKIP_INSTALL=YES` so they are embedded inside `dsmn.app` without turning
+the archive into a generic multi-product archive.
+
 To archive without exporting:
 
 ```sh

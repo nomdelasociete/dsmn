@@ -85,6 +85,7 @@ targets:
         OTHER_SWIFT_FLAGS: "$(inherited) -parse-as-library"
         PRODUCT_BUNDLE_IDENTIFIER: com.nomdelasociete.dsmn.helper
         PRODUCT_NAME: dsmnd
+        SKIP_INSTALL: YES
   dsmnctl:
     type: tool
     platform: macOS
@@ -97,6 +98,7 @@ targets:
         OTHER_SWIFT_FLAGS: "$(inherited) -parse-as-library"
         PRODUCT_BUNDLE_IDENTIFIER: com.nomdelasociete.dsmn.dsmnctl
         PRODUCT_NAME: dsmnctl
+        SKIP_INSTALL: YES
 schemes:
   dsmn:
     build:
