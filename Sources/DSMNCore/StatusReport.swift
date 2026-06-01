@@ -83,7 +83,7 @@ public struct DSMNController: Sendable {
         let requestedUntil = now.addingTimeInterval(TimeInterval(minutes * 60))
         if extendOnly, let manualUntil = state.manualUntil, manualUntil > requestedUntil {
             if let requester {
-                state.lastRequester = requester.requested(at: now)
+                state.recordRequester(requester, at: now)
                 state.updatedAt = now
                 try store.save(state)
             }
@@ -93,7 +93,11 @@ public struct DSMNController: Sendable {
 
         state.manualUntil = requestedUntil
         state.lastActivationReason = extendOnly ? "manual_lease" : "manual_timer"
-        state.lastRequester = requester?.requested(at: now)
+        if let requester {
+            state.recordRequester(requester, at: now)
+        } else {
+            state.lastRequester = nil
+        }
         state.lastStopReason = nil
         state.updatedAt = now
         try store.save(state)

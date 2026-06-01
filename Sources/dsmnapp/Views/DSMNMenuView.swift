@@ -24,6 +24,10 @@ struct DSMNMenuView: View {
             Text(lastRequesterLine)
         }
 
+        if let recentRequestersLine = store.recentRequestersLine {
+            Text(recentRequestersLine)
+        }
+
         if let errorMessage = store.errorMessage {
             Text(short(errorMessage))
         }

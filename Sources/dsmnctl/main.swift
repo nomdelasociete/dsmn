@@ -257,6 +257,16 @@ struct DSMNCTL {
                 print("Last event: \(event)")
             }
         }
+        if report.state.recentRequesters.count > 1 {
+            print("Recent requests:")
+            for requester in report.state.recentRequesters.prefix(6) {
+                if let event = requester.event {
+                    print("- \(requester.displayText) (\(event))")
+                } else {
+                    print("- \(requester.displayText)")
+                }
+            }
+        }
 
         if report.agents.isEmpty {
             print("Agents: none")
@@ -321,6 +331,16 @@ struct DSMNCTL {
             print("Last request: \(requester.displayText)")
             if let event = requester.event {
                 print("Last event: \(event)")
+            }
+        }
+        if report.state.recentRequesters.count > 1 {
+            print("Recent requests:")
+            for requester in report.state.recentRequesters.prefix(6) {
+                if let event = requester.event {
+                    print("- \(requester.displayText) (\(event))")
+                } else {
+                    print("- \(requester.displayText)")
+                }
             }
         }
         print("Agents detected: \(report.agents.count)")

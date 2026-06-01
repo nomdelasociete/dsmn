@@ -59,8 +59,8 @@ pick up the extension.
 - for Pi, run on `session_start`, `input`, `turn_start`, `tool_call`,
   `tool_result`, and `turn_end`;
 - call `dsmnctl manual --minutes 20 --extend-only --requester <agent>`;
-- record the last requester in dsmn state, with project/session context when
-  the hook payload exposes it;
+- record the last requester and a short recent-requester list in dsmn state,
+  with project/session context when the hook payload exposes it;
 - verify that `dsmnctl doctor` sees the helper and `macOS SleepDisabled: on`;
 - fall back to `caffeinate -is -t 600` only when `dsmnctl` or the helper are not
   available;

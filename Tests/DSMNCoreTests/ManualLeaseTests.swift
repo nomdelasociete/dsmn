@@ -69,6 +69,7 @@ final class ManualLeaseTests: XCTestCase {
         XCTAssertEqual(report.state.lastRequester?.context, "dsmn - session abc12345")
         XCTAssertEqual(report.state.lastRequester?.event, "PreToolUse")
         XCTAssertEqual(report.state.lastRequester?.requestedAt, now)
+        XCTAssertEqual(report.state.recentRequesters, [try XCTUnwrap(report.state.lastRequester)])
     }
 
     func testExtendOnlyUpdatesRequesterWithoutShorteningLongerTimer() throws {
@@ -96,6 +97,71 @@ final class ManualLeaseTests: XCTestCase {
         XCTAssertEqual(hook.state.lastRequester?.name, "Codex")
         XCTAssertEqual(hook.state.lastRequester?.context, "dsmn - session abc12345")
         XCTAssertEqual(hook.state.lastRequester?.requestedAt, now.addingTimeInterval(60))
+    }
+
+    func testRecentRequestersKeepConcurrentAgentsVisible() throws {
+        let now = Date(timeIntervalSince1970: 1_000)
+        let store = try makeStore()
+        let controller = DSMNController(
+            store: store,
+            processListing: StaticProcessListing([]),
+            snapshotProvider: StaticSystemSnapshotProvider(SystemSnapshot(now: now))
+        )
+
+        _ = try controller.enableManual(
+            minutes: 20,
+            now: now,
+            extendOnly: true,
+            requester: ActivationRequester(name: "Pi", context: "dsmn-website", event: "tool_call")
+        )
+        _ = try controller.enableManual(
+            minutes: 20,
+            now: now.addingTimeInterval(1),
+            extendOnly: true,
+            requester: ActivationRequester(name: "Codex", context: "dsmn - session abc12345", event: "PreToolUse")
+        )
+        let report = try controller.enableManual(
+            minutes: 20,
+            now: now.addingTimeInterval(2),
+            extendOnly: true,
+            requester: ActivationRequester(name: "Claude Code", context: "dsmn-website - session deadbeef", event: "PreToolUse")
+        )
+
+        XCTAssertEqual(report.state.lastRequester?.name, "Claude Code")
+        XCTAssertEqual(report.state.recentRequesters.map(\.name), ["Claude Code", "Codex", "Pi"])
+        XCTAssertEqual(report.state.recentRequesters.map(\.context), [
+            "dsmn-website - session deadbeef",
+            "dsmn - session abc12345",
+            "dsmn-website"
+        ])
+    }
+
+    func testRecentRequestersReplaceSameAgentSession() throws {
+        let now = Date(timeIntervalSince1970: 1_000)
+        let store = try makeStore()
+        let controller = DSMNController(
+            store: store,
+            processListing: StaticProcessListing([]),
+            snapshotProvider: StaticSystemSnapshotProvider(SystemSnapshot(now: now))
+        )
+
+        _ = try controller.enableManual(
+            minutes: 20,
+            now: now,
+            extendOnly: true,
+            requester: ActivationRequester(name: "Pi", context: "dsmn-website", event: "tool_call")
+        )
+        let report = try controller.enableManual(
+            minutes: 20,
+            now: now.addingTimeInterval(1),
+            extendOnly: true,
+            requester: ActivationRequester(name: "Pi", context: "dsmn-website", event: "tool_result")
+        )
+
+        XCTAssertEqual(report.state.recentRequesters.count, 1)
+        XCTAssertEqual(report.state.recentRequesters.first?.name, "Pi")
+        XCTAssertEqual(report.state.recentRequesters.first?.event, "tool_result")
+        XCTAssertEqual(report.state.recentRequesters.first?.requestedAt, now.addingTimeInterval(1))
     }
 
     private func makeStore() throws -> StateStore {

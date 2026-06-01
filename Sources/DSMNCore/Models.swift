@@ -166,6 +166,7 @@ public struct DSMNState: Codable, Equatable, Sendable {
     public var lastActivationReason: String?
     public var lastStopReason: String?
     public var lastRequester: ActivationRequester?
+    public var recentRequesters: [ActivationRequester]
     public var createdAt: Date
     public var updatedAt: Date
 
@@ -175,6 +176,7 @@ public struct DSMNState: Codable, Equatable, Sendable {
         lastActivationReason: String? = nil,
         lastStopReason: String? = nil,
         lastRequester: ActivationRequester? = nil,
+        recentRequesters: [ActivationRequester] = [],
         createdAt: Date = Date(),
         updatedAt: Date = Date()
     ) {
@@ -183,8 +185,66 @@ public struct DSMNState: Codable, Equatable, Sendable {
         self.lastActivationReason = lastActivationReason
         self.lastStopReason = lastStopReason
         self.lastRequester = lastRequester
+        self.recentRequesters = recentRequesters
         self.createdAt = createdAt
         self.updatedAt = updatedAt
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case manualUntil
+        case ownsSleepDisable
+        case lastActivationReason
+        case lastStopReason
+        case lastRequester
+        case recentRequesters
+        case createdAt
+        case updatedAt
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+
+        manualUntil = try container.decodeIfPresent(Date.self, forKey: .manualUntil)
+        ownsSleepDisable = try container.decodeIfPresent(Bool.self, forKey: .ownsSleepDisable) ?? false
+        lastActivationReason = try container.decodeIfPresent(String.self, forKey: .lastActivationReason)
+        lastStopReason = try container.decodeIfPresent(String.self, forKey: .lastStopReason)
+        lastRequester = try container.decodeIfPresent(ActivationRequester.self, forKey: .lastRequester)
+        recentRequesters = try container.decodeIfPresent([ActivationRequester].self, forKey: .recentRequesters)
+            ?? lastRequester.map { [$0] }
+            ?? []
+        createdAt = try container.decodeIfPresent(Date.self, forKey: .createdAt) ?? Date()
+        updatedAt = try container.decodeIfPresent(Date.self, forKey: .updatedAt) ?? createdAt
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+
+        try container.encodeIfPresent(manualUntil, forKey: .manualUntil)
+        try container.encode(ownsSleepDisable, forKey: .ownsSleepDisable)
+        try container.encodeIfPresent(lastActivationReason, forKey: .lastActivationReason)
+        try container.encodeIfPresent(lastStopReason, forKey: .lastStopReason)
+        try container.encodeIfPresent(lastRequester, forKey: .lastRequester)
+        try container.encode(recentRequesters, forKey: .recentRequesters)
+        try container.encode(createdAt, forKey: .createdAt)
+        try container.encode(updatedAt, forKey: .updatedAt)
+    }
+
+    public mutating func recordRequester(
+        _ requester: ActivationRequester,
+        at date: Date,
+        maxRecentCount: Int = 6
+    ) {
+        let requested = requester.requested(at: date)
+        lastRequester = requested
+
+        recentRequesters.removeAll { existing in
+            existing.name == requested.name && existing.context == requested.context
+        }
+        recentRequesters.insert(requested, at: 0)
+
+        if recentRequesters.count > maxRecentCount {
+            recentRequesters = Array(recentRequesters.prefix(maxRecentCount))
+        }
     }
 
     public func manualRemainingSeconds(at date: Date) -> Int? {
