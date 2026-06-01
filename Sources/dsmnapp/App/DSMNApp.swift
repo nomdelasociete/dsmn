@@ -33,6 +33,11 @@ struct DSMNApp: App {
                 }
         }
         .menuBarExtraStyle(.menu)
+
+        WindowGroup("Why Awake?", id: "why-awake") {
+            WhyAwakeView(store: store)
+        }
+        .defaultSize(width: 580, height: 560)
     }
 }
 

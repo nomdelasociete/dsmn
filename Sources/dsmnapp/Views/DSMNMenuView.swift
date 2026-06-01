@@ -5,6 +5,7 @@ import SwiftUI
 struct DSMNMenuView: View {
     @ObservedObject var store: DSMNMenuStore
     @AppStorage("showMenuBarCountdown") private var showMenuBarCountdown = true
+    @Environment(\.openWindow) private var openWindow
 
     var body: some View {
         Text(store.statusLine)
@@ -52,6 +53,11 @@ struct DSMNMenuView: View {
 
         Divider()
 
+        Button("Why Awake?") {
+            NSApplication.shared.activate(ignoringOtherApps: true)
+            openWindow(id: "why-awake")
+        }
+
         Button("Refresh") {
             Task {
                 await store.refresh()
@@ -82,9 +88,40 @@ struct DSMNMenuView: View {
         Divider()
 
         Button("Quit") {
-            NSApplication.shared.terminate(nil)
+            quit()
         }
         .keyboardShortcut("q")
+    }
+
+    private func quit() {
+        guard store.isProtectingSleep else {
+            NSApplication.shared.terminate(nil)
+            return
+        }
+
+        let alert = NSAlert()
+        alert.messageText = "Quit dsmn?"
+        alert.informativeText = """
+        dsmn is currently keeping the Mac awake. Quitting only closes the menu bar app; the helper and agent hooks can keep running.
+
+        Stop & Quit releases the current dsmn timer first. Active Claude, Codex, Grok, or Pi hooks can start a new timer again later.
+        """
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "Stop & Quit")
+        alert.addButton(withTitle: "Quit, Keep Running")
+        alert.addButton(withTitle: "Cancel")
+
+        switch alert.runModal() {
+        case .alertFirstButtonReturn:
+            Task {
+                await store.stopNow()
+                NSApplication.shared.terminate(nil)
+            }
+        case .alertSecondButtonReturn:
+            NSApplication.shared.terminate(nil)
+        default:
+            break
+        }
     }
 
     private func short(_ value: String) -> String {

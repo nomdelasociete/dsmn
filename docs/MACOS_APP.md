@@ -71,6 +71,19 @@ You can also inspect the current state from the archived app bundle:
 pmset -g live | rg 'SleepDisabled'
 ```
 
+## Why Awake
+
+The `Why Awake?` menu action opens a diagnostic window. It separates:
+
+- dsmn state: timer, power lock ownership, and last requester;
+- macOS state: live `SleepDisabled`, sleep line, and display sleep line;
+- external assertions from `pmset -g assertions`, grouped into system sleep,
+  display sleep, and other blockers.
+
+This is intentionally different from `dsmnctl doctor`: `doctor` answers whether
+dsmn is healthy, while `Why Awake?` answers why macOS currently thinks the Mac
+should stay awake.
+
 ## Run locally
 
 ```sh
@@ -92,12 +105,18 @@ bundle, it also embeds the helper executable and LaunchDaemon plist and can ask
 - `Keep Awake 30m`
 - `Keep Awake 90m`
 - `Show Countdown`
+- `Why Awake?`
 - `Stop`
 - `Refresh`
 - `1. Install Helper`
 - `2. Open Login Items`
 - `Unregister Helper`
 - `Quit`
+
+If dsmn is active, `Quit` asks whether to `Stop & Quit` or `Quit, Keep Running`.
+Quitting the menu bar app alone does not unload the privileged helper and does
+not disable installed agent hooks. A later Claude, Codex, Grok, or Pi hook can
+start a fresh manual timer again.
 
 ## Next bundle step
 

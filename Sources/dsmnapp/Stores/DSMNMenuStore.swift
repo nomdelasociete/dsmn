@@ -116,6 +116,14 @@ final class DSMNMenuStore: ObservableObject {
         helperStatus == .requiresApproval
     }
 
+    var isProtectingSleep: Bool {
+        guard let report else {
+            return false
+        }
+
+        return report.decision.shouldPreventSleep || report.state.ownsSleepDisable
+    }
+
     func refresh() async {
         guard let controller else {
             errorMessage = setupError?.localizedDescription
@@ -167,12 +175,16 @@ final class DSMNMenuStore: ObservableObject {
 
     func stop() {
         Task {
-            await mutate(local: {
-                try $0.stop()
-            }, helper: {
-                try await self.helper.stop()
-            })
+            await stopNow()
         }
+    }
+
+    func stopNow() async {
+        await mutate(local: {
+            try $0.stop()
+        }, helper: {
+            try await self.helper.stop()
+        })
     }
 
     private func mutate(

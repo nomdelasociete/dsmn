@@ -18,6 +18,11 @@ During development, `dsmnd` is dry-run by default and does not mark
 has actually run `pmset -a disablesleep 0`. This prevents the app or CLI from
 forgetting ownership before the system state has been released.
 
+Quitting the menu bar app is not the same as stopping protection. The app asks
+for an explicit choice when dsmn is active: `Stop & Quit` releases the current
+timer before closing, while `Quit, Keep Running` leaves the helper and hooks in
+their current state.
+
 ## Release conditions
 
 The helper must release sleep prevention when any hard stop applies:

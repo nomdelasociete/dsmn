@@ -40,6 +40,8 @@ This repository currently contains a working signed macOS app stack:
 - menu bar controls for helper registration through `SMAppService`
 - last-request visibility in the menu and CLI, including agent/session context
   when hooks provide it
+- `Why Awake?` diagnostics that separate dsmn's lock from external macOS sleep
+  assertions owned by apps such as Codex, Claude, or browsers
 - Raycast extension for manual duration, stop, status, and menu bar
 - Developer ID archive and notarization scripts
 
