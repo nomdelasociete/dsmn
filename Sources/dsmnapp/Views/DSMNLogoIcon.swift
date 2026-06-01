@@ -1,3 +1,4 @@
+import AppKit
 import DSMNCore
 import SwiftUI
 
@@ -7,110 +8,128 @@ struct DSMNMenuBarIcon: View {
 
     var body: some View {
         Group {
-            switch state {
-            case .warning:
+            if state == .warning {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .font(.system(size: size * 0.82, weight: .semibold))
                     .symbolRenderingMode(.hierarchical)
-                    .frame(width: size, height: size)
-            case .manualActive:
-                DSMNCrownBadgeShape()
-                    .fill(.primary, style: FillStyle(eoFill: true))
-                    .frame(width: size, height: size)
-            case .loading:
-                DSMNCrownShape()
-                    .fill(.primary.opacity(0.45))
-                    .frame(width: size, height: size)
-            case .off:
-                DSMNCrownShape()
-                    .fill(.primary)
-                    .frame(width: size, height: size)
+            } else {
+                Image(nsImage: DSMNStatusIconImage.image(for: state))
+                    .resizable()
+                    .renderingMode(.template)
+                    .interpolation(.high)
+                    .foregroundStyle(.primary)
             }
         }
+        .frame(width: size, height: size)
         .id(state.rawValue)
     }
 }
 
-private struct DSMNCrownBadgeShape: Shape {
-    func path(in rect: CGRect) -> Path {
-        var path = Path()
-        let circleRect = rect.insetBy(dx: rect.width * 0.03, dy: rect.height * 0.03)
-        path.addEllipse(in: circleRect)
+private enum DSMNStatusIconImage {
+    @MainActor private static var cache: [MenuBarIconState: NSImage] = [:]
 
-        let crownRect = rect.insetBy(dx: rect.width * 0.14, dy: rect.height * 0.20)
-        path.addPath(DSMNCrownShape().path(in: crownRect))
-        return path
+    @MainActor
+    static func image(for state: MenuBarIconState) -> NSImage {
+        if let image = cache[state] {
+            return image
+        }
+
+        let image = render(for: state)
+        cache[state] = image
+        return image
     }
-}
 
-private struct DSMNCrownShape: Shape {
-    private static let sourceSize = CGSize(width: 69.73, height: 40)
+    @MainActor
+    private static func render(for state: MenuBarIconState) -> NSImage {
+        let size = NSSize(width: 18, height: 18)
+        let image = NSImage(size: size)
 
-    func path(in rect: CGRect) -> Path {
-        let scale = min(rect.width / Self.sourceSize.width, rect.height / Self.sourceSize.height)
-        let scaledSize = CGSize(width: Self.sourceSize.width * scale, height: Self.sourceSize.height * scale)
-        let offset = CGPoint(
+        image.lockFocus()
+        defer {
+            image.unlockFocus()
+            image.isTemplate = true
+        }
+
+        NSColor.black.setFill()
+
+        switch state {
+        case .manualActive:
+            let path = NSBezierPath(ovalIn: NSRect(origin: .zero, size: size).insetBy(dx: 0.5, dy: 0.5))
+            path.append(crownPath(in: NSRect(x: 3.2, y: 4.7, width: 11.6, height: 8.5)))
+            path.windingRule = .evenOdd
+            path.fill()
+        case .loading, .off:
+            crownPath(in: NSRect(x: 1.7, y: 4.2, width: 14.6, height: 8.4)).fill()
+        case .warning:
+            break
+        }
+
+        return image
+    }
+
+    private static func crownPath(in rect: NSRect) -> NSBezierPath {
+        let sourceSize = CGSize(width: 69.73, height: 40)
+        let scale = min(rect.width / sourceSize.width, rect.height / sourceSize.height)
+        let scaledSize = CGSize(width: sourceSize.width * scale, height: sourceSize.height * scale)
+        let origin = CGPoint(
             x: rect.midX - scaledSize.width / 2,
             y: rect.midY - scaledSize.height / 2
         )
 
-        let transform = CGAffineTransform(translationX: offset.x, y: offset.y)
-            .scaledBy(x: scale, y: scale)
+        func p(_ x: CGFloat, _ y: CGFloat) -> CGPoint {
+            CGPoint(x: origin.x + x * scale, y: origin.y + (sourceSize.height - y) * scale)
+        }
 
-        return Self.sourcePath.applying(transform)
-    }
+        let path = NSBezierPath()
 
-    private static var sourcePath: Path {
-        var path = Path()
+        path.move(to: p(49.83, 26.16))
+        path.line(to: p(45.85, 19.21))
+        path.line(to: p(45.22, 18.09))
+        path.line(to: p(39.49, 8.10))
+        path.line(to: p(34.88, 0.00))
+        path.line(to: p(33.03, 3.27))
+        path.line(to: p(28.31, 11.51))
+        path.line(to: p(23.89, 19.26))
+        path.line(to: p(20.15, 25.74))
+        path.line(to: p(13.86, 36.69))
+        path.line(to: p(12.05, 39.86))
+        path.line(to: p(57.70, 39.86))
+        path.line(to: p(53.58, 32.71))
+        path.close()
 
-        path.move(to: CGPoint(x: 49.83, y: 26.16))
-        path.addLine(to: CGPoint(x: 45.85, y: 19.21))
-        path.addLine(to: CGPoint(x: 45.22, y: 18.09))
-        path.addLine(to: CGPoint(x: 39.49, y: 8.10))
-        path.addLine(to: CGPoint(x: 34.88, y: 0.00))
-        path.addLine(to: CGPoint(x: 33.03, y: 3.27))
-        path.addLine(to: CGPoint(x: 28.31, y: 11.51))
-        path.addLine(to: CGPoint(x: 23.89, y: 19.26))
-        path.addLine(to: CGPoint(x: 20.15, y: 25.74))
-        path.addLine(to: CGPoint(x: 13.86, y: 36.69))
-        path.addLine(to: CGPoint(x: 12.05, y: 39.86))
-        path.addLine(to: CGPoint(x: 57.70, y: 39.86))
-        path.addLine(to: CGPoint(x: 53.58, y: 32.71))
-        path.closeSubpath()
-
-        path.move(to: CGPoint(x: 15.27, y: 16.84))
-        path.addLine(to: CGPoint(x: 12.97, y: 15.78))
-        path.addLine(to: CGPoint(x: 0.00, y: 9.76))
-        path.addLine(to: CGPoint(x: 1.17, y: 14.13))
-        path.addLine(to: CGPoint(x: 1.90, y: 16.94))
-        path.addLine(to: CGPoint(x: 5.89, y: 31.77))
-        path.addLine(to: CGPoint(x: 8.12, y: 40.01))
-        path.addLine(to: CGPoint(x: 9.79, y: 34.83))
-        path.addLine(to: CGPoint(x: 11.31, y: 30.11))
-        path.addLine(to: CGPoint(x: 15.51, y: 16.95))
-        path.addCurve(
-            to: CGPoint(x: 15.29, y: 16.84),
-            control1: CGPoint(x: 15.44, y: 16.87),
-            control2: CGPoint(x: 15.35, y: 16.87)
+        path.move(to: p(15.27, 16.84))
+        path.line(to: p(12.97, 15.78))
+        path.line(to: p(0.00, 9.76))
+        path.line(to: p(1.17, 14.13))
+        path.line(to: p(1.90, 16.94))
+        path.line(to: p(5.89, 31.77))
+        path.line(to: p(8.12, 40.01))
+        path.line(to: p(9.79, 34.83))
+        path.line(to: p(11.31, 30.11))
+        path.line(to: p(15.51, 16.95))
+        path.curve(
+            to: p(15.29, 16.84),
+            controlPoint1: p(15.44, 16.87),
+            controlPoint2: p(15.35, 16.87)
         )
-        path.closeSubpath()
+        path.close()
 
-        path.move(to: CGPoint(x: 60.31, y: 14.11))
-        path.addLine(to: CGPoint(x: 54.29, y: 16.91))
-        path.addCurve(
-            to: CGPoint(x: 54.27, y: 17.11),
-            control1: CGPoint(x: 54.19, y: 16.96),
-            control2: CGPoint(x: 54.26, y: 17.06)
+        path.move(to: p(60.31, 14.11))
+        path.line(to: p(54.29, 16.91))
+        path.curve(
+            to: p(54.27, 17.11),
+            controlPoint1: p(54.19, 16.96),
+            controlPoint2: p(54.26, 17.06)
         )
-        path.addLine(to: CGPoint(x: 55.13, y: 19.77))
-        path.addLine(to: CGPoint(x: 58.29, y: 29.72))
-        path.addLine(to: CGPoint(x: 61.61, y: 39.97))
-        path.addLine(to: CGPoint(x: 63.83, y: 31.76))
-        path.addLine(to: CGPoint(x: 66.67, y: 21.27))
-        path.addLine(to: CGPoint(x: 67.75, y: 17.22))
-        path.addLine(to: CGPoint(x: 68.57, y: 14.15))
-        path.addLine(to: CGPoint(x: 69.74, y: 9.74))
-        path.closeSubpath()
+        path.line(to: p(55.13, 19.77))
+        path.line(to: p(58.29, 29.72))
+        path.line(to: p(61.61, 39.97))
+        path.line(to: p(63.83, 31.76))
+        path.line(to: p(66.67, 21.27))
+        path.line(to: p(67.75, 17.22))
+        path.line(to: p(68.57, 14.15))
+        path.line(to: p(69.74, 9.74))
+        path.close()
 
         return path
     }
