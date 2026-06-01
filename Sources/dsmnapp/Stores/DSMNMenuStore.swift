@@ -29,10 +29,6 @@ final class DSMNMenuStore: ObservableObject {
         MenuBarIconState.resolve(report: report, errorMessage: errorMessage)
     }
 
-    var menuBarSystemImage: String {
-        menuBarIconState.systemImageName
-    }
-
     var statusLine: String {
         guard let report else {
             return errorMessage ?? "Loading"

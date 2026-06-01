@@ -62,8 +62,6 @@ private struct DSMNMenuBarLabel: View {
     }
 
     private var icon: some View {
-        Image(systemName: store.menuBarSystemImage)
-            .symbolRenderingMode(.hierarchical)
-            .id(store.menuBarIconState.rawValue)
+        DSMNMenuBarIcon(state: store.menuBarIconState)
     }
 }

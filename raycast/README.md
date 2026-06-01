@@ -27,6 +27,5 @@ By default the extension looks for `dsmnctl` in:
 
 Set the `dsmnctl Path` preference when using an installed binary.
 
-The current SVG assets are placeholders for extension development. The final app
-menu bar icon should be selected from SF Symbols or drawn deliberately as a
-native macOS asset.
+The Raycast assets mirror the native app: the idle menu bar icon is the crown,
+and the active icon is the reversed crown inside a circle.

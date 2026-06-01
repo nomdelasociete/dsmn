@@ -38,8 +38,7 @@ struct WhyAwakeView: View {
 
     private var header: some View {
         HStack(spacing: 12) {
-            Image(systemName: store.menuBarSystemImage)
-                .font(.system(size: 22, weight: .semibold))
+            DSMNMenuBarIcon(state: store.menuBarIconState, size: 24)
 
             VStack(alignment: .leading, spacing: 2) {
                 Text("Why Awake?")

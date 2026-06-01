@@ -10,6 +10,13 @@ const idleIcon: Image.ImageLike = {
   },
 };
 
+const activeIcon: Image.ImageLike = {
+  source: {
+    light: "assets/menu-bar-active-dark.svg",
+    dark: "assets/menu-bar-active-light.svg",
+  },
+};
+
 export default function Command() {
   const [report, setReport] = useState<StatusReport | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -68,11 +75,7 @@ function menuBarIcon(report: StatusReport | null): Image.ImageLike {
   }
 
   if (report.decision.shouldPreventSleep) {
-    if (report.manualRemainingSeconds && report.manualRemainingSeconds > 0) {
-      return { source: Icon.Stopwatch, tintColor: Color.Green };
-    }
-
-    return { source: Icon.Bolt, tintColor: Color.Green };
+    return activeIcon;
   }
 
   return idleIcon;

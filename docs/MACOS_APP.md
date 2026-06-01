@@ -7,13 +7,13 @@ It is intentionally menu-bar-only:
 
 - no Dock icon;
 - status icon with an optional countdown while a manual lease is active;
-- official SF Symbol for the menu bar status item;
+- native crown logo for the menu bar status item;
 - compact Coffee-style actions.
 
-The menu bar symbol changes by state:
+The menu bar icon changes by state:
 
-- `figure.run`: off or loading;
-- `timer.circle.fill`: manual timer actively preventing sleep;
+- crown: off;
+- crown reversed inside a circle: manual timer actively preventing sleep;
 - `exclamationmark.triangle`: status unavailable, or dsmn wants to prevent
   sleep but the helper has not applied the power lock.
 
