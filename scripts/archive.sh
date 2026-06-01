@@ -8,6 +8,14 @@ ARCHIVE_PATH="${ARCHIVE_PATH:-$ROOT_DIR/dist/dsmn.xcarchive}"
 EXPORT_PATH="${EXPORT_PATH:-$ROOT_DIR/dist/export}"
 EXPORT_OPTIONS="${EXPORT_OPTIONS:-$ROOT_DIR/macos/ExportOptions.plist}"
 EXPORT="${EXPORT:-1}"
+DSMN_UPDATE_FEED_URL="${DSMN_UPDATE_FEED_URL:-https://nomdelasociete.github.io/dsmn/appcast.xml}"
+DSMN_SPARKLE_PUBLIC_ED_KEY="${DSMN_SPARKLE_PUBLIC_ED_KEY:-}"
+
+if [[ -z "$DSMN_SPARKLE_PUBLIC_ED_KEY" ]]; then
+  echo "DSMN_SPARKLE_PUBLIC_ED_KEY is required for Release archives." >&2
+  echo "Generate it once with: ./scripts/sparkle_generate_keys.sh" >&2
+  exit 2
+fi
 
 cd "$ROOT_DIR"
 
@@ -23,6 +31,8 @@ xcodebuild \
   CODE_SIGN_STYLE=Manual \
   DEVELOPMENT_TEAM=JSFMAD28GS \
   CODE_SIGN_IDENTITY="Developer ID Application" \
+  DSMN_UPDATE_FEED_URL="$DSMN_UPDATE_FEED_URL" \
+  DSMN_SPARKLE_PUBLIC_ED_KEY="$DSMN_SPARKLE_PUBLIC_ED_KEY" \
   clean archive
 
 if [[ "$EXPORT" == "1" ]]; then

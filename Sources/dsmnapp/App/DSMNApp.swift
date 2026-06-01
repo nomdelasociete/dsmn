@@ -14,12 +14,13 @@ struct DSMNApp: App {
     @StateObject private var store = DSMNMenuStore()
     @AppStorage("showMenuBarCountdown") private var showMenuBarCountdown = true
     @State private var menuBarDate = Date()
+    private let softwareUpdateController = SoftwareUpdateController()
 
     private let menuBarTimer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
     var body: some Scene {
         MenuBarExtra {
-            DSMNMenuView(store: store)
+            DSMNMenuView(store: store, updater: softwareUpdateController.updater)
                 .task {
                     await store.refresh()
                 }

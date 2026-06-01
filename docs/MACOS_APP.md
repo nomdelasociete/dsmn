@@ -105,6 +105,7 @@ bundle, it also embeds the helper executable and LaunchDaemon plist and can ask
 - `Keep Awake 30m`
 - `Keep Awake 90m`
 - `Show Countdown`
+- `Check for Updates...`
 - `Why Awake?`
 - `Stop`
 - `Refresh`

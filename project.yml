@@ -8,9 +8,15 @@ settings:
     DEVELOPMENT_TEAM: JSFMAD28GS
     CODE_SIGN_STYLE: Automatic
     CODE_SIGN_IDENTITY: Apple Development
+    DSMN_SPARKLE_PUBLIC_ED_KEY: ""
+    DSMN_UPDATE_FEED_URL: ""
     MACOSX_DEPLOYMENT_TARGET: "13.0"
     SWIFT_VERSION: "6.0"
     ENABLE_HARDENED_RUNTIME: YES
+packages:
+  Sparkle:
+    url: https://github.com/sparkle-project/Sparkle
+    from: 2.9.2
 targets:
   DSMNCore:
     type: framework
@@ -43,6 +49,8 @@ targets:
     dependencies:
       - target: DSMNCore
         embed: true
+      - package: Sparkle
+        product: Sparkle
       - target: dsmnd
         embed: true
         link: false
@@ -69,6 +77,10 @@ targets:
         LSMinimumSystemVersion: "13.0"
         LSUIElement: true
         NSPrincipalClass: NSApplication
+        SUAllowsAutomaticUpdates: true
+        SUEnableAutomaticChecks: true
+        SUFeedURL: "$(DSMN_UPDATE_FEED_URL)"
+        SUPublicEDKey: "$(DSMN_SPARKLE_PUBLIC_ED_KEY)"
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.nomdelasociete.dsmn

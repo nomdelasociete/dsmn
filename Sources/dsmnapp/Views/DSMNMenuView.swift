@@ -1,9 +1,11 @@
 import AppKit
 import DSMNCore
+import Sparkle
 import SwiftUI
 
 struct DSMNMenuView: View {
     @ObservedObject var store: DSMNMenuStore
+    var updater: SPUUpdater?
     @AppStorage("showMenuBarCountdown") private var showMenuBarCountdown = true
     @Environment(\.openWindow) private var openWindow
 
@@ -50,6 +52,10 @@ struct DSMNMenuView: View {
             store.stop()
         }
         .keyboardShortcut(".")
+
+        Divider()
+
+        CheckForUpdatesView(updater: updater)
 
         Divider()
 

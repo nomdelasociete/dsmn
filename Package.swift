@@ -13,9 +13,18 @@ let package = Package(
         .executable(name: "dsmnctl", targets: ["dsmnctl"]),
         .executable(name: "dsmnd", targets: ["dsmnd"])
     ],
+    dependencies: [
+        .package(url: "https://github.com/sparkle-project/Sparkle", from: "2.9.2")
+    ],
     targets: [
         .target(name: "DSMNCore"),
-        .executableTarget(name: "dsmnapp", dependencies: ["DSMNCore"]),
+        .executableTarget(
+            name: "dsmnapp",
+            dependencies: [
+                "DSMNCore",
+                .product(name: "Sparkle", package: "Sparkle")
+            ]
+        ),
         .executableTarget(name: "dsmnctl", dependencies: ["DSMNCore"]),
         .executableTarget(name: "dsmnd", dependencies: ["DSMNCore"]),
         .testTarget(name: "DSMNCoreTests", dependencies: ["DSMNCore"])

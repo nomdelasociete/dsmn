@@ -7,7 +7,7 @@ helper install should be validated from an exported and notarized app.
 ## Archive
 
 ```sh
-./scripts/archive.sh
+DSMN_SPARKLE_PUBLIC_ED_KEY=<public-key> ./scripts/archive.sh
 ```
 
 By default this creates:
@@ -23,6 +23,24 @@ The archive script forces Release archive signing with manual
 `Developer ID Application` settings for team `JSFMAD28GS`. The tool targets are
 marked `SKIP_INSTALL=YES` so they are embedded inside `dsmn.app` without turning
 the archive into a generic multi-product archive.
+
+Release archives also require Sparkle update metadata. `DSMN_UPDATE_FEED_URL`
+defaults to:
+
+```text
+https://nomdelasociete.github.io/dsmn/appcast.xml
+```
+
+Generate the Sparkle EdDSA key once with:
+
+```sh
+./scripts/sparkle_generate_keys.sh
+```
+
+The private key is stored in your login Keychain by Sparkle. Put the printed
+public key in `DSMN_SPARKLE_PUBLIC_ED_KEY` when archiving. The scripts use the
+Keychain account `nomdelasociete-dsmn` by default; set `SPARKLE_KEY_ACCOUNT` to
+override it.
 
 To archive without exporting:
 
@@ -60,6 +78,21 @@ AC_NOTARY_PROFILE=<profile-name> ./scripts/notarize.sh dist/export/dsmn.app
 
 The script zips the app with `ditto`, submits with `notarytool`, staples the
 ticket to the app, validates the stapled ticket, then runs `spctl`.
+
+## Generate Appcast
+
+After notarization, create the zip used by Sparkle and regenerate the appcast:
+
+```sh
+ditto -c -k --keepParent dist/export/dsmn.app dist/dsmn-notarized.zip
+./scripts/generate_appcast.sh dist/dsmn-notarized.zip
+```
+
+This copies the archive into `dist/updates/` and runs Sparkle's
+`generate_appcast` tool with download and release-notes URLs derived from
+`DSMN_UPDATE_FEED_URL`. Upload `dist/updates/` to the server backing
+`DSMN_UPDATE_FEED_URL`; override `DSMN_UPDATE_BASE_URL` only if archives are
+hosted somewhere else than the appcast directory.
 
 ## Install Shape
 

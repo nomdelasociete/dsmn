@@ -44,6 +44,7 @@ This repository currently contains a working signed macOS app stack:
   assertions owned by apps such as Codex, Claude, or browsers
 - Raycast extension for manual duration, stop, status, and menu bar
 - Developer ID archive and notarization scripts
+- Sparkle-based self-update integration for signed builds
 
 The current local distributable is exported at `dist/export/dsmn.app`; the
 notarized zip is written to `dist/dsmn-notarized.zip`.
@@ -71,10 +72,11 @@ xcodebuild -project dsmn.xcodeproj -scheme dsmn -configuration Debug build
 Distribution build:
 
 ```sh
-./scripts/archive.sh
+DSMN_SPARKLE_PUBLIC_ED_KEY=<public-key> ./scripts/archive.sh
 ./scripts/verify_bundle.sh dist/export/dsmn.app
 AC_NOTARY_PROFILE=dsmn-notary ./scripts/notarize.sh dist/export/dsmn.app
 ditto -c -k --keepParent dist/export/dsmn.app dist/dsmn-notarized.zip
+./scripts/generate_appcast.sh dist/dsmn-notarized.zip
 ```
 
 Use `DSMN_STATE_DIR` to avoid writing to the default state directory while testing:
