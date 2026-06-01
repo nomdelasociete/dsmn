@@ -71,6 +71,7 @@ For distribution-affecting changes:
 ./scripts/verify_bundle.sh dist/export/dsmn.app
 AC_NOTARY_PROFILE=dsmn-notary ./scripts/notarize.sh dist/export/dsmn.app
 ditto -c -k --keepParent dist/export/dsmn.app dist/dsmn-notarized.zip
+./scripts/generate_appcast.sh dist/dsmn-notarized.zip
 ```
 
 For Raycast changes:

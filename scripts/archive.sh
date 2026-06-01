@@ -8,7 +8,7 @@ ARCHIVE_PATH="${ARCHIVE_PATH:-$ROOT_DIR/dist/dsmn.xcarchive}"
 EXPORT_PATH="${EXPORT_PATH:-$ROOT_DIR/dist/export}"
 EXPORT_OPTIONS="${EXPORT_OPTIONS:-$ROOT_DIR/macos/ExportOptions.plist}"
 EXPORT="${EXPORT:-1}"
-DSMN_UPDATE_FEED_URL="${DSMN_UPDATE_FEED_URL:-https://nomdelasociete.github.io/dsmn/appcast.xml}"
+DSMN_UPDATE_FEED_URL="${DSMN_UPDATE_FEED_URL:-https://dsmn.app/appcast.xml}"
 DSMN_SPARKLE_PUBLIC_ED_KEY="${DSMN_SPARKLE_PUBLIC_ED_KEY:-}"
 
 if [[ -z "$DSMN_SPARKLE_PUBLIC_ED_KEY" ]]; then

@@ -28,7 +28,7 @@ Release archives also require Sparkle update metadata. `DSMN_UPDATE_FEED_URL`
 defaults to:
 
 ```text
-https://nomdelasociete.github.io/dsmn/appcast.xml
+https://dsmn.app/appcast.xml
 ```
 
 Generate the Sparkle EdDSA key once with:
@@ -89,10 +89,20 @@ ditto -c -k --keepParent dist/export/dsmn.app dist/dsmn-notarized.zip
 ```
 
 This copies the archive into `dist/updates/` and runs Sparkle's
-`generate_appcast` tool with download and release-notes URLs derived from
-`DSMN_UPDATE_FEED_URL`. Upload `dist/updates/` to the server backing
-`DSMN_UPDATE_FEED_URL`; override `DSMN_UPDATE_BASE_URL` only if archives are
-hosted somewhere else than the appcast directory.
+`generate_appcast` tool with the appcast URL set to
+`https://dsmn.app/appcast.xml` and archive URLs under
+`https://dsmn.app/download/`.
+
+Upload `dist/updates/` through the website repo so the Railway service can serve
+the files from its bucket-backed release routes:
+
+```sh
+cd /Users/jb/Documents/Github/NomDeLaSociete/dsmn-website
+railway run npm run upload:release -- --dir /Users/jb/Documents/Github/NomDeLaSociete/dsmn/dist/updates
+```
+
+Override `DSMN_UPDATE_FEED_URL` and `DSMN_UPDATE_BASE_URL` only if the public
+site moves away from `https://dsmn.app`.
 
 ## Self-Update State Contract
 

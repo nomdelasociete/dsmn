@@ -77,6 +77,8 @@ DSMN_SPARKLE_PUBLIC_ED_KEY=<public-key> ./scripts/archive.sh
 AC_NOTARY_PROFILE=dsmn-notary ./scripts/notarize.sh dist/export/dsmn.app
 ditto -c -k --keepParent dist/export/dsmn.app dist/dsmn-notarized.zip
 ./scripts/generate_appcast.sh dist/dsmn-notarized.zip
+cd /Users/jb/Documents/Github/NomDeLaSociete/dsmn-website
+railway run npm run upload:release -- --dir /Users/jb/Documents/Github/NomDeLaSociete/dsmn/dist/updates
 ```
 
 Use `DSMN_STATE_DIR` to avoid writing to the default state directory while testing:
