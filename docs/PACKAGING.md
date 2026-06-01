@@ -94,6 +94,14 @@ This copies the archive into `dist/updates/` and runs Sparkle's
 `DSMN_UPDATE_FEED_URL`; override `DSMN_UPDATE_BASE_URL` only if archives are
 hosted somewhere else than the appcast directory.
 
+## Self-Update State Contract
+
+Sparkle may quit and relaunch the menu bar app, but it must not stop or renew a
+dsmn timer. The current timer is preserved because runtime state lives outside
+the app bundle in the helper store at `/Library/Application Support/dsmn`; the
+local development fallback uses `~/.dsmn`. If the timer expires while the app is
+being updated, the normal helper reconciliation path releases the power lock.
+
 ## Install Shape
 
 For the production path:

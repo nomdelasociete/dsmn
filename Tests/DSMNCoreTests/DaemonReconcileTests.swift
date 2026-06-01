@@ -2,6 +2,33 @@ import XCTest
 @testable import DSMNCore
 
 final class DaemonReconcileTests: XCTestCase {
+    func testSelfUpdateRelaunchPreservesCurrentTimerState() throws {
+        let now = Date(timeIntervalSince1970: 1_000)
+        let later = now.addingTimeInterval(15)
+        let store = try makeStore()
+        let requester = ActivationRequester(name: "Codex", context: "session update-test")
+        let controller = DSMNController(
+            store: store,
+            processListing: StaticProcessListing([]),
+            snapshotProvider: StaticSystemSnapshotProvider(SystemSnapshot(now: now, powerSource: .ac))
+        )
+
+        _ = try controller.enableManual(minutes: 30, now: now, requester: requester)
+        let active = try controller.reconcile(powerManager: RecordingPowerManager(dryRun: false), now: now)
+
+        let relaunchedController = DSMNController(
+            store: store,
+            processListing: StaticProcessListing([]),
+            snapshotProvider: StaticSystemSnapshotProvider(SystemSnapshot(now: later, powerSource: .ac))
+        )
+        let afterRelaunch = try relaunchedController.status(now: later)
+
+        XCTAssertEqual(afterRelaunch.state.manualUntil, active.status.state.manualUntil)
+        XCTAssertEqual(afterRelaunch.state.lastRequester, active.status.state.lastRequester)
+        XCTAssertTrue(afterRelaunch.state.ownsSleepDisable)
+        XCTAssertEqual(afterRelaunch.manualRemainingSeconds, 30 * 60 - 15)
+    }
+
     func testReconcileRequestsEnableWhenManualTimerIsActive() throws {
         let now = Date(timeIntervalSince1970: 1_000)
         let store = try makeStore()

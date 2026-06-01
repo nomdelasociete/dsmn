@@ -10,6 +10,8 @@ final class SoftwareUpdateController {
     }
 
     init() {
+        // Sparkle may quit and relaunch the app; dsmn timer state must stay in
+        // the helper store and must not be stopped or renewed by update code.
         guard Self.isConfigured else {
             updaterController = nil
             return
