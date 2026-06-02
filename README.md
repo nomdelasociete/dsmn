@@ -72,13 +72,18 @@ xcodebuild -project dsmn.xcodeproj -scheme dsmn -configuration Debug build
 Distribution build:
 
 ```sh
+./scripts/set_version.sh 0.1.1
+git add project.yml macos/dsmn/Info.plist macos/DSMNCore/Info.plist
+git commit -m "Bump dsmn to 0.1.1"
+git push
 ./scripts/publish_release.sh
 ```
 
 `publish_release.sh` archives the app, verifies Sparkle metadata, notarizes and
 staples the bundle, creates a versioned Sparkle zip, generates a signed appcast,
 uploads the release through the `dsmn-website` Railway service, and checks the
-public appcast/download URLs.
+public appcast/download URLs. It refuses to publish when the public appcast
+already has the same or a newer build number.
 
 Use `DSMN_STATE_DIR` to avoid writing to the default state directory while testing:
 

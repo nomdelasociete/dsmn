@@ -32,6 +32,17 @@ export SPARKLE_KEY_ACCOUNT
 
 cd "$ROOT_DIR"
 
+source_version="$(plutil -extract CFBundleShortVersionString raw -o - "$ROOT_DIR/macos/dsmn/Info.plist")"
+source_build="$(plutil -extract CFBundleVersion raw -o - "$ROOT_DIR/macos/dsmn/Info.plist")"
+remote_build="$(curl -fsSL "$DSMN_UPDATE_FEED_URL" 2>/dev/null | perl -ne 'if (m{<sparkle:version>([0-9]+)</sparkle:version>}) { print "$1\n"; exit }' || true)"
+
+if [[ "${DSMN_ALLOW_REPUBLISH:-0}" != "1" && "$remote_build" =~ ^[0-9]+$ && "$source_build" -le "$remote_build" ]]; then
+  echo "remote appcast already has build $remote_build; current source is $source_version ($source_build)" >&2
+  echo "Bump first: ./scripts/set_version.sh <new-version> [build]" >&2
+  echo "Use DSMN_ALLOW_REPUBLISH=1 only to intentionally republish the same build." >&2
+  exit 2
+fi
+
 "$ROOT_DIR/scripts/archive.sh"
 DSMN_REQUIRE_SPARKLE=1 "$ROOT_DIR/scripts/verify_bundle.sh" "$APP_PATH"
 "$ROOT_DIR/scripts/notarize.sh" "$APP_PATH"

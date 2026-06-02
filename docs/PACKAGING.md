@@ -45,6 +45,10 @@ override it.
 For normal releases, use the one-command publishing script instead:
 
 ```sh
+./scripts/set_version.sh 0.1.1
+git add project.yml macos/dsmn/Info.plist macos/DSMNCore/Info.plist
+git commit -m "Bump dsmn to 0.1.1"
+git push
 ./scripts/publish_release.sh
 ```
 
@@ -116,6 +120,11 @@ site moves away from `https://dsmn.app`.
 `publish_release.sh` performs these steps automatically and fails before upload
 if the exported app is missing `SUFeedURL`/`SUPublicEDKey` or if the appcast is
 not signed with `sparkle:edSignature`.
+
+It also reads the public appcast before archiving and refuses to publish when the
+current source build number is not newer. Use `./scripts/set_version.sh` before
+each release; set `DSMN_ALLOW_REPUBLISH=1` only when intentionally replacing the
+same build.
 
 ## Self-Update State Contract
 
