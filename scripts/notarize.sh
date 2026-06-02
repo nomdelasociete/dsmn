@@ -20,7 +20,7 @@ codesign --verify --deep --strict --verbose=2 "$APP_PATH"
 codesign --verify --strict --verbose=2 "$APP_PATH/Contents/Library/LaunchDaemons/dsmnd"
 
 rm -f "$ZIP_PATH"
-/usr/bin/ditto -c -k --keepParent "$APP_PATH" "$ZIP_PATH"
+/usr/bin/ditto -c -k --keepParent --sequesterRsrc --rsrc "$APP_PATH" "$ZIP_PATH"
 
 xcrun notarytool submit "$ZIP_PATH" --keychain-profile "$NOTARY_PROFILE" --wait
 xcrun stapler staple "$APP_PATH"

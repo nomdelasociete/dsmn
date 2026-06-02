@@ -50,9 +50,15 @@ DSMN_REQUIRE_SPARKLE=1 "$ROOT_DIR/scripts/verify_bundle.sh" "$APP_PATH"
 version="$(plutil -extract CFBundleShortVersionString raw -o - "$APP_PATH/Contents/Info.plist")"
 build="$(plutil -extract CFBundleVersion raw -o - "$APP_PATH/Contents/Info.plist")"
 archive_path="$ROOT_DIR/dist/dsmn-${version}-${build}.zip"
+zip_verify_dir="$(mktemp -d)"
+trap 'rm -rf "$zip_verify_dir"' EXIT
 
 rm -f "$archive_path"
-/usr/bin/ditto -c -k --keepParent "$APP_PATH" "$archive_path"
+/usr/bin/ditto -c -k --keepParent --sequesterRsrc --rsrc "$APP_PATH" "$archive_path"
+
+/usr/bin/unzip -q "$archive_path" -d "$zip_verify_dir"
+codesign --verify --deep --strict --verbose=2 "$zip_verify_dir/dsmn.app"
+spctl -a -vv --type execute "$zip_verify_dir/dsmn.app"
 
 rm -rf "$UPDATES_DIR"
 UPDATES_DIR="$UPDATES_DIR" "$ROOT_DIR/scripts/generate_appcast.sh" "$archive_path"
