@@ -50,6 +50,7 @@ DSMN_REQUIRE_SPARKLE=1 "$ROOT_DIR/scripts/verify_bundle.sh" "$APP_PATH"
 version="$(plutil -extract CFBundleShortVersionString raw -o - "$APP_PATH/Contents/Info.plist")"
 build="$(plutil -extract CFBundleVersion raw -o - "$APP_PATH/Contents/Info.plist")"
 archive_path="$ROOT_DIR/dist/dsmn-${version}-${build}.zip"
+dmg_path="$ROOT_DIR/dist/dsmn-${version}-${build}.dmg"
 zip_verify_dir="$(mktemp -d)"
 trap 'rm -rf "$zip_verify_dir"' EXIT
 
@@ -60,8 +61,15 @@ rm -f "$archive_path"
 codesign --verify --deep --strict --verbose=2 "$zip_verify_dir/dsmn.app"
 spctl -a -vv --type execute "$zip_verify_dir/dsmn.app"
 
+APP_PATH="$APP_PATH" DMG_PATH="$dmg_path" "$ROOT_DIR/scripts/create_dmg.sh"
+xcrun notarytool submit "$dmg_path" --keychain-profile "$NOTARY_PROFILE" --wait
+xcrun stapler staple "$dmg_path"
+xcrun stapler validate "$dmg_path"
+spctl -a -vv --type open --context context:primary-signature "$dmg_path"
+
 rm -rf "$UPDATES_DIR"
 UPDATES_DIR="$UPDATES_DIR" "$ROOT_DIR/scripts/generate_appcast.sh" "$archive_path"
+cp "$dmg_path" "$UPDATES_DIR/"
 
 if ! grep -q 'sparkle:edSignature' "$UPDATES_DIR/appcast.xml"; then
   echo "signed Sparkle appcast missing sparkle:edSignature" >&2
@@ -75,7 +83,9 @@ fi
 
 curl -fsSI "$DSMN_UPDATE_FEED_URL" >/dev/null
 curl -fsSI "${DSMN_UPDATE_BASE_URL%/}/dsmn-latest.zip" >/dev/null
+curl -fsSI "${DSMN_UPDATE_BASE_URL%/}/dsmn-latest.dmg" >/dev/null
 
 echo "Published dsmn ${version} (${build})"
 echo "Appcast: $DSMN_UPDATE_FEED_URL"
-echo "Download: ${DSMN_UPDATE_BASE_URL%/}/dsmn-latest.zip"
+echo "Update zip: ${DSMN_UPDATE_BASE_URL%/}/dsmn-latest.zip"
+echo "Download DMG: ${DSMN_UPDATE_BASE_URL%/}/dsmn-latest.dmg"
