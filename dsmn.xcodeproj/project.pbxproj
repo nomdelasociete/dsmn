@@ -40,6 +40,7 @@
 		DDE66F40FBEDA5D11D38322A /* HelperXPCService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B631CA4B883E9FCF612EA3B6 /* HelperXPCService.swift */; };
 		E1792FA739919FB2B00EA4CA /* StateStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC8C8661F0C29336DF4C864E /* StateStore.swift */; };
 		F1011D2B35C90E2C704D387C /* DSMNCore.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 74B444C620310ADFA67DB8E3 /* DSMNCore.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		F20391AC430E71BFD5AA3A7C /* dsmn.icns in Resources */ = {isa = PBXBuildFile; fileRef = 88F8B60751F29892A00E5270 /* dsmn.icns */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -84,10 +85,10 @@
 		54B36EE5329AD3B55A7E76C2 /* Embed Dependencies */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
-			dstPath = Contents/Library/Helpers;
+			dstPath = Contents/Library/LaunchDaemons;
 			dstSubfolderSpec = 1;
 			files = (
-				0643E25D3C36B6DF1A393C9B /* dsmnctl in Embed Dependencies */,
+				7AB68B7EEC2FFDBB33183F64 /* dsmnd in Embed Dependencies */,
 			);
 			name = "Embed Dependencies";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -116,10 +117,10 @@
 		9E6E5D8A4D39E0AEF8C45CD0 /* Embed Dependencies */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
-			dstPath = Contents/Library/LaunchDaemons;
+			dstPath = Contents/Library/Helpers;
 			dstSubfolderSpec = 1;
 			files = (
-				7AB68B7EEC2FFDBB33183F64 /* dsmnd in Embed Dependencies */,
+				0643E25D3C36B6DF1A393C9B /* dsmnctl in Embed Dependencies */,
 			);
 			name = "Embed Dependencies";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -142,6 +143,7 @@
 		61FE22C17B810CA959C3CACA /* HelperXPC.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperXPC.swift; sourceTree = "<group>"; };
 		74B444C620310ADFA67DB8E3 /* DSMNCore.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = DSMNCore.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		849E36A9D8CE4CD95098D34D /* DSMNMenuView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DSMNMenuView.swift; sourceTree = "<group>"; };
+		88F8B60751F29892A00E5270 /* dsmn.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = dsmn.icns; sourceTree = "<group>"; };
 		905431EEC13EC448A5EB8382 /* PowerManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerManager.swift; sourceTree = "<group>"; };
 		9C89A4114361C6F9FACA4919 /* DSMND.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DSMND.swift; sourceTree = "<group>"; };
 		B631CA4B883E9FCF612EA3B6 /* HelperXPCService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperXPCService.swift; sourceTree = "<group>"; };
@@ -192,6 +194,7 @@
 			isa = PBXGroup;
 			children = (
 				8BF76EEC85DEFFD2F1748E1E /* App */,
+				F1CC94ECFFBB89A2A9B48F3C /* Resources */,
 				6679BE90D4D9FB7F7D8B2F06 /* Services */,
 				25E5CA897F1F93BB96961FFA /* Stores */,
 				B82AEAA00A23BA592F9D53CF /* Views */,
@@ -288,6 +291,14 @@
 			path = Sources/dsmnctl;
 			sourceTree = "<group>";
 		};
+		F1CC94ECFFBB89A2A9B48F3C /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				88F8B60751F29892A00E5270 /* dsmn.icns */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
 		F55B336F1B1213CCB1E57D1F /* DSMNCore */ = {
 			isa = PBXGroup;
 			children = (
@@ -372,6 +383,7 @@
 			buildConfigurationList = AC24F6A764A06F1BEEC469D6 /* Build configuration list for PBXNativeTarget "dsmn" */;
 			buildPhases = (
 				EEC53617805C01DF12FFAF38 /* Sources */,
+				B047ECED7E1B58644A47FE38 /* Resources */,
 				54C9C4DA35A00E2EA0818978 /* CopyFiles */,
 				178846A376B2F1864E8F2B1E /* Frameworks */,
 				666066B67BA79E75C1D837F7 /* Embed Frameworks */,
@@ -444,6 +456,17 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		B047ECED7E1B58644A47FE38 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F20391AC430E71BFD5AA3A7C /* dsmn.icns in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		0139FC39E9BDD0677488C9D8 /* Sources */ = {

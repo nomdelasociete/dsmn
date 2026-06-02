@@ -23,7 +23,8 @@ let package = Package(
             dependencies: [
                 "DSMNCore",
                 .product(name: "Sparkle", package: "Sparkle")
-            ]
+            ],
+            exclude: ["Resources"]
         ),
         .executableTarget(name: "dsmnctl", dependencies: ["DSMNCore"]),
         .executableTarget(name: "dsmnd", dependencies: ["DSMNCore"]),
