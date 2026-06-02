@@ -44,6 +44,8 @@ This repository currently contains a working signed macOS app stack:
   when hooks provide it
 - `Why Awake?` diagnostics that separate dsmn's lock from external macOS sleep
   assertions owned by apps such as Codex, Claude, or browsers
+- native feedback window that submits to the first-party `dsmn.app` backend,
+  with optional diagnostics and no embedded app secret
 - Raycast extension for manual duration, stop, status, and menu bar
 - Developer ID archive and notarization scripts
 - Sparkle-based self-update integration for signed builds

@@ -75,6 +75,10 @@ struct DSMNMenuView: View {
 
         Divider()
 
+        Button("Send Feedback") {
+            FeedbackWindowPresenter.show(store: store)
+        }
+
         Button("About dsmn") {
             AboutPanelPresenter.show()
         }

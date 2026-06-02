@@ -13,6 +13,7 @@
 		07021235DBF2A577E657BF8B /* AgentDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D67112750F54179C1E0BEEC /* AgentDetector.swift */; };
 		0B89FDFAD900348B587898D2 /* DSMNLogoIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBED8BCEB1A618ADE50C5249 /* DSMNLogoIcon.swift */; };
 		17EAA3C353FEC29A807F96E5 /* DSMNOnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 171C6E232736EB7D17692DC5 /* DSMNOnboardingView.swift */; };
+		231FA510E94F11D4FB5D29A5 /* DSMNFeedbackView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FA7A4EADB04DB2BFFEF1241 /* DSMNFeedbackView.swift */; };
 		317D2B2D40ADF21191974887 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 9AA42F96CD573113144B9278 /* Sparkle */; };
 		37E33089D66F11DBCC9C4B85 /* LaunchAtLoginService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAA3593C1FB4896356B24159 /* LaunchAtLoginService.swift */; };
 		3859C15BC198D9FA919AC362 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0D529786998707F7F4A7C78 /* main.swift */; };
@@ -24,10 +25,12 @@
 		48B342822DB4A703A252BE4C /* DSMNMenuStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F2C7905739A9F21409A0728 /* DSMNMenuStore.swift */; };
 		497137023785CE2B1A43EC52 /* CheckForUpdatesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 119D786BB6E6C5D87A9EB778 /* CheckForUpdatesView.swift */; };
 		590A079B1B84AF4C19FFB0AF /* SleepDiagnosticsInspector.swift in Sources */ = {isa = PBXBuildFile; fileRef = E31259AF4C8DAEEDBADD9EDD /* SleepDiagnosticsInspector.swift */; };
+		59D7E28176C8799F1656420E /* FeedbackService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E03AF3CD060A3DFA891C3B89 /* FeedbackService.swift */; };
 		6119B41483147AF7FA74C71D /* DSMNCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 74B444C620310ADFA67DB8E3 /* DSMNCore.framework */; };
 		62B192A4636DA4E37DF4DB39 /* OnboardingWindowPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4962B06F89AA1B677EF19DB8 /* OnboardingWindowPresenter.swift */; };
 		6F0918E8F5D6C670806C0BC1 /* SystemSnapshotProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = F670FC14F66FBA7A602B5CBE /* SystemSnapshotProvider.swift */; };
 		726EF89C354B1FAA841B9DC6 /* DSMNMenuView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 849E36A9D8CE4CD95098D34D /* DSMNMenuView.swift */; };
+		74003DC81175EC8FEB62C795 /* FeedbackWindowPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C80055A7FD5F82CDA2B5E5 /* FeedbackWindowPresenter.swift */; };
 		7AB68B7EEC2FFDBB33183F64 /* dsmnd in Embed Dependencies */ = {isa = PBXBuildFile; fileRef = 4FF12FB4F2E9D0CA91282B07 /* dsmnd */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		7D5CAFC6A7CAE4F80B25C8A0 /* WhyAwakeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8310C6F9E6BB445D3331F01 /* WhyAwakeView.swift */; };
 		809705EFBD76D07779E7138F /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7B4A2E7E5EA04A0BF90449F /* Models.swift */; };
@@ -149,14 +152,17 @@
 		74B444C620310ADFA67DB8E3 /* DSMNCore.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = DSMNCore.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		849E36A9D8CE4CD95098D34D /* DSMNMenuView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DSMNMenuView.swift; sourceTree = "<group>"; };
 		88F8B60751F29892A00E5270 /* dsmn.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = dsmn.icns; sourceTree = "<group>"; };
+		8FA7A4EADB04DB2BFFEF1241 /* DSMNFeedbackView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DSMNFeedbackView.swift; sourceTree = "<group>"; };
 		905431EEC13EC448A5EB8382 /* PowerManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerManager.swift; sourceTree = "<group>"; };
 		9C89A4114361C6F9FACA4919 /* DSMND.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DSMND.swift; sourceTree = "<group>"; };
 		AAA3593C1FB4896356B24159 /* LaunchAtLoginService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchAtLoginService.swift; sourceTree = "<group>"; };
+		B2C80055A7FD5F82CDA2B5E5 /* FeedbackWindowPresenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedbackWindowPresenter.swift; sourceTree = "<group>"; };
 		B631CA4B883E9FCF612EA3B6 /* HelperXPCService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperXPCService.swift; sourceTree = "<group>"; };
 		BBED8BCEB1A618ADE50C5249 /* DSMNLogoIcon.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DSMNLogoIcon.swift; sourceTree = "<group>"; };
 		C5BBDCFF55A2F8F35800A50E /* HelperServiceClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperServiceClient.swift; sourceTree = "<group>"; };
 		C92E378A107B31D8A2594DF8 /* DSMNApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DSMNApp.swift; sourceTree = "<group>"; };
 		CC8C8661F0C29336DF4C864E /* StateStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StateStore.swift; sourceTree = "<group>"; };
+		E03AF3CD060A3DFA891C3B89 /* FeedbackService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedbackService.swift; sourceTree = "<group>"; };
 		E0D529786998707F7F4A7C78 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		E31259AF4C8DAEEDBADD9EDD /* SleepDiagnosticsInspector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepDiagnosticsInspector.swift; sourceTree = "<group>"; };
 		F0EF5AEFD1754A2A344509EC /* dsmnctl */ = {isa = PBXFileReference; includeInIndex = 0; path = dsmnctl; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -221,6 +227,8 @@
 			isa = PBXGroup;
 			children = (
 				05F227E11F3C8BC6AD1BECA4 /* AboutPanelPresenter.swift */,
+				E03AF3CD060A3DFA891C3B89 /* FeedbackService.swift */,
+				B2C80055A7FD5F82CDA2B5E5 /* FeedbackWindowPresenter.swift */,
 				C5BBDCFF55A2F8F35800A50E /* HelperServiceClient.swift */,
 				AAA3593C1FB4896356B24159 /* LaunchAtLoginService.swift */,
 				4962B06F89AA1B677EF19DB8 /* OnboardingWindowPresenter.swift */,
@@ -283,6 +291,7 @@
 			isa = PBXGroup;
 			children = (
 				119D786BB6E6C5D87A9EB778 /* CheckForUpdatesView.swift */,
+				8FA7A4EADB04DB2BFFEF1241 /* DSMNFeedbackView.swift */,
 				BBED8BCEB1A618ADE50C5249 /* DSMNLogoIcon.swift */,
 				849E36A9D8CE4CD95098D34D /* DSMNMenuView.swift */,
 				171C6E232736EB7D17692DC5 /* DSMNOnboardingView.swift */,
@@ -522,10 +531,13 @@
 				00FE674C813817F2AD92688E /* AboutPanelPresenter.swift in Sources */,
 				497137023785CE2B1A43EC52 /* CheckForUpdatesView.swift in Sources */,
 				0552AC01999A4BA4032DCCD5 /* DSMNApp.swift in Sources */,
+				231FA510E94F11D4FB5D29A5 /* DSMNFeedbackView.swift in Sources */,
 				0B89FDFAD900348B587898D2 /* DSMNLogoIcon.swift in Sources */,
 				48B342822DB4A703A252BE4C /* DSMNMenuStore.swift in Sources */,
 				726EF89C354B1FAA841B9DC6 /* DSMNMenuView.swift in Sources */,
 				17EAA3C353FEC29A807F96E5 /* DSMNOnboardingView.swift in Sources */,
+				59D7E28176C8799F1656420E /* FeedbackService.swift in Sources */,
+				74003DC81175EC8FEB62C795 /* FeedbackWindowPresenter.swift in Sources */,
 				D22B79587D387496D7F5FBA3 /* HelperServiceClient.swift in Sources */,
 				37E33089D66F11DBCC9C4B85 /* LaunchAtLoginService.swift in Sources */,
 				62B192A4636DA4E37DF4DB39 /* OnboardingWindowPresenter.swift in Sources */,
