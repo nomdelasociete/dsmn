@@ -1,6 +1,41 @@
 import DSMNCore
 import Foundation
 
+enum AgentHooksSetupStatus: Equatable, Sendable {
+    case checking
+    case installing
+    case ready(String)
+    case partial(Int, Int)
+    case failed(String)
+
+    var displayName: String {
+        switch self {
+        case .checking:
+            "Checking hooks"
+        case .installing:
+            "Installing hooks"
+        case let .ready(message):
+            message
+        case let .partial(installedCount, total):
+            "\(installedCount)/\(total) hook targets installed"
+        case let .failed(message):
+            message
+        }
+    }
+
+    var isReady: Bool {
+        if case .ready = self {
+            return true
+        }
+
+        return false
+    }
+
+    var isBusy: Bool {
+        self == .checking || self == .installing
+    }
+}
+
 @MainActor
 final class DSMNMenuStore: ObservableObject {
     @Published private(set) var report: StatusReport?
@@ -8,7 +43,7 @@ final class DSMNMenuStore: ObservableObject {
     @Published private(set) var isRefreshing = false
     @Published private(set) var helperStatus: HelperRegistrationStatus = .notFound
     @Published private(set) var launchAtLoginStatus: LaunchAtLoginStatus = .notRegistered
-    @Published private(set) var hookInstallSummary: String?
+    @Published private(set) var hookSetupStatus: AgentHooksSetupStatus = .checking
 
     private let controller: DSMNController?
     private let helper = HelperServiceClient()
@@ -72,8 +107,41 @@ final class DSMNMenuStore: ObservableObject {
         helperStatus == .enabled
     }
 
+    var hooksAreReady: Bool {
+        hookSetupStatus.isReady
+    }
+
+    var hooksAreBusy: Bool {
+        hookSetupStatus.isBusy
+    }
+
     var hooksSummary: String {
-        hookInstallSummary ?? "Claude, Codex, Grok, and Pi"
+        hookSetupStatus.displayName
+    }
+
+    var hooksActionTitle: String {
+        switch hookSetupStatus {
+        case .checking:
+            "Checking..."
+        case .installing:
+            "Installing..."
+        case .ready:
+            "Reinstall"
+        case .partial, .failed:
+            "Install Hooks"
+        }
+    }
+
+    var hooksStatusIconName: String {
+        if hookSetupStatus.isReady {
+            return "checkmark.circle.fill"
+        }
+
+        if case .failed = hookSetupStatus {
+            return "exclamationmark.triangle.fill"
+        }
+
+        return "terminal"
     }
 
     func menuBarCountdownText(at date: Date = Date()) -> String? {
@@ -170,6 +238,9 @@ final class DSMNMenuStore: ObservableObject {
         do {
             helperStatus = helper.registrationStatus
             launchAtLoginStatus = launchAtLogin.status
+            if hookSetupStatus != .installing {
+                hookSetupStatus = await inspectHookSetupStatus()
+            }
             report = try await readStatus(controller: controller)
             errorMessage = nil
         } catch {
@@ -312,6 +383,7 @@ final class DSMNMenuStore: ObservableObject {
     func installAgentHooks() {
         Task {
             isRefreshing = true
+            hookSetupStatus = .installing
             defer {
                 isRefreshing = false
             }
@@ -322,13 +394,18 @@ final class DSMNMenuStore: ObservableObject {
                     try AgentHookInstaller(dsmnctlPath: dsmnctlPath).install()
                 }.value
                 let changedCount = reports.filter(\.changed).count
-                hookInstallSummary = changedCount == 0
-                    ? "Hooks already installed"
-                    : "Installed \(changedCount) hook target\(changedCount == 1 ? "" : "s")"
+                let inspectedStatus = await inspectHookSetupStatus()
+                if inspectedStatus.isReady {
+                    hookSetupStatus = changedCount == 0
+                        ? .ready("Hooks already installed")
+                        : .ready("Hooks installed for Claude, Codex, Grok, and Pi")
+                } else {
+                    hookSetupStatus = inspectedStatus
+                }
                 errorMessage = nil
             } catch {
                 errorMessage = error.localizedDescription
-                hookInstallSummary = "Hook install failed"
+                hookSetupStatus = .failed("Hook install failed")
             }
         }
     }
@@ -377,5 +454,60 @@ final class DSMNMenuStore: ObservableObject {
         }
 
         return CommandLine.arguments.first
+    }
+
+    private func inspectHookSetupStatus() async -> AgentHooksSetupStatus {
+        let home = FileManager.default.homeDirectoryForCurrentUser
+
+        return await Task.detached(priority: .utility) {
+            let fileManager = FileManager.default
+            let hookScriptPath = home
+                .appendingPathComponent(".dsmn", isDirectory: true)
+                .appendingPathComponent("dsmn-agent-hook.sh")
+
+            guard fileManager.isExecutableFile(atPath: hookScriptPath.path) else {
+                return .partial(0, 4)
+            }
+
+            let targets: [(path: URL, markers: [String])] = [
+                (
+                    home.appendingPathComponent(".claude/settings.json"),
+                    ["DSMN_HOOK_AGENT='claude'", "dsmn-agent-hook.sh"]
+                ),
+                (
+                    home.appendingPathComponent(".codex/hooks.json"),
+                    ["DSMN_HOOK_AGENT='codex'", "dsmn-agent-hook.sh"]
+                ),
+                (
+                    home
+                        .appendingPathComponent(".grok", isDirectory: true)
+                        .appendingPathComponent("hooks", isDirectory: true)
+                        .appendingPathComponent("dsmn.json"),
+                    ["DSMN_HOOK_AGENT='grok'", "dsmn-agent-hook.sh"]
+                ),
+                (
+                    home
+                        .appendingPathComponent(".pi", isDirectory: true)
+                        .appendingPathComponent("agent", isDirectory: true)
+                        .appendingPathComponent("extensions", isDirectory: true)
+                        .appendingPathComponent("dsmn.ts"),
+                    ["DSMN_HOOK_AGENT: \"pi\"", "dsmn-agent-hook.sh"]
+                )
+            ]
+
+            let installedCount = targets.filter { target in
+                guard let contents = try? String(contentsOf: target.path, encoding: .utf8) else {
+                    return false
+                }
+
+                return target.markers.allSatisfy { contents.contains($0) }
+            }.count
+
+            if installedCount == targets.count {
+                return .ready("Claude, Codex, Grok, and Pi ready")
+            }
+
+            return .partial(installedCount, targets.count)
+        }.value
     }
 }

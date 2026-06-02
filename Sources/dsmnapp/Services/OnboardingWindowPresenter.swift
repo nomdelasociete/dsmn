@@ -38,7 +38,7 @@ enum OnboardingWindowPresenter {
 
         let hostingView = NSHostingView(rootView: content)
         let newWindow = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 720, height: 600),
+            contentRect: NSRect(x: 0, y: 0, width: 720, height: 640),
             styleMask: [.titled, .closable, .miniaturizable, .fullSizeContentView],
             backing: .buffered,
             defer: false

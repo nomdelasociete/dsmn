@@ -21,16 +21,17 @@ struct DSMNOnboardingView: View {
                 }
 
                 OnboardingStepRow(
-                    systemImage: "terminal",
+                    systemImage: store.hooksStatusIconName,
                     title: "Connect your agents",
                     detail: "Install bounded hooks for Claude Code, Codex, Grok Build, and Pi.",
                     status: store.hooksSummary,
-                    isComplete: store.hookInstallSummary?.contains("installed") == true
-                        || store.hookInstallSummary?.contains("Installed") == true
+                    isComplete: store.hooksAreReady,
+                    isBusy: store.hooksAreBusy
                 ) {
-                    Button("Install Hooks") {
+                    Button(store.hooksActionTitle) {
                         store.installAgentHooks()
                     }
+                    .disabled(store.hooksAreBusy)
                 }
 
                 OnboardingStepRow(
@@ -48,8 +49,7 @@ struct DSMNOnboardingView: View {
                     .toggleStyle(.switch)
                 }
             }
-            .padding(.horizontal, 28)
-            .padding(.top, 22)
+            .padding(.top, 24)
 
             if let errorMessage = store.errorMessage {
                 Text(errorMessage)
@@ -57,15 +57,16 @@ struct DSMNOnboardingView: View {
                     .foregroundStyle(.red)
                     .lineLimit(2)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 30)
                     .padding(.top, 12)
             }
 
-            Spacer(minLength: 18)
-
             footer
+                .padding(.top, 18)
         }
-        .frame(width: 720, height: 600)
+        .padding(.horizontal, 32)
+        .padding(.top, 34)
+        .padding(.bottom, 28)
+        .frame(width: 720, height: 640, alignment: .top)
         .background(
             LinearGradient(
                 colors: [
@@ -86,29 +87,27 @@ struct DSMNOnboardingView: View {
             ZStack {
                 RoundedRectangle(cornerRadius: 28)
                     .fill(.ultraThinMaterial)
-                    .frame(width: 96, height: 96)
-                    .shadow(color: .black.opacity(0.18), radius: 22, y: 10)
+                    .frame(width: 88, height: 88)
+                    .shadow(color: .black.opacity(0.16), radius: 20, y: 9)
 
                 Image(nsImage: NSApplication.shared.applicationIconImage)
                     .resizable()
                     .interpolation(.high)
-                    .frame(width: 76, height: 76)
+                    .frame(width: 70, height: 70)
             }
 
             VStack(spacing: 7) {
                 Text("Don't Stop Me Now!")
-                    .font(.system(size: 34, weight: .semibold, design: .rounded))
+                    .font(.system(size: 32, weight: .semibold, design: .rounded))
 
                 Text("Keep Claude, Codex, Grok, and Pi working while your Mac is closed or moving with you.")
                     .font(.system(size: 15))
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
-                    .lineLimit(2)
-                    .frame(maxWidth: 540)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: 600)
             }
         }
-        .padding(.top, 38)
-        .padding(.horizontal, 28)
     }
 
     @ViewBuilder
@@ -145,6 +144,7 @@ struct DSMNOnboardingView: View {
                     await store.refresh()
                 }
             }
+            .disabled(store.isRefreshing)
 
             Spacer()
 
@@ -157,9 +157,6 @@ struct DSMNOnboardingView: View {
             }
             .keyboardShortcut(.defaultAction)
         }
-        .padding(.horizontal, 28)
-        .padding(.vertical, 22)
-        .background(.regularMaterial)
     }
 }
 
@@ -169,16 +166,24 @@ private struct OnboardingStepRow<Actions: View>: View {
     var detail: String
     var status: String
     var isComplete: Bool
+    var isBusy = false
     var isOptional = false
     @ViewBuilder var actions: Actions
 
     var body: some View {
         HStack(alignment: .center, spacing: 16) {
-            Image(systemName: systemImage)
-                .font(.system(size: 22, weight: .semibold))
-                .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(isComplete ? .green : .primary)
-                .frame(width: 34, height: 34)
+            Group {
+                if isBusy {
+                    ProgressView()
+                        .controlSize(.small)
+                } else {
+                    Image(systemName: systemImage)
+                        .font(.system(size: 22, weight: .semibold))
+                        .symbolRenderingMode(.hierarchical)
+                        .foregroundStyle(isComplete ? .green : .primary)
+                }
+            }
+            .frame(width: 34, height: 34)
 
             VStack(alignment: .leading, spacing: 5) {
                 HStack(spacing: 8) {
@@ -209,7 +214,7 @@ private struct OnboardingStepRow<Actions: View>: View {
 
             actions
                 .controlSize(.regular)
-                .frame(minWidth: 120, alignment: .trailing)
+                .frame(minWidth: 132, alignment: .trailing)
         }
         .padding(16)
         .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 14))
