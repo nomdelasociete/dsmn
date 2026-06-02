@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		00FE674C813817F2AD92688E /* AboutPanelPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05F227E11F3C8BC6AD1BECA4 /* AboutPanelPresenter.swift */; };
 		0552AC01999A4BA4032DCCD5 /* DSMNApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C92E378A107B31D8A2594DF8 /* DSMNApp.swift */; };
 		0643E25D3C36B6DF1A393C9B /* dsmnctl in Embed Dependencies */ = {isa = PBXBuildFile; fileRef = F0EF5AEFD1754A2A344509EC /* dsmnctl */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		07021235DBF2A577E657BF8B /* AgentDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D67112750F54179C1E0BEEC /* AgentDetector.swift */; };
@@ -83,10 +84,10 @@
 		54B36EE5329AD3B55A7E76C2 /* Embed Dependencies */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
-			dstPath = Contents/Library/LaunchDaemons;
+			dstPath = Contents/Library/Helpers;
 			dstSubfolderSpec = 1;
 			files = (
-				7AB68B7EEC2FFDBB33183F64 /* dsmnd in Embed Dependencies */,
+				0643E25D3C36B6DF1A393C9B /* dsmnctl in Embed Dependencies */,
 			);
 			name = "Embed Dependencies";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -115,10 +116,10 @@
 		9E6E5D8A4D39E0AEF8C45CD0 /* Embed Dependencies */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
-			dstPath = Contents/Library/Helpers;
+			dstPath = Contents/Library/LaunchDaemons;
 			dstSubfolderSpec = 1;
 			files = (
-				0643E25D3C36B6DF1A393C9B /* dsmnctl in Embed Dependencies */,
+				7AB68B7EEC2FFDBB33183F64 /* dsmnd in Embed Dependencies */,
 			);
 			name = "Embed Dependencies";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -126,6 +127,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		05F227E11F3C8BC6AD1BECA4 /* AboutPanelPresenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutPanelPresenter.swift; sourceTree = "<group>"; };
 		0F2C7905739A9F21409A0728 /* DSMNMenuStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DSMNMenuStore.swift; sourceTree = "<group>"; };
 		119D786BB6E6C5D87A9EB778 /* CheckForUpdatesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CheckForUpdatesView.swift; sourceTree = "<group>"; };
 		1428E24E9C88059C6735E168 /* com.nomdelasociete.dsmn.helper.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = com.nomdelasociete.dsmn.helper.plist; sourceTree = "<group>"; };
@@ -209,6 +211,7 @@
 		6679BE90D4D9FB7F7D8B2F06 /* Services */ = {
 			isa = PBXGroup;
 			children = (
+				05F227E11F3C8BC6AD1BECA4 /* AboutPanelPresenter.swift */,
 				C5BBDCFF55A2F8F35800A50E /* HelperServiceClient.swift */,
 				F8AFE3A8A3B77004062353CF /* SoftwareUpdateController.swift */,
 			);
@@ -484,6 +487,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				00FE674C813817F2AD92688E /* AboutPanelPresenter.swift in Sources */,
 				497137023785CE2B1A43EC52 /* CheckForUpdatesView.swift in Sources */,
 				0552AC01999A4BA4032DCCD5 /* DSMNApp.swift in Sources */,
 				0B89FDFAD900348B587898D2 /* DSMNLogoIcon.swift in Sources */,

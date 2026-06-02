@@ -63,6 +63,10 @@ struct DSMNMenuView: View {
 
         Divider()
 
+        Button("About dsmn") {
+            AboutPanelPresenter.show()
+        }
+
         Button("Why Awake?") {
             NSApplication.shared.activate(ignoringOtherApps: true)
             openWindow(id: "why-awake")
