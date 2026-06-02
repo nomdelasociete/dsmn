@@ -430,9 +430,9 @@ public struct AgentHookInstaller: Sendable {
           fi
 
           local candidates=(
-            \(escapedDsmnctlPath)
             "/Applications/dsmn.app/Contents/Library/Helpers/dsmnctl"
             "$HOME/Applications/dsmn.app/Contents/Library/Helpers/dsmnctl"
+            \(escapedDsmnctlPath)
             "$HOME/Documents/Github/NomDeLaSociete/dsmn/dist/export/dsmn.app/Contents/Library/Helpers/dsmnctl"
             "$HOME/Documents/Github/NomDeLaSociete/dsmn/.build/debug/dsmnctl"
           )

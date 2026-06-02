@@ -269,6 +269,16 @@ final class DSMNMenuStore: ObservableObject {
             return try await helper.status()
         }
 
+        do {
+            let helperReport = try await helper.status()
+            helperStatus = .enabled
+            return helperReport
+        } catch {
+            // SMAppService can report an ambiguous status when a different copy
+            // of dsmn registered the helper. If XPC is unavailable too, fall
+            // back to local status so the menu still opens.
+        }
+
         return try await Task.detached {
             try controller.status()
         }.value

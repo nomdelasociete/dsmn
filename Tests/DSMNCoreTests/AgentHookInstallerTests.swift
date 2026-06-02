@@ -105,6 +105,26 @@ final class AgentHookInstallerTests: XCTestCase {
         XCTAssertTrue(secondReports.allSatisfy { !$0.changed })
     }
 
+    func testHookPrefersInstalledAppBeforeInstallerPath() throws {
+        let home = temporaryHome()
+        defer {
+            try? FileManager.default.removeItem(at: home)
+        }
+
+        let installer = AgentHookInstaller(homeDirectory: home, dsmnctlPath: "/tmp/dev/dsmnctl")
+        _ = try installer.install(targets: [.codex])
+
+        let hookScript = try String(contentsOf: home.appendingPathComponent(".dsmn/dsmn-agent-hook.sh"), encoding: .utf8)
+        let applicationsRange = try XCTUnwrap(hookScript.range(of: "/Applications/dsmn.app/Contents/Library/Helpers/dsmnctl"))
+        let homeApplicationsRange = try XCTUnwrap(hookScript.range(of: "$HOME/Applications/dsmn.app/Contents/Library/Helpers/dsmnctl"))
+        let installerPathRange = try XCTUnwrap(hookScript.range(of: "/tmp/dev/dsmnctl"))
+        let repoPathRange = try XCTUnwrap(hookScript.range(of: "$HOME/Documents/Github/NomDeLaSociete/dsmn/dist/export/dsmn.app/Contents/Library/Helpers/dsmnctl"))
+
+        XCTAssertLessThan(applicationsRange.lowerBound, installerPathRange.lowerBound)
+        XCTAssertLessThan(homeApplicationsRange.lowerBound, installerPathRange.lowerBound)
+        XCTAssertLessThan(installerPathRange.lowerBound, repoPathRange.lowerBound)
+    }
+
     private func temporaryHome() -> URL {
         URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
             .appendingPathComponent("dsmn-hooks-\(UUID().uuidString)", isDirectory: true)
