@@ -121,6 +121,26 @@ site moves away from `https://dsmn.app`.
 if the exported app is missing `SUFeedURL`/`SUPublicEDKey` or if the appcast is
 not signed with `sparkle:edSignature`.
 
+## Generate DMG
+
+The human-facing download is a drag-and-drop DMG. It contains `dsmn.app` and an
+`Applications` alias:
+
+```sh
+./scripts/create_dmg.sh
+```
+
+`publish_release.sh` creates a versioned DMG, submits it to Apple notarization,
+staples it, uploads it beside the Sparkle zip, and expects the website to expose
+it as:
+
+```text
+https://dsmn.app/download/dsmn-latest.dmg
+```
+
+Sparkle still uses the versioned zip and `dsmn-latest.zip`; do not point the
+appcast at the DMG.
+
 It also reads the public appcast before archiving and refuses to publish when the
 current source build number is not newer. Use `./scripts/set_version.sh` before
 each release; set `DSMN_ALLOW_REPUBLISH=1` only when intentionally replacing the

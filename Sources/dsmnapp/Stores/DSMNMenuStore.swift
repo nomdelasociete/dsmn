@@ -7,9 +7,11 @@ final class DSMNMenuStore: ObservableObject {
     @Published private(set) var errorMessage: String?
     @Published private(set) var isRefreshing = false
     @Published private(set) var helperStatus: HelperRegistrationStatus = .notFound
+    @Published private(set) var launchAtLoginStatus: LaunchAtLoginStatus = .notRegistered
 
     private let controller: DSMNController?
     private let helper = HelperServiceClient()
+    private let launchAtLogin = LaunchAtLoginService()
     private let setupError: Error?
     private var refreshLoopTask: Task<Void, Never>?
 
@@ -51,6 +53,18 @@ final class DSMNMenuStore: ObservableObject {
 
     var helperStatusLine: String {
         "Helper: \(helperStatus.displayName)"
+    }
+
+    var launchAtLoginStatusLine: String {
+        "Launch at login: \(launchAtLoginStatus.displayName)"
+    }
+
+    var launchAtLoginEnabled: Bool {
+        launchAtLoginStatus.isEnabled
+    }
+
+    var loginItemNeedsApproval: Bool {
+        launchAtLoginStatus == .requiresApproval
     }
 
     func menuBarCountdownText(at date: Date = Date()) -> String? {
@@ -146,6 +160,7 @@ final class DSMNMenuStore: ObservableObject {
 
         do {
             helperStatus = helper.registrationStatus
+            launchAtLoginStatus = launchAtLogin.status
             report = try await readStatus(controller: controller)
             errorMessage = nil
         } catch {
@@ -262,6 +277,27 @@ final class DSMNMenuStore: ObservableObject {
 
     func openHelperSettings() {
         helper.openLoginItemsSettings()
+    }
+
+    func setLaunchAtLogin(_ isEnabled: Bool) {
+        Task {
+            isRefreshing = true
+            defer {
+                isRefreshing = false
+            }
+
+            do {
+                launchAtLoginStatus = try launchAtLogin.setEnabled(isEnabled)
+                errorMessage = launchAtLoginStatus == .requiresApproval ? "Approve dsmn in Login Items" : nil
+            } catch {
+                errorMessage = error.localizedDescription
+                launchAtLoginStatus = launchAtLogin.status
+            }
+        }
+    }
+
+    func openLoginItemsSettings() {
+        launchAtLogin.openSettings()
     }
 
     private func readStatus(controller: DSMNController) async throws -> StatusReport {

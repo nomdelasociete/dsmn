@@ -20,6 +20,10 @@ The menu bar icon changes by state:
 The `Show Countdown` menu toggle controls whether active manual timers appear
 next to the status icon.
 
+The `Launch at Login` menu toggle asks macOS to launch `dsmn.app` when the user
+logs in. It is optional and uses `SMAppService.mainApp`; macOS may ask for
+approval in System Settings > General > Login Items.
+
 ## First-run setup
 
 The important readiness signal is `Power lock`, not music playback or the
@@ -105,6 +109,7 @@ bundle, it also embeds the helper executable and LaunchDaemon plist and can ask
 - `Keep Awake 30m`
 - `Keep Awake 90m`
 - `Show Countdown`
+- `Launch at Login`
 - `Check for Updates...`
 - `Why Awake?`
 - `Stop`
@@ -125,6 +130,7 @@ The production app is packaged as `dsmn.app` with:
 
 - `LSUIElement` enabled;
 - helper registration through `SMAppService`;
+- optional launch-at-login registration through `SMAppService.mainApp`;
 - signed helper embedded in the app bundle;
 - final app icon asset separate from SF Symbols.
 

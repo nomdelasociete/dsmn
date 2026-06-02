@@ -38,6 +38,7 @@ This repository currently contains a working signed macOS app stack:
 - `dsmnd` LaunchDaemon executable with an XPC Mach service
 - Xcode-built `dsmn.app` that embeds the signed helper and LaunchDaemon plist
 - menu bar controls for helper registration through `SMAppService`
+- optional launch-at-login registration through `SMAppService.mainApp`
 - last-request visibility in the menu and CLI, including agent/session context
   when hooks provide it
 - `Why Awake?` diagnostics that separate dsmn's lock from external macOS sleep
@@ -46,8 +47,8 @@ This repository currently contains a working signed macOS app stack:
 - Developer ID archive and notarization scripts
 - Sparkle-based self-update integration for signed builds
 
-The current local distributable is exported at `dist/export/dsmn.app`; the
-notarized zip is written to `dist/dsmn-notarized.zip`.
+The current local distributable is exported at `dist/export/dsmn.app`; release
+publishing creates both a Sparkle zip and a drag-and-drop DMG.
 
 ## Local development
 
@@ -80,10 +81,11 @@ git push
 ```
 
 `publish_release.sh` archives the app, verifies Sparkle metadata, notarizes and
-staples the bundle, creates a versioned Sparkle zip, generates a signed appcast,
-uploads the release through the `dsmn-website` Railway service, and checks the
-public appcast/download URLs. It refuses to publish when the public appcast
-already has the same or a newer build number.
+staples the bundle, creates a versioned Sparkle zip, creates and notarizes a
+versioned DMG, generates a signed appcast, uploads the release through the
+`dsmn-website` Railway service, and checks the public appcast/download URLs. It
+refuses to publish when the public appcast already has the same or a newer build
+number.
 
 Use `DSMN_STATE_DIR` to avoid writing to the default state directory while testing:
 

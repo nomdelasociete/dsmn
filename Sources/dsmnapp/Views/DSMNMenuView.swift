@@ -33,10 +33,22 @@ struct DSMNMenuView: View {
         }
 
         Text(store.helperStatusLine)
+        Text(store.launchAtLoginStatusLine)
 
         Divider()
 
         Toggle("Show Countdown", isOn: $showMenuBarCountdown)
+
+        Toggle("Launch at Login", isOn: Binding(
+            get: { store.launchAtLoginEnabled },
+            set: { store.setLaunchAtLogin($0) }
+        ))
+
+        if store.loginItemNeedsApproval {
+            Button("Open Login Items") {
+                store.openLoginItemsSettings()
+            }
+        }
 
         Divider()
 
