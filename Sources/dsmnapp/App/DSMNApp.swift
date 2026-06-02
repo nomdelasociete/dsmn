@@ -31,6 +31,8 @@ struct DSMNApp: App {
                 }
                 .task {
                     store.startRefreshLoop()
+                    try? await Task.sleep(for: .milliseconds(600))
+                    OnboardingWindowPresenter.showIfNeeded(store: store)
                 }
         }
         .menuBarExtraStyle(.menu)

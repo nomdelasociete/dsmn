@@ -26,6 +26,16 @@ approval in System Settings > General > Login Items.
 
 ## First-run setup
 
+On first launch, dsmn opens a setup guide window. It exposes the same setup
+actions as the menu:
+
+- install the privileged helper;
+- open Login Items when macOS requires approval;
+- install agent hooks for Claude Code, Codex, Grok Build, and Pi;
+- optionally enable `Launch at Login`.
+
+The guide can be reopened from `Setup Guide` in the menu bar menu.
+
 The important readiness signal is `Power lock`, not music playback or the
 screen state. `Power lock: on` means dsmn successfully owns the macOS
 `disablesleep` setting through its privileged helper. macOS exposes the live
@@ -112,6 +122,7 @@ bundle, it also embeds the helper executable and LaunchDaemon plist and can ask
 - `Launch at Login`
 - `Check for Updates...`
 - `Why Awake?`
+- `Setup Guide`
 - `Stop`
 - `Refresh`
 - `1. Install Helper`

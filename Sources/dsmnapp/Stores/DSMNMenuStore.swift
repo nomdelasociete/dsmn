@@ -8,6 +8,7 @@ final class DSMNMenuStore: ObservableObject {
     @Published private(set) var isRefreshing = false
     @Published private(set) var helperStatus: HelperRegistrationStatus = .notFound
     @Published private(set) var launchAtLoginStatus: LaunchAtLoginStatus = .notRegistered
+    @Published private(set) var hookInstallSummary: String?
 
     private let controller: DSMNController?
     private let helper = HelperServiceClient()
@@ -65,6 +66,14 @@ final class DSMNMenuStore: ObservableObject {
 
     var loginItemNeedsApproval: Bool {
         launchAtLoginStatus == .requiresApproval
+    }
+
+    var helperIsReady: Bool {
+        helperStatus == .enabled
+    }
+
+    var hooksSummary: String {
+        hookInstallSummary ?? "Claude, Codex, Grok, and Pi"
     }
 
     func menuBarCountdownText(at date: Date = Date()) -> String? {
@@ -300,6 +309,30 @@ final class DSMNMenuStore: ObservableObject {
         launchAtLogin.openSettings()
     }
 
+    func installAgentHooks() {
+        Task {
+            isRefreshing = true
+            defer {
+                isRefreshing = false
+            }
+
+            do {
+                let dsmnctlPath = bundledDsmnctlPath()
+                let reports = try await Task.detached {
+                    try AgentHookInstaller(dsmnctlPath: dsmnctlPath).install()
+                }.value
+                let changedCount = reports.filter(\.changed).count
+                hookInstallSummary = changedCount == 0
+                    ? "Hooks already installed"
+                    : "Installed \(changedCount) hook target\(changedCount == 1 ? "" : "s")"
+                errorMessage = nil
+            } catch {
+                errorMessage = error.localizedDescription
+                hookInstallSummary = "Hook install failed"
+            }
+        }
+    }
+
     private func readStatus(controller: DSMNController) async throws -> StatusReport {
         if helperStatus == .enabled {
             return try await helper.status()
@@ -329,5 +362,20 @@ final class DSMNMenuStore: ObservableObject {
         let hours = minutes / 60
         let leftoverMinutes = minutes % 60
         return leftoverMinutes == 0 ? "\(hours)h" : "\(hours)h \(leftoverMinutes)m"
+    }
+
+    private func bundledDsmnctlPath() -> String? {
+        let bundledPath = Bundle.main.bundleURL
+            .appendingPathComponent("Contents", isDirectory: true)
+            .appendingPathComponent("Library", isDirectory: true)
+            .appendingPathComponent("Helpers", isDirectory: true)
+            .appendingPathComponent("dsmnctl")
+            .path
+
+        if FileManager.default.isExecutableFile(atPath: bundledPath) {
+            return bundledPath
+        }
+
+        return CommandLine.arguments.first
     }
 }

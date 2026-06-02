@@ -84,6 +84,10 @@ struct DSMNMenuView: View {
             openWindow(id: "why-awake")
         }
 
+        Button("Setup Guide") {
+            OnboardingWindowPresenter.show(store: store)
+        }
+
         Button("Refresh") {
             Task {
                 await store.refresh()

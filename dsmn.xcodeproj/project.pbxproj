@@ -12,6 +12,7 @@
 		0643E25D3C36B6DF1A393C9B /* dsmnctl in Embed Dependencies */ = {isa = PBXBuildFile; fileRef = F0EF5AEFD1754A2A344509EC /* dsmnctl */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		07021235DBF2A577E657BF8B /* AgentDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D67112750F54179C1E0BEEC /* AgentDetector.swift */; };
 		0B89FDFAD900348B587898D2 /* DSMNLogoIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBED8BCEB1A618ADE50C5249 /* DSMNLogoIcon.swift */; };
+		17EAA3C353FEC29A807F96E5 /* DSMNOnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 171C6E232736EB7D17692DC5 /* DSMNOnboardingView.swift */; };
 		317D2B2D40ADF21191974887 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 9AA42F96CD573113144B9278 /* Sparkle */; };
 		37E33089D66F11DBCC9C4B85 /* LaunchAtLoginService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAA3593C1FB4896356B24159 /* LaunchAtLoginService.swift */; };
 		3859C15BC198D9FA919AC362 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0D529786998707F7F4A7C78 /* main.swift */; };
@@ -24,6 +25,7 @@
 		497137023785CE2B1A43EC52 /* CheckForUpdatesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 119D786BB6E6C5D87A9EB778 /* CheckForUpdatesView.swift */; };
 		590A079B1B84AF4C19FFB0AF /* SleepDiagnosticsInspector.swift in Sources */ = {isa = PBXBuildFile; fileRef = E31259AF4C8DAEEDBADD9EDD /* SleepDiagnosticsInspector.swift */; };
 		6119B41483147AF7FA74C71D /* DSMNCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 74B444C620310ADFA67DB8E3 /* DSMNCore.framework */; };
+		62B192A4636DA4E37DF4DB39 /* OnboardingWindowPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4962B06F89AA1B677EF19DB8 /* OnboardingWindowPresenter.swift */; };
 		6F0918E8F5D6C670806C0BC1 /* SystemSnapshotProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = F670FC14F66FBA7A602B5CBE /* SystemSnapshotProvider.swift */; };
 		726EF89C354B1FAA841B9DC6 /* DSMNMenuView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 849E36A9D8CE4CD95098D34D /* DSMNMenuView.swift */; };
 		7AB68B7EEC2FFDBB33183F64 /* dsmnd in Embed Dependencies */ = {isa = PBXBuildFile; fileRef = 4FF12FB4F2E9D0CA91282B07 /* dsmnd */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
@@ -86,10 +88,10 @@
 		54B36EE5329AD3B55A7E76C2 /* Embed Dependencies */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
-			dstPath = Contents/Library/Helpers;
+			dstPath = Contents/Library/LaunchDaemons;
 			dstSubfolderSpec = 1;
 			files = (
-				0643E25D3C36B6DF1A393C9B /* dsmnctl in Embed Dependencies */,
+				7AB68B7EEC2FFDBB33183F64 /* dsmnd in Embed Dependencies */,
 			);
 			name = "Embed Dependencies";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -118,10 +120,10 @@
 		9E6E5D8A4D39E0AEF8C45CD0 /* Embed Dependencies */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
-			dstPath = Contents/Library/LaunchDaemons;
+			dstPath = Contents/Library/Helpers;
 			dstSubfolderSpec = 1;
 			files = (
-				7AB68B7EEC2FFDBB33183F64 /* dsmnd in Embed Dependencies */,
+				0643E25D3C36B6DF1A393C9B /* dsmnctl in Embed Dependencies */,
 			);
 			name = "Embed Dependencies";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -133,11 +135,13 @@
 		0F2C7905739A9F21409A0728 /* DSMNMenuStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DSMNMenuStore.swift; sourceTree = "<group>"; };
 		119D786BB6E6C5D87A9EB778 /* CheckForUpdatesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CheckForUpdatesView.swift; sourceTree = "<group>"; };
 		1428E24E9C88059C6735E168 /* com.nomdelasociete.dsmn.helper.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = com.nomdelasociete.dsmn.helper.plist; sourceTree = "<group>"; };
+		171C6E232736EB7D17692DC5 /* DSMNOnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DSMNOnboardingView.swift; sourceTree = "<group>"; };
 		1A393D53B83902538C1B8CB1 /* dsmn.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = dsmn.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		22FC037E46E8EBB70D7AB405 /* AgentHookInstaller.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentHookInstaller.swift; sourceTree = "<group>"; };
 		24C77EE9388701AB19E70A0C /* MenuBarCountdownFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarCountdownFormatter.swift; sourceTree = "<group>"; };
 		3357CC5A02DEAA80CF0E7714 /* MenuBarIconState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarIconState.swift; sourceTree = "<group>"; };
 		3619C42C42B624EEF07BA6AC /* StatusReport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusReport.swift; sourceTree = "<group>"; };
+		4962B06F89AA1B677EF19DB8 /* OnboardingWindowPresenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingWindowPresenter.swift; sourceTree = "<group>"; };
 		4D67112750F54179C1E0BEEC /* AgentDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentDetector.swift; sourceTree = "<group>"; };
 		4ED81C70EF47353A88BF55D1 /* PowerDecisionEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerDecisionEngine.swift; sourceTree = "<group>"; };
 		4FF12FB4F2E9D0CA91282B07 /* dsmnd */ = {isa = PBXFileReference; includeInIndex = 0; path = dsmnd; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -219,6 +223,7 @@
 				05F227E11F3C8BC6AD1BECA4 /* AboutPanelPresenter.swift */,
 				C5BBDCFF55A2F8F35800A50E /* HelperServiceClient.swift */,
 				AAA3593C1FB4896356B24159 /* LaunchAtLoginService.swift */,
+				4962B06F89AA1B677EF19DB8 /* OnboardingWindowPresenter.swift */,
 				F8AFE3A8A3B77004062353CF /* SoftwareUpdateController.swift */,
 			);
 			path = Services;
@@ -280,6 +285,7 @@
 				119D786BB6E6C5D87A9EB778 /* CheckForUpdatesView.swift */,
 				BBED8BCEB1A618ADE50C5249 /* DSMNLogoIcon.swift */,
 				849E36A9D8CE4CD95098D34D /* DSMNMenuView.swift */,
+				171C6E232736EB7D17692DC5 /* DSMNOnboardingView.swift */,
 				F8310C6F9E6BB445D3331F01 /* WhyAwakeView.swift */,
 			);
 			path = Views;
@@ -519,8 +525,10 @@
 				0B89FDFAD900348B587898D2 /* DSMNLogoIcon.swift in Sources */,
 				48B342822DB4A703A252BE4C /* DSMNMenuStore.swift in Sources */,
 				726EF89C354B1FAA841B9DC6 /* DSMNMenuView.swift in Sources */,
+				17EAA3C353FEC29A807F96E5 /* DSMNOnboardingView.swift in Sources */,
 				D22B79587D387496D7F5FBA3 /* HelperServiceClient.swift in Sources */,
 				37E33089D66F11DBCC9C4B85 /* LaunchAtLoginService.swift in Sources */,
+				62B192A4636DA4E37DF4DB39 /* OnboardingWindowPresenter.swift in Sources */,
 				DD2E79C7CF00AE239050EB97 /* SoftwareUpdateController.swift in Sources */,
 				7D5CAFC6A7CAE4F80B25C8A0 /* WhyAwakeView.swift in Sources */,
 			);
