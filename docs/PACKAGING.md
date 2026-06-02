@@ -42,6 +42,15 @@ public key in `DSMN_SPARKLE_PUBLIC_ED_KEY` when archiving. The scripts use the
 Keychain account `nomdelasociete-dsmn` by default; set `SPARKLE_KEY_ACCOUNT` to
 override it.
 
+For normal releases, use the one-command publishing script instead:
+
+```sh
+./scripts/publish_release.sh
+```
+
+It reads the Sparkle public key from `DSMN_SPARKLE_PUBLIC_ED_KEY`, or from the
+Keychain account when the variable is omitted.
+
 To archive without exporting:
 
 ```sh
@@ -103,6 +112,10 @@ railway run npm run upload:release -- --dir /Users/jb/Documents/Github/NomDeLaSo
 
 Override `DSMN_UPDATE_FEED_URL` and `DSMN_UPDATE_BASE_URL` only if the public
 site moves away from `https://dsmn.app`.
+
+`publish_release.sh` performs these steps automatically and fails before upload
+if the exported app is missing `SUFeedURL`/`SUPublicEDKey` or if the appcast is
+not signed with `sparkle:edSignature`.
 
 ## Self-Update State Contract
 

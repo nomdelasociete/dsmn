@@ -72,14 +72,13 @@ xcodebuild -project dsmn.xcodeproj -scheme dsmn -configuration Debug build
 Distribution build:
 
 ```sh
-DSMN_SPARKLE_PUBLIC_ED_KEY=<public-key> ./scripts/archive.sh
-./scripts/verify_bundle.sh dist/export/dsmn.app
-AC_NOTARY_PROFILE=dsmn-notary ./scripts/notarize.sh dist/export/dsmn.app
-ditto -c -k --keepParent dist/export/dsmn.app dist/dsmn-notarized.zip
-./scripts/generate_appcast.sh dist/dsmn-notarized.zip
-cd /Users/jb/Documents/Github/NomDeLaSociete/dsmn-website
-railway run npm run upload:release -- --dir /Users/jb/Documents/Github/NomDeLaSociete/dsmn/dist/updates
+./scripts/publish_release.sh
 ```
+
+`publish_release.sh` archives the app, verifies Sparkle metadata, notarizes and
+staples the bundle, creates a versioned Sparkle zip, generates a signed appcast,
+uploads the release through the `dsmn-website` Railway service, and checks the
+public appcast/download URLs.
 
 Use `DSMN_STATE_DIR` to avoid writing to the default state directory while testing:
 

@@ -34,4 +34,4 @@ if [[ -z "$TOOL" ]]; then
   exit 2
 fi
 
-"$TOOL" --account "$SPARKLE_KEY_ACCOUNT"
+"$TOOL" --account "$SPARKLE_KEY_ACCOUNT" "$@"
