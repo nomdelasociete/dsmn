@@ -17,5 +17,14 @@ final class TriggerActivitySummaryTests: XCTestCase {
         XCTAssertEqual(summary.buckets.reduce(0, +), 3)
         XCTAssertEqual(summary.buckets[1], 1)
         XCTAssertEqual(summary.buckets[11], 2)
+        XCTAssertEqual(summary.sparkline, "·▄·········█")
+        XCTAssertEqual(summary.menuLine, "Triggers 12h  ·▄·········█  3")
+    }
+
+    func testSparklineShowsEmptyBucketsWithoutSplittingMenuLayout() {
+        let summary = TriggerActivitySummary(requesters: [], hours: 12, bucketCount: 12)
+
+        XCTAssertEqual(summary.sparkline, "············")
+        XCTAssertEqual(summary.menuLine, "Triggers 12h  ············  0")
     }
 }

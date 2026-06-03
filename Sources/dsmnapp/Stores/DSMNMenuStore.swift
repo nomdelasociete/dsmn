@@ -188,7 +188,11 @@ final class DSMNMenuStore: ObservableObject {
     }
 
     var triggerActivitySummary: TriggerActivitySummary {
-        TriggerActivitySummary(requesters: report?.state.triggerHistory ?? [])
+        TriggerActivitySummary(requesters: report?.state.triggerHistory ?? [], bucketCount: 12)
+    }
+
+    var triggerActivityLine: String {
+        triggerActivitySummary.menuLine
     }
 
     var canRunAwakeCommands: Bool {

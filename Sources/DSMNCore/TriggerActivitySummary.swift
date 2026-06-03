@@ -4,6 +4,31 @@ public struct TriggerActivitySummary: Equatable, Sendable {
     public var total: Int
     public var buckets: [Int]
     public var hours: Int
+    public var sparkline: String {
+        guard !buckets.isEmpty else {
+            return ""
+        }
+
+        let maxBucket = buckets.max() ?? 0
+        guard maxBucket > 0 else {
+            return String(repeating: "·", count: buckets.count)
+        }
+
+        let levels = ["▁", "▂", "▃", "▄", "▅", "▆", "▇", "█"]
+        return buckets.map { value in
+            guard value > 0 else {
+                return "·"
+            }
+
+            let ratio = Double(value) / Double(maxBucket)
+            let index = min(levels.count - 1, max(0, Int(ceil(ratio * Double(levels.count))) - 1))
+            return levels[index]
+        }.joined()
+    }
+
+    public var menuLine: String {
+        "Triggers \(hours)h  \(sparkline)  \(total)"
+    }
 
     public init(
         requesters: [ActivationRequester],
