@@ -19,6 +19,7 @@
 		3859C15BC198D9FA919AC362 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0D529786998707F7F4A7C78 /* main.swift */; };
 		394D5CF05FEB9D34FB876D9D /* MenuBarCountdownFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24C77EE9388701AB19E70A0C /* MenuBarCountdownFormatter.swift */; };
 		3B1B0405B4D29F02793BD9E2 /* MenuBarIconState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3357CC5A02DEAA80CF0E7714 /* MenuBarIconState.swift */; };
+		3E2C9C782AC7E952FA4A55F1 /* TriggerActivitySummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5DA64BBB8035E795523E90FD /* TriggerActivitySummary.swift */; };
 		3EAAD859F9B5BF895A2D2B7E /* DSMNCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 74B444C620310ADFA67DB8E3 /* DSMNCore.framework */; };
 		44D1F403292D62A04AB4BEFC /* StatusReport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3619C42C42B624EEF07BA6AC /* StatusReport.swift */; };
 		4666E8007090B6F18D21E4D6 /* com.nomdelasociete.dsmn.helper.plist in CopyFiles */ = {isa = PBXBuildFile; fileRef = 1428E24E9C88059C6735E168 /* com.nomdelasociete.dsmn.helper.plist */; };
@@ -91,10 +92,10 @@
 		54B36EE5329AD3B55A7E76C2 /* Embed Dependencies */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
-			dstPath = Contents/Library/LaunchDaemons;
+			dstPath = Contents/Library/Helpers;
 			dstSubfolderSpec = 1;
 			files = (
-				7AB68B7EEC2FFDBB33183F64 /* dsmnd in Embed Dependencies */,
+				0643E25D3C36B6DF1A393C9B /* dsmnctl in Embed Dependencies */,
 			);
 			name = "Embed Dependencies";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -123,10 +124,10 @@
 		9E6E5D8A4D39E0AEF8C45CD0 /* Embed Dependencies */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
-			dstPath = Contents/Library/Helpers;
+			dstPath = Contents/Library/LaunchDaemons;
 			dstSubfolderSpec = 1;
 			files = (
-				0643E25D3C36B6DF1A393C9B /* dsmnctl in Embed Dependencies */,
+				7AB68B7EEC2FFDBB33183F64 /* dsmnd in Embed Dependencies */,
 			);
 			name = "Embed Dependencies";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -148,6 +149,7 @@
 		4D67112750F54179C1E0BEEC /* AgentDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentDetector.swift; sourceTree = "<group>"; };
 		4ED81C70EF47353A88BF55D1 /* PowerDecisionEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerDecisionEngine.swift; sourceTree = "<group>"; };
 		4FF12FB4F2E9D0CA91282B07 /* dsmnd */ = {isa = PBXFileReference; includeInIndex = 0; path = dsmnd; sourceTree = BUILT_PRODUCTS_DIR; };
+		5DA64BBB8035E795523E90FD /* TriggerActivitySummary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TriggerActivitySummary.swift; sourceTree = "<group>"; };
 		61FE22C17B810CA959C3CACA /* HelperXPC.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperXPC.swift; sourceTree = "<group>"; };
 		74B444C620310ADFA67DB8E3 /* DSMNCore.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = DSMNCore.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		849E36A9D8CE4CD95098D34D /* DSMNMenuView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DSMNMenuView.swift; sourceTree = "<group>"; };
@@ -333,6 +335,7 @@
 				CC8C8661F0C29336DF4C864E /* StateStore.swift */,
 				3619C42C42B624EEF07BA6AC /* StatusReport.swift */,
 				F670FC14F66FBA7A602B5CBE /* SystemSnapshotProvider.swift */,
+				5DA64BBB8035E795523E90FD /* TriggerActivitySummary.swift */,
 			);
 			name = DSMNCore;
 			path = Sources/DSMNCore;
@@ -521,6 +524,7 @@
 				E1792FA739919FB2B00EA4CA /* StateStore.swift in Sources */,
 				44D1F403292D62A04AB4BEFC /* StatusReport.swift in Sources */,
 				6F0918E8F5D6C670806C0BC1 /* SystemSnapshotProvider.swift in Sources */,
+				3E2C9C782AC7E952FA4A55F1 /* TriggerActivitySummary.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

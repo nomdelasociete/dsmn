@@ -24,6 +24,8 @@ struct DSMNMenuView: View {
             Text(lastRequesterLine)
         }
 
+        TriggerActivityMenuView(summary: store.triggerActivitySummary)
+
         if let errorMessage = store.errorMessage {
             Text(short(errorMessage))
         }
@@ -160,5 +162,50 @@ struct DSMNMenuView: View {
         }
 
         return String(value.prefix(27)) + "..."
+    }
+}
+
+private struct TriggerActivityMenuView: View {
+    var summary: TriggerActivitySummary
+
+    private var maxBucket: Int {
+        max(1, summary.buckets.max() ?? 0)
+    }
+
+    var body: some View {
+        HStack(spacing: 8) {
+            Text("\(summary.hours)h")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .frame(width: 24, alignment: .leading)
+
+            HStack(alignment: .bottom, spacing: 2) {
+                ForEach(Array(summary.buckets.enumerated()), id: \.offset) { _, value in
+                    RoundedRectangle(cornerRadius: 1.2)
+                        .fill(fillColor(for: value))
+                        .frame(width: 3, height: height(for: value))
+                }
+            }
+            .frame(width: 118, height: 18, alignment: .bottom)
+
+            Text("\(summary.total)")
+                .font(.caption.monospacedDigit().weight(.semibold))
+                .foregroundStyle(.primary)
+                .frame(width: 28, alignment: .trailing)
+        }
+        .padding(.vertical, 2)
+        .accessibilityLabel("\(summary.total) triggers in the last \(summary.hours) hours")
+    }
+
+    private func height(for value: Int) -> CGFloat {
+        guard value > 0 else {
+            return 2
+        }
+
+        return max(4, CGFloat(value) / CGFloat(maxBucket) * 18)
+    }
+
+    private func fillColor(for value: Int) -> Color {
+        value > 0 ? .accentColor.opacity(0.85) : .secondary.opacity(0.18)
     }
 }

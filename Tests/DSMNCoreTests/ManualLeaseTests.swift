@@ -70,6 +70,7 @@ final class ManualLeaseTests: XCTestCase {
         XCTAssertEqual(report.state.lastRequester?.event, "PreToolUse")
         XCTAssertEqual(report.state.lastRequester?.requestedAt, now)
         XCTAssertEqual(report.state.recentRequesters, [try XCTUnwrap(report.state.lastRequester)])
+        XCTAssertEqual(report.state.triggerHistory, [try XCTUnwrap(report.state.lastRequester)])
     }
 
     func testExtendOnlyUpdatesRequesterWithoutShorteningLongerTimer() throws {
@@ -134,6 +135,7 @@ final class ManualLeaseTests: XCTestCase {
             "dsmn - session abc12345",
             "dsmn-website"
         ])
+        XCTAssertEqual(report.state.triggerHistory.map(\.name), ["Pi", "Codex", "Claude Code"])
     }
 
     func testRecentRequestersReplaceSameAgentSession() throws {
@@ -162,6 +164,27 @@ final class ManualLeaseTests: XCTestCase {
         XCTAssertEqual(report.state.recentRequesters.first?.name, "Pi")
         XCTAssertEqual(report.state.recentRequesters.first?.event, "tool_result")
         XCTAssertEqual(report.state.recentRequesters.first?.requestedAt, now.addingTimeInterval(1))
+        XCTAssertEqual(report.state.triggerHistory.map(\.event), ["tool_call", "tool_result"])
+    }
+
+    func testTriggerHistoryPrunesOutsideTwelveHours() throws {
+        let now = Date(timeIntervalSince1970: 50_000)
+        var state = DSMNState()
+
+        state.recordRequester(
+            ActivationRequester(name: "Codex", context: "old"),
+            at: now.addingTimeInterval(-13 * 60 * 60)
+        )
+        state.recordRequester(
+            ActivationRequester(name: "Claude Code", context: "recent"),
+            at: now.addingTimeInterval(-11 * 60 * 60)
+        )
+        state.recordRequester(
+            ActivationRequester(name: "Pi", context: "now"),
+            at: now
+        )
+
+        XCTAssertEqual(state.triggerHistory.map(\.name), ["Claude Code", "Pi"])
     }
 
     private func makeStore() throws -> StateStore {

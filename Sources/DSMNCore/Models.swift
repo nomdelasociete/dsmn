@@ -167,6 +167,7 @@ public struct DSMNState: Codable, Equatable, Sendable {
     public var lastStopReason: String?
     public var lastRequester: ActivationRequester?
     public var recentRequesters: [ActivationRequester]
+    public var triggerHistory: [ActivationRequester]
     public var createdAt: Date
     public var updatedAt: Date
 
@@ -177,6 +178,7 @@ public struct DSMNState: Codable, Equatable, Sendable {
         lastStopReason: String? = nil,
         lastRequester: ActivationRequester? = nil,
         recentRequesters: [ActivationRequester] = [],
+        triggerHistory: [ActivationRequester] = [],
         createdAt: Date = Date(),
         updatedAt: Date = Date()
     ) {
@@ -186,6 +188,7 @@ public struct DSMNState: Codable, Equatable, Sendable {
         self.lastStopReason = lastStopReason
         self.lastRequester = lastRequester
         self.recentRequesters = recentRequesters
+        self.triggerHistory = triggerHistory
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }
@@ -197,6 +200,7 @@ public struct DSMNState: Codable, Equatable, Sendable {
         case lastStopReason
         case lastRequester
         case recentRequesters
+        case triggerHistory
         case createdAt
         case updatedAt
     }
@@ -212,6 +216,7 @@ public struct DSMNState: Codable, Equatable, Sendable {
         recentRequesters = try container.decodeIfPresent([ActivationRequester].self, forKey: .recentRequesters)
             ?? lastRequester.map { [$0] }
             ?? []
+        triggerHistory = try container.decodeIfPresent([ActivationRequester].self, forKey: .triggerHistory) ?? []
         createdAt = try container.decodeIfPresent(Date.self, forKey: .createdAt) ?? Date()
         updatedAt = try container.decodeIfPresent(Date.self, forKey: .updatedAt) ?? createdAt
     }
@@ -225,6 +230,7 @@ public struct DSMNState: Codable, Equatable, Sendable {
         try container.encodeIfPresent(lastStopReason, forKey: .lastStopReason)
         try container.encodeIfPresent(lastRequester, forKey: .lastRequester)
         try container.encode(recentRequesters, forKey: .recentRequesters)
+        try container.encode(triggerHistory, forKey: .triggerHistory)
         try container.encode(createdAt, forKey: .createdAt)
         try container.encode(updatedAt, forKey: .updatedAt)
     }
@@ -232,10 +238,13 @@ public struct DSMNState: Codable, Equatable, Sendable {
     public mutating func recordRequester(
         _ requester: ActivationRequester,
         at date: Date,
-        maxRecentCount: Int = 6
+        maxRecentCount: Int = 6,
+        maxTriggerHistoryCount: Int = 500
     ) {
         let requested = requester.requested(at: date)
         lastRequester = requested
+        triggerHistory.append(requested)
+        pruneTriggerHistory(now: date, maxCount: maxTriggerHistoryCount)
 
         recentRequesters.removeAll { existing in
             existing.name == requested.name && existing.context == requested.context
@@ -244,6 +253,15 @@ public struct DSMNState: Codable, Equatable, Sendable {
 
         if recentRequesters.count > maxRecentCount {
             recentRequesters = Array(recentRequesters.prefix(maxRecentCount))
+        }
+    }
+
+    private mutating func pruneTriggerHistory(now: Date, maxCount: Int) {
+        let cutoff = now.addingTimeInterval(-12 * 60 * 60)
+        triggerHistory = triggerHistory.filter { $0.requestedAt >= cutoff && $0.requestedAt <= now }
+
+        if triggerHistory.count > maxCount {
+            triggerHistory = Array(triggerHistory.suffix(maxCount))
         }
     }
 

@@ -187,6 +187,10 @@ final class DSMNMenuStore: ObservableObject {
         return "Last: \(requester.shortDisplayText(maxLength: 36))"
     }
 
+    var triggerActivitySummary: TriggerActivitySummary {
+        TriggerActivitySummary(requesters: report?.state.triggerHistory ?? [])
+    }
+
     var canRunAwakeCommands: Bool {
         helperStatus == .enabled
     }

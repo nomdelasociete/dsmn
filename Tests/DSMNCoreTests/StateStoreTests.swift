@@ -67,5 +67,6 @@ final class StateStoreTests: XCTestCase {
 
         XCTAssertEqual(state.lastRequester?.name, "Pi")
         XCTAssertEqual(state.recentRequesters, [try XCTUnwrap(state.lastRequester)])
+        XCTAssertEqual(state.triggerHistory, [])
     }
 }
