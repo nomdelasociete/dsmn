@@ -187,19 +187,6 @@ final class DSMNMenuStore: ObservableObject {
         return "Last: \(requester.shortDisplayText(maxLength: 36))"
     }
 
-    var recentRequestersLine: String? {
-        guard let recentRequesters = report?.state.recentRequesters, recentRequesters.count > 1 else {
-            return nil
-        }
-
-        let summary = recentRequesters
-            .prefix(4)
-            .map { $0.shortDisplayText(maxLength: 22) }
-            .joined(separator: " | ")
-
-        return "Recent: \(summary)"
-    }
-
     var canRunAwakeCommands: Bool {
         helperStatus == .enabled
     }
