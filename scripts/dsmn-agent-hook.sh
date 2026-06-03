@@ -15,6 +15,25 @@ log_event() {
   printf '%s %s\n' "$(date '+%Y-%m-%d %H:%M:%S')" "$*" >>"$LOG_PATH" 2>/dev/null || true
 }
 
+dsmnctl_bundle_version() {
+  local ctl="$1"
+  local app_path info_path version
+  app_path="$(cd "$(dirname "$ctl")/../../.." >/dev/null 2>&1 && pwd -P || true)"
+  info_path="$app_path/Contents/Info.plist"
+
+  if [[ ! -f "$info_path" ]]; then
+    printf '0\n'
+    return 0
+  fi
+
+  version="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$info_path" 2>/dev/null || true)"
+  if [[ "$version" =~ ^[0-9]+$ ]]; then
+    printf '%s\n' "$version"
+  else
+    printf '0\n'
+  fi
+}
+
 repo_root() {
   cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd
 }
@@ -35,13 +54,23 @@ resolve_dsmnctl() {
     "$root/.build/debug/dsmnctl"
   )
 
-  local candidate
+  local candidate version best best_version
+  best=""
+  best_version="-1"
   for candidate in "${candidates[@]}"; do
     if [[ -x "$candidate" ]]; then
-      printf '%s\n' "$candidate"
-      return 0
+      version="$(dsmnctl_bundle_version "$candidate")"
+      if (( version > best_version )); then
+        best="$candidate"
+        best_version="$version"
+      fi
     fi
   done
+
+  if [[ -n "$best" ]]; then
+    printf '%s\n' "$best"
+    return 0
+  fi
 
   return 1
 }

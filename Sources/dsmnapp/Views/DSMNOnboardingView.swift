@@ -14,7 +14,7 @@ struct DSMNOnboardingView: View {
                     systemImage: store.helperIsReady ? "checkmark.circle.fill" : "lock.shield",
                     title: "Install the helper",
                     detail: helperDetail,
-                    status: store.helperStatus.displayName,
+                    status: store.helperStatusDisplayName,
                     isComplete: store.helperIsReady
                 ) {
                     helperAction
@@ -115,6 +115,10 @@ struct DSMNOnboardingView: View {
         if store.helperIsReady {
             Button("Ready") {}
                 .disabled(true)
+        } else if store.helperNeedsUpdate {
+            Button("Update Helper") {
+                store.updateHelper()
+            }
         } else if store.helperNeedsApproval {
             Button("Open Login Items") {
                 store.openHelperSettings()
@@ -127,13 +131,17 @@ struct DSMNOnboardingView: View {
     }
 
     private var helperDetail: String {
+        if store.helperNeedsUpdate {
+            return "A newer dsmn is installed. Update the helper so hooks and sleep locks use the current version."
+        }
+
         switch store.helperStatus {
         case .enabled:
-            "The privileged helper can apply the macOS sleep lock when needed."
+            return "The privileged helper can apply the macOS sleep lock when needed."
         case .requiresApproval:
-            "macOS needs approval in Login Items before the helper can run."
+            return "macOS needs approval in Login Items before the helper can run."
         case .notRegistered, .notFound:
-            "Required for closed-lid protection. dsmn asks macOS to register it."
+            return "Required for closed-lid protection. dsmn asks macOS to register it."
         }
     }
 

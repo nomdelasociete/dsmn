@@ -120,6 +120,8 @@ final class AgentHookInstallerTests: XCTestCase {
         let installerPathRange = try XCTUnwrap(hookScript.range(of: "/tmp/dev/dsmnctl"))
         let repoPathRange = try XCTUnwrap(hookScript.range(of: "$HOME/Documents/Github/NomDeLaSociete/dsmn/dist/export/dsmn.app/Contents/Library/Helpers/dsmnctl"))
 
+        XCTAssertTrue(hookScript.contains("dsmnctl_bundle_version()"))
+        XCTAssertTrue(hookScript.contains("version > best_version"))
         XCTAssertLessThan(applicationsRange.lowerBound, installerPathRange.lowerBound)
         XCTAssertLessThan(homeApplicationsRange.lowerBound, installerPathRange.lowerBound)
         XCTAssertLessThan(installerPathRange.lowerBound, repoPathRange.lowerBound)

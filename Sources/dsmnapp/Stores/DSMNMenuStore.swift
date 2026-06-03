@@ -42,6 +42,7 @@ final class DSMNMenuStore: ObservableObject {
     @Published private(set) var errorMessage: String?
     @Published private(set) var isRefreshing = false
     @Published private(set) var helperStatus: HelperRegistrationStatus = .notFound
+    @Published private(set) var helperRuntimeInfo: HelperRuntimeInfo?
     @Published private(set) var launchAtLoginStatus: LaunchAtLoginStatus = .notRegistered
     @Published private(set) var hookSetupStatus: AgentHooksSetupStatus = .checking
 
@@ -88,7 +89,11 @@ final class DSMNMenuStore: ObservableObject {
     }
 
     var helperStatusLine: String {
-        "Helper: \(helperStatus.displayName)"
+        if helperNeedsUpdate {
+            return "Helper: update required"
+        }
+
+        return "Helper: \(helperStatus.displayName)"
     }
 
     var launchAtLoginStatusLine: String {
@@ -104,7 +109,7 @@ final class DSMNMenuStore: ObservableObject {
     }
 
     var helperIsReady: Bool {
-        helperStatus == .enabled
+        helperStatus == .enabled && !helperNeedsUpdate
     }
 
     var hooksAreReady: Bool {
@@ -157,17 +162,21 @@ final class DSMNMenuStore: ObservableObject {
     }
 
     var setupLine: String? {
+        if helperNeedsUpdate {
+            return "Setup: update helper"
+        }
+
         switch helperStatus {
         case .notRegistered, .notFound:
-            "Setup: install helper"
+            return "Setup: install helper"
         case .requiresApproval:
-            "Setup: approve Login Items"
+            return "Setup: approve Login Items"
         case .enabled:
             if let report, report.decision.shouldPreventSleep && !report.state.ownsSleepDisable {
-                "Power lock: pending"
-            } else {
-                nil
+                return "Power lock: pending"
             }
+
+            return nil
         }
     }
 
@@ -199,8 +208,31 @@ final class DSMNMenuStore: ObservableObject {
         helperStatus == .enabled
     }
 
+    var helperNeedsUpdate: Bool {
+        guard helperStatus == .enabled,
+              let currentBuildNumber,
+              let helperBuild = helperRuntimeInfo?.parentBundleVersion
+        else {
+            return false
+        }
+
+        return helperBuild < currentBuildNumber
+    }
+
+    var helperStatusDisplayName: String {
+        if helperNeedsUpdate {
+            return "update required"
+        }
+
+        return helperStatus.displayName
+    }
+
     var canInstallHelper: Bool {
         helperStatus == .notRegistered || helperStatus == .notFound
+    }
+
+    var canUpdateHelper: Bool {
+        helperNeedsUpdate
     }
 
     var canUnregisterHelper: Bool {
@@ -219,6 +251,18 @@ final class DSMNMenuStore: ObservableObject {
         return report.decision.shouldPreventSleep || report.state.ownsSleepDisable
     }
 
+    private var currentBuildNumber: Int? {
+        if let value = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String {
+            return Int(value)
+        }
+
+        if let value = Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? Int {
+            return value
+        }
+
+        return nil
+    }
+
     func refresh() async {
         guard let controller else {
             errorMessage = setupError?.localizedDescription
@@ -232,6 +276,7 @@ final class DSMNMenuStore: ObservableObject {
 
         do {
             helperStatus = helper.registrationStatus
+            helperRuntimeInfo = await helper.runtimeInfo()
             launchAtLoginStatus = launchAtLogin.status
             if hookSetupStatus != .installing {
                 hookSetupStatus = await inspectHookSetupStatus()
@@ -324,10 +369,31 @@ final class DSMNMenuStore: ObservableObject {
 
             do {
                 helperStatus = try helper.register()
+                helperRuntimeInfo = await helper.runtimeInfo()
                 errorMessage = helperStatus == .requiresApproval ? "Approve helper in System Settings" : nil
             } catch {
                 errorMessage = error.localizedDescription
                 helperStatus = helper.registrationStatus
+            }
+        }
+    }
+
+    func updateHelper() {
+        Task {
+            isRefreshing = true
+            defer {
+                isRefreshing = false
+            }
+
+            do {
+                helperStatus = try helper.updateRegistration()
+                helperRuntimeInfo = await helper.runtimeInfo()
+                errorMessage = helperStatus == .requiresApproval ? "Approve helper in System Settings" : nil
+                await refresh()
+            } catch {
+                errorMessage = error.localizedDescription
+                helperStatus = helper.registrationStatus
+                helperRuntimeInfo = await helper.runtimeInfo()
             }
         }
     }
@@ -341,11 +407,13 @@ final class DSMNMenuStore: ObservableObject {
 
             do {
                 helperStatus = try helper.unregister()
+                helperRuntimeInfo = await helper.runtimeInfo()
                 errorMessage = nil
                 await refresh()
             } catch {
                 errorMessage = error.localizedDescription
                 helperStatus = helper.registrationStatus
+                helperRuntimeInfo = await helper.runtimeInfo()
             }
         }
     }

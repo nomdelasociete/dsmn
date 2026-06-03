@@ -106,6 +106,12 @@ struct DSMNMenuView: View {
             }
         }
 
+        if store.canUpdateHelper {
+            Button("Update Helper") {
+                store.updateHelper()
+            }
+        }
+
         if store.helperNeedsApproval {
             Button("2. Open Login Items") {
                 store.openHelperSettings()

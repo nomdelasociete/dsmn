@@ -216,7 +216,8 @@ public struct DSMNState: Codable, Equatable, Sendable {
         recentRequesters = try container.decodeIfPresent([ActivationRequester].self, forKey: .recentRequesters)
             ?? lastRequester.map { [$0] }
             ?? []
-        triggerHistory = try container.decodeIfPresent([ActivationRequester].self, forKey: .triggerHistory) ?? []
+        triggerHistory = try container.decodeIfPresent([ActivationRequester].self, forKey: .triggerHistory)
+            ?? recentRequesters
         createdAt = try container.decodeIfPresent(Date.self, forKey: .createdAt) ?? Date()
         updatedAt = try container.decodeIfPresent(Date.self, forKey: .updatedAt) ?? createdAt
     }
