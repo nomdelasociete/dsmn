@@ -68,5 +68,45 @@ final class StateStoreTests: XCTestCase {
         XCTAssertEqual(state.lastRequester?.name, "Pi")
         XCTAssertEqual(state.recentRequesters, [try XCTUnwrap(state.lastRequester)])
         XCTAssertEqual(state.triggerHistory, [try XCTUnwrap(state.lastRequester)])
+        XCTAssertEqual(state.triggerActivityBuckets.map(\.count), [1])
+    }
+
+    func testLoadsStateWrittenWithEmptyLegacyTriggerHistory() throws {
+        let directory = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
+            .appendingPathComponent("dsmn-\(UUID().uuidString)", isDirectory: true)
+        defer {
+            try? FileManager.default.removeItem(at: directory)
+        }
+
+        let store = StateStore(directory: directory)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        try """
+        {
+          "createdAt" : "1970-01-01T00:16:40Z",
+          "lastRequester" : {
+            "context" : "dsmn-website",
+            "event" : "tool_call",
+            "name" : "Pi",
+            "requestedAt" : "1970-01-01T00:16:41Z"
+          },
+          "manualUntil" : "1970-01-01T00:30:00Z",
+          "ownsSleepDisable" : true,
+          "recentRequesters" : [
+            {
+              "context" : "dsmn-website",
+              "event" : "tool_call",
+              "name" : "Pi",
+              "requestedAt" : "1970-01-01T00:16:41Z"
+            }
+          ],
+          "triggerHistory" : [],
+          "updatedAt" : "1970-01-01T00:16:41Z"
+        }
+        """.write(to: store.stateURL, atomically: true, encoding: .utf8)
+
+        let state = try store.load()
+
+        XCTAssertEqual(state.triggerHistory, state.recentRequesters)
+        XCTAssertEqual(state.triggerActivityBuckets.map(\.count), [1])
     }
 }

@@ -197,11 +197,15 @@ final class DSMNMenuStore: ObservableObject {
     }
 
     var triggerActivitySummary: TriggerActivitySummary {
-        TriggerActivitySummary(requesters: report?.state.triggerHistory ?? [], bucketCount: 12)
+        TriggerActivitySummary(activityBuckets: report?.state.triggerActivityBuckets ?? [], bucketCount: 12)
     }
 
     var triggerActivityLine: String {
-        triggerActivitySummary.menuLine
+        if helperNeedsUpdate {
+            return "Triggers: update helper"
+        }
+
+        return triggerActivitySummary.menuLine
     }
 
     var canRunAwakeCommands: Bool {

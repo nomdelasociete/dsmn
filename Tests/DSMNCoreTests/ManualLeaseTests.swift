@@ -71,6 +71,7 @@ final class ManualLeaseTests: XCTestCase {
         XCTAssertEqual(report.state.lastRequester?.requestedAt, now)
         XCTAssertEqual(report.state.recentRequesters, [try XCTUnwrap(report.state.lastRequester)])
         XCTAssertEqual(report.state.triggerHistory, [try XCTUnwrap(report.state.lastRequester)])
+        XCTAssertEqual(report.state.triggerActivityBuckets.map(\.count), [1])
     }
 
     func testExtendOnlyUpdatesRequesterWithoutShorteningLongerTimer() throws {
@@ -136,6 +137,7 @@ final class ManualLeaseTests: XCTestCase {
             "dsmn-website"
         ])
         XCTAssertEqual(report.state.triggerHistory.map(\.name), ["Pi", "Codex", "Claude Code"])
+        XCTAssertEqual(report.state.triggerActivityBuckets.map(\.count).reduce(0, +), 3)
     }
 
     func testRecentRequestersReplaceSameAgentSession() throws {
@@ -165,6 +167,7 @@ final class ManualLeaseTests: XCTestCase {
         XCTAssertEqual(report.state.recentRequesters.first?.event, "tool_result")
         XCTAssertEqual(report.state.recentRequesters.first?.requestedAt, now.addingTimeInterval(1))
         XCTAssertEqual(report.state.triggerHistory.map(\.event), ["tool_call", "tool_result"])
+        XCTAssertEqual(report.state.triggerActivityBuckets.map(\.count).reduce(0, +), 2)
     }
 
     func testTriggerHistoryPrunesOutsideTwelveHours() throws {
@@ -185,6 +188,22 @@ final class ManualLeaseTests: XCTestCase {
         )
 
         XCTAssertEqual(state.triggerHistory.map(\.name), ["Claude Code", "Pi"])
+        XCTAssertEqual(state.triggerActivityBuckets.map(\.count).reduce(0, +), 2)
+    }
+
+    func testTriggerActivityBucketsKeepCountingAfterDetailedHistoryCap() {
+        let now = Date(timeIntervalSince1970: 50_000)
+        var state = DSMNState()
+
+        for index in 0..<620 {
+            state.recordRequester(
+                ActivationRequester(name: "Codex", context: "session-\(index)", event: "PreToolUse"),
+                at: now.addingTimeInterval(TimeInterval(index))
+            )
+        }
+
+        XCTAssertEqual(state.triggerHistory.count, 500)
+        XCTAssertEqual(state.triggerActivityBuckets.map(\.count).reduce(0, +), 620)
     }
 
     private func makeStore() throws -> StateStore {

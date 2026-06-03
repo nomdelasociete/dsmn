@@ -110,6 +110,16 @@ public struct ActivationRequester: Codable, Equatable, Sendable {
     }
 }
 
+public struct TriggerActivityBucket: Codable, Equatable, Sendable {
+    public var startedAt: Date
+    public var count: Int
+
+    public init(startedAt: Date, count: Int) {
+        self.startedAt = startedAt
+        self.count = max(0, count)
+    }
+}
+
 public enum PowerSource: String, Codable, Sendable {
     case ac
     case battery
@@ -168,6 +178,7 @@ public struct DSMNState: Codable, Equatable, Sendable {
     public var lastRequester: ActivationRequester?
     public var recentRequesters: [ActivationRequester]
     public var triggerHistory: [ActivationRequester]
+    public var triggerActivityBuckets: [TriggerActivityBucket]
     public var createdAt: Date
     public var updatedAt: Date
 
@@ -179,6 +190,7 @@ public struct DSMNState: Codable, Equatable, Sendable {
         lastRequester: ActivationRequester? = nil,
         recentRequesters: [ActivationRequester] = [],
         triggerHistory: [ActivationRequester] = [],
+        triggerActivityBuckets: [TriggerActivityBucket] = [],
         createdAt: Date = Date(),
         updatedAt: Date = Date()
     ) {
@@ -189,6 +201,7 @@ public struct DSMNState: Codable, Equatable, Sendable {
         self.lastRequester = lastRequester
         self.recentRequesters = recentRequesters
         self.triggerHistory = triggerHistory
+        self.triggerActivityBuckets = triggerActivityBuckets
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }
@@ -201,6 +214,7 @@ public struct DSMNState: Codable, Equatable, Sendable {
         case lastRequester
         case recentRequesters
         case triggerHistory
+        case triggerActivityBuckets
         case createdAt
         case updatedAt
     }
@@ -216,8 +230,18 @@ public struct DSMNState: Codable, Equatable, Sendable {
         recentRequesters = try container.decodeIfPresent([ActivationRequester].self, forKey: .recentRequesters)
             ?? lastRequester.map { [$0] }
             ?? []
-        triggerHistory = try container.decodeIfPresent([ActivationRequester].self, forKey: .triggerHistory)
-            ?? recentRequesters
+        let decodedTriggerHistory = try container.decodeIfPresent([ActivationRequester].self, forKey: .triggerHistory)
+        if let decodedTriggerHistory, !decodedTriggerHistory.isEmpty {
+            triggerHistory = decodedTriggerHistory
+        } else {
+            triggerHistory = recentRequesters
+        }
+        let decodedActivityBuckets = try container.decodeIfPresent([TriggerActivityBucket].self, forKey: .triggerActivityBuckets)
+        if let decodedActivityBuckets, !decodedActivityBuckets.isEmpty {
+            triggerActivityBuckets = Self.normalizedTriggerActivityBuckets(decodedActivityBuckets)
+        } else {
+            triggerActivityBuckets = Self.makeTriggerActivityBuckets(from: triggerHistory)
+        }
         createdAt = try container.decodeIfPresent(Date.self, forKey: .createdAt) ?? Date()
         updatedAt = try container.decodeIfPresent(Date.self, forKey: .updatedAt) ?? createdAt
     }
@@ -232,6 +256,7 @@ public struct DSMNState: Codable, Equatable, Sendable {
         try container.encodeIfPresent(lastRequester, forKey: .lastRequester)
         try container.encode(recentRequesters, forKey: .recentRequesters)
         try container.encode(triggerHistory, forKey: .triggerHistory)
+        try container.encode(triggerActivityBuckets, forKey: .triggerActivityBuckets)
         try container.encode(createdAt, forKey: .createdAt)
         try container.encode(updatedAt, forKey: .updatedAt)
     }
@@ -244,6 +269,7 @@ public struct DSMNState: Codable, Equatable, Sendable {
     ) {
         let requested = requester.requested(at: date)
         lastRequester = requested
+        recordTriggerActivity(at: date)
         triggerHistory.append(requested)
         pruneTriggerHistory(now: date, maxCount: maxTriggerHistoryCount)
 
@@ -265,6 +291,75 @@ public struct DSMNState: Codable, Equatable, Sendable {
             triggerHistory = Array(triggerHistory.suffix(maxCount))
         }
     }
+
+    private mutating func recordTriggerActivity(at date: Date) {
+        let bucketStart = Self.triggerBucketStart(for: date)
+        if let index = triggerActivityBuckets.firstIndex(where: { $0.startedAt == bucketStart }) {
+            triggerActivityBuckets[index].count += 1
+        } else {
+            triggerActivityBuckets.append(TriggerActivityBucket(startedAt: bucketStart, count: 1))
+        }
+
+        triggerActivityBuckets = Self.prunedTriggerActivityBuckets(triggerActivityBuckets, now: date)
+    }
+
+    public static func makeTriggerActivityBuckets(
+        from requesters: [ActivationRequester],
+        now: Date? = nil
+    ) -> [TriggerActivityBucket] {
+        let effectiveNow = now ?? requesters.map(\.requestedAt).max() ?? Date()
+        let cutoff = effectiveNow.addingTimeInterval(-triggerActivityRetention)
+        var counts: [Date: Int] = [:]
+
+        for requester in requesters where requester.requestedAt >= cutoff && requester.requestedAt <= effectiveNow {
+            counts[triggerBucketStart(for: requester.requestedAt), default: 0] += 1
+        }
+
+        return counts
+            .map { TriggerActivityBucket(startedAt: $0.key, count: $0.value) }
+            .sorted { $0.startedAt < $1.startedAt }
+    }
+
+    private static func normalizedTriggerActivityBuckets(_ buckets: [TriggerActivityBucket]) -> [TriggerActivityBucket] {
+        var counts: [Date: Int] = [:]
+        for bucket in buckets where bucket.count > 0 {
+            counts[triggerBucketStart(for: bucket.startedAt), default: 0] += bucket.count
+        }
+
+        let normalized = counts
+            .map { TriggerActivityBucket(startedAt: $0.key, count: $0.value) }
+            .sorted { $0.startedAt < $1.startedAt }
+
+        if normalized.count > maxTriggerActivityBucketCount {
+            return Array(normalized.suffix(maxTriggerActivityBucketCount))
+        }
+
+        return normalized
+    }
+
+    private static func prunedTriggerActivityBuckets(
+        _ buckets: [TriggerActivityBucket],
+        now: Date
+    ) -> [TriggerActivityBucket] {
+        let cutoff = now.addingTimeInterval(-triggerActivityRetention)
+        let pruned = buckets
+            .filter { $0.count > 0 && $0.startedAt.addingTimeInterval(triggerActivityBucketDuration) > cutoff && $0.startedAt <= now }
+            .sorted { $0.startedAt < $1.startedAt }
+
+        if pruned.count > maxTriggerActivityBucketCount {
+            return Array(pruned.suffix(maxTriggerActivityBucketCount))
+        }
+
+        return pruned
+    }
+
+    private static func triggerBucketStart(for date: Date) -> Date {
+        Date(timeIntervalSince1970: floor(date.timeIntervalSince1970 / triggerActivityBucketDuration) * triggerActivityBucketDuration)
+    }
+
+    private static let triggerActivityBucketDuration: TimeInterval = 60
+    private static let triggerActivityRetention: TimeInterval = 12 * 60 * 60
+    private static let maxTriggerActivityBucketCount = 12 * 60
 
     public func manualRemainingSeconds(at date: Date) -> Int? {
         guard let manualUntil else {

@@ -57,4 +57,32 @@ public struct TriggerActivitySummary: Equatable, Sendable {
         self.buckets = buckets
         self.hours = safeHours
     }
+
+    public init(
+        activityBuckets sourceBuckets: [TriggerActivityBucket],
+        now: Date = Date(),
+        hours: Int = 12,
+        bucketCount: Int = 24
+    ) {
+        let safeHours = max(1, hours)
+        let safeBucketCount = max(1, bucketCount)
+        let window = TimeInterval(safeHours * 60 * 60)
+        let start = now.addingTimeInterval(-window)
+        let bucketDuration = window / Double(safeBucketCount)
+        let sourceBucketDuration: TimeInterval = 60
+
+        var buckets = Array(repeating: 0, count: safeBucketCount)
+        var total = 0
+        for bucket in sourceBuckets where bucket.startedAt.addingTimeInterval(sourceBucketDuration) > start && bucket.startedAt <= now {
+            let offset = max(0, bucket.startedAt.timeIntervalSince(start))
+            let rawIndex = Int(offset / bucketDuration)
+            let index = min(max(rawIndex, 0), safeBucketCount - 1)
+            buckets[index] += bucket.count
+            total += bucket.count
+        }
+
+        self.total = total
+        self.buckets = buckets
+        self.hours = safeHours
+    }
 }
