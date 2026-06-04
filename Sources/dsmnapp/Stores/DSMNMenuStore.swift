@@ -209,7 +209,7 @@ final class DSMNMenuStore: ObservableObject {
         }
 
         if helperNeedsUpdate {
-            return "Helper: update required"
+            return "Helper: update available"
         }
 
         return "Helper: \(helperStatus.displayName)"
@@ -284,6 +284,10 @@ final class DSMNMenuStore: ObservableObject {
         SetupMenuPresentation.setupLine(from: setupMenuSignals)
     }
 
+    var setupLineSystemImage: String {
+        helperNeedsUpdate ? "arrow.triangle.2.circlepath" : "exclamationmark.circle"
+    }
+
     var powerLockLine: String? {
         guard let report else {
             return nil
@@ -317,10 +321,6 @@ final class DSMNMenuStore: ObservableObject {
     }
 
     var triggerActivityLine: String {
-        if helperNeedsUpdate {
-            return "Triggers: update helper"
-        }
-
         return triggerActivitySummary.menuLine
     }
 
@@ -370,6 +370,34 @@ final class DSMNMenuStore: ObservableObject {
         return helperBuild < currentBuildNumber
     }
 
+    var helperUpdateWasDeferred: Bool {
+        guard let currentBuildNumber else {
+            return false
+        }
+
+        return OnboardingPreferences.deferredHelperUpdateBuild == currentBuildNumber
+    }
+
+    var shouldPresentHelperUpdateReminder: Bool {
+        onboardingWizardDismissed
+            && helperNeedsUpdate
+            && !helperUpdateWasDeferred
+            && !helperNeedsRepair
+    }
+
+    var helperUpdateDetail: String {
+        let buildDetail: String
+
+        if let helperBuild = helperRuntimeInfo?.parentBundleVersion,
+           let currentBuildNumber {
+            buildDetail = " The helper is on build \(helperBuild); the app is build \(currentBuildNumber)."
+        } else {
+            buildDetail = ""
+        }
+
+        return "dsmn was updated and the helper is still running the previous build.\(buildDetail) Existing timers can keep running; update the helper when convenient so the privileged code matches the app."
+    }
+
     var helperNeedsRepair: Bool {
         helperStatus == .enabled && helperXPCUnavailable
     }
@@ -384,7 +412,7 @@ final class DSMNMenuStore: ObservableObject {
         }
 
         if helperNeedsUpdate {
-            return "update required"
+            return "update available"
         }
 
         return helperStatus.displayName
@@ -546,6 +574,7 @@ final class DSMNMenuStore: ObservableObject {
             do {
                 helperStatus = try helper.register()
                 helperRuntimeInfo = await helper.runtimeInfo()
+                OnboardingPreferences.deferredHelperUpdateBuild = nil
                 hasAttemptedAutomaticHelperRepair = false
                 errorMessage = helperStatus == .requiresApproval ? "Approve helper in System Settings" : nil
             } catch {
@@ -566,6 +595,7 @@ final class DSMNMenuStore: ObservableObject {
                 hasAttemptedAutomaticHelperRepair = false
                 helperStatus = try helper.updateRegistration()
                 helperRuntimeInfo = await helper.runtimeInfo()
+                OnboardingPreferences.deferredHelperUpdateBuild = nil
                 helperXPCUnavailable = false
                 errorMessage = helperStatus == .requiresApproval ? "Approve helper in System Settings" : nil
                 await refresh()
@@ -587,6 +617,7 @@ final class DSMNMenuStore: ObservableObject {
             do {
                 helperStatus = try helper.unregister()
                 helperRuntimeInfo = await helper.runtimeInfo()
+                OnboardingPreferences.deferredHelperUpdateBuild = nil
                 helperXPCUnavailable = false
                 hasAttemptedAutomaticHelperRepair = false
                 errorMessage = nil
@@ -601,6 +632,15 @@ final class DSMNMenuStore: ObservableObject {
 
     func openHelperSettings() {
         helper.openLoginItemsSettings()
+    }
+
+    func deferHelperUpdateReminder() {
+        guard let currentBuildNumber else {
+            return
+        }
+
+        OnboardingPreferences.deferredHelperUpdateBuild = currentBuildNumber
+        objectWillChange.send()
     }
 
     func setLaunchAtLogin(_ isEnabled: Bool) {

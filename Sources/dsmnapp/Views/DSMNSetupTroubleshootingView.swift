@@ -12,6 +12,10 @@ struct DSMNSetupTroubleshootingView: View {
                 VStack(alignment: .leading, spacing: 14) {
                     header
 
+                    if store.helperNeedsUpdate {
+                        helperUpdateBanner
+                    }
+
                     SetupPanelRow(
                         systemImage: store.helperIsReady ? "checkmark.shield.fill" : "lock.shield",
                         title: "Helper",
@@ -130,7 +134,7 @@ struct DSMNSetupTroubleshootingView: View {
             }
 
             if let setupLine = store.setupLine {
-                Label(setupLine, systemImage: "exclamationmark.circle")
+                Label(setupLine, systemImage: store.setupLineSystemImage)
                     .font(.footnote.weight(.medium))
                     .foregroundStyle(.secondary)
             }
@@ -207,6 +211,10 @@ struct DSMNSetupTroubleshootingView: View {
     }
 
     private var statusSummary: String {
+        if store.helperNeedsUpdate {
+            return "The app was updated. Refreshing the helper is recommended, but not blocking."
+        }
+
         if store.setupIsComplete {
             return "Helper and agent hooks are ready."
         }
@@ -220,7 +228,7 @@ struct DSMNSetupTroubleshootingView: View {
         }
 
         if store.helperNeedsUpdate {
-            return "A newer dsmn is installed. Update the helper so hooks and sleep locks use the current version."
+            return store.helperUpdateDetail
         }
 
         switch store.helperStatus {
@@ -251,6 +259,47 @@ struct DSMNSetupTroubleshootingView: View {
         }
 
         return "Unavailable until dsmn finishes loading"
+    }
+
+    private var helperUpdateBanner: some View {
+        HStack(alignment: .center, spacing: 14) {
+            Image(systemName: "arrow.triangle.2.circlepath.circle.fill")
+                .font(.system(size: 28, weight: .semibold))
+                .symbolRenderingMode(.hierarchical)
+                .foregroundStyle(.blue)
+                .frame(width: 36, height: 36)
+
+            VStack(alignment: .leading, spacing: 5) {
+                Text("Helper update available")
+                    .font(.system(size: 15, weight: .semibold))
+
+                Text(store.helperUpdateDetail)
+                    .font(.system(size: 13))
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Spacer(minLength: 16)
+
+            HStack(spacing: 8) {
+                Button("Later") {
+                    store.deferHelperUpdateReminder()
+                    onClose()
+                }
+                .accessibilityIdentifier("setup.helper-update-later")
+
+                Button("Update Helper") {
+                    store.updateHelper()
+                }
+                .accessibilityIdentifier("setup.helper-update-now")
+            }
+        }
+        .padding(14)
+        .background(.blue.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
+        .overlay {
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(.blue.opacity(0.22), lineWidth: 1)
+        }
     }
 }
 

@@ -43,11 +43,22 @@ public struct SetupMenuSignals: Equatable, Sendable {
     }
 
     public var isSetupComplete: Bool {
-        helperIsReady && hooksAreReady
+        helperIsOperational && hooksAreReady
     }
 
     public var isSetupIncomplete: Bool {
         !isSetupComplete
+    }
+
+    public var helperIsOperational: Bool {
+        if helperIsReady {
+            return true
+        }
+
+        return helperNeedsUpdate
+            && !helperNeedsRepair
+            && !helperNeedsApproval
+            && !helperNeedsInstall
     }
 }
 
@@ -58,7 +69,7 @@ public enum SetupMenuPresentation: Sendable {
         }
 
         if signals.helperNeedsUpdate {
-            return "Setup: update helper"
+            return "Helper update available"
         }
 
         if signals.helperNeedsInstall {

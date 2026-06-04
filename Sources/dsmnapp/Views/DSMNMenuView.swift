@@ -94,7 +94,7 @@ struct DSMNMenuView: View {
     private var setupSection: some View {
         Section {
             if let setupLine = store.setupLine {
-                MenuStatusRow(title: setupLine, systemImage: "exclamationmark.circle", prominent: false)
+                MenuStatusRow(title: setupLine, systemImage: store.setupLineSystemImage, prominent: false)
             }
 
             Button {
