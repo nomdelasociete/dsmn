@@ -59,11 +59,14 @@ pick up the extension.
 
 ## Behavior
 
-- run on session start, user prompt submit, pre-tool-use, and post-tool-use
-  events where the agent supports them;
-- for Pi, run on `session_start`, `input`, `turn_start`, `tool_call`,
-  `tool_result`, and `turn_end`;
-- call `dsmnctl manual --minutes 20 --extend-only --requester <agent>`;
+- run on session start and user prompt submit events where the agent supports
+  them (not on every tool call);
+- for Pi, run on `session_start` and `input` only;
+- skip `dsmnctl manual` when the last successful extend was within the minimum
+  interval (default 120 seconds), using a stamp file at
+  `~/.dsmn/last-extend.stamp`;
+- call `dsmnctl manual --minutes 20 --extend-only --requester <agent>` when not
+  throttled;
 - record the last requester and a short recent-requester list in dsmn state,
   with project/session context when the hook payload exposes it;
 - verify that `dsmnctl doctor` sees the helper and `macOS SleepDisabled: on`;
@@ -72,16 +75,18 @@ pick up the extension.
 - never use `caffeinate -d`, so the fallback does not intentionally keep the
   display awake.
 
-The manual timer is intentional for hooks: every tool call renews a bounded
-lease. Hook renewals are not additive and never shorten a longer manual timer;
-dsmn releases the lease automatically if tool calls stop.
+The manual timer is intentional for hooks: session start and prompt submit
+renew a bounded lease. Hook renewals are not additive and never shorten a longer
+manual timer; dsmn releases the lease automatically when activity stops.
 
 Optional environment overrides:
 
 ```sh
-DSMN_HOOK_MINUTES=30     # manual timer duration
+DSMN_HOOK_MINUTES=30                  # manual timer duration
+DSMN_HOOK_MIN_INTERVAL_SECONDS=120    # minimum seconds between dsmnctl manual calls
 DSMNCTL_PATH=/path/to/dsmnctl
 DSMN_HOOK_LOG=/tmp/dsmn-agent-hook.log
+DSMN_HOOK_STAMP=~/.dsmn/last-extend.stamp
 ```
 
 Manual hook JSON example:
@@ -89,12 +94,12 @@ Manual hook JSON example:
 ```json
 {
   "hooks": {
-    "PreToolUse": [
+    "UserPromptSubmit": [
       {
         "hooks": [
           {
             "type": "command",
-            "command": "DSMN_HOOK_AGENT='codex' DSMN_HOOK_EVENT='PreToolUse' '/Users/jb/.dsmn/dsmn-agent-hook.sh'",
+            "command": "DSMN_HOOK_AGENT='codex' DSMN_HOOK_EVENT='UserPromptSubmit' '/Users/jb/.dsmn/dsmn-agent-hook.sh'",
             "timeout": 5
           }
         ]
@@ -121,3 +126,6 @@ Power lock: on
 macOS SleepDisabled: on
 SleepDisabled 1
 ```
+
+Throttled invocations log a line like `dsmn extend throttled` and exit without
+calling `dsmnctl manual` again.

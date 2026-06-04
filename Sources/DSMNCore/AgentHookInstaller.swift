@@ -32,9 +32,7 @@ public struct AgentHookInstallReport: Codable, Equatable, Sendable {
 public struct AgentHookInstaller: Sendable {
     private static let hookEventNames = [
         "SessionStart",
-        "UserPromptSubmit",
-        "PreToolUse",
-        "PostToolUse"
+        "UserPromptSubmit"
     ]
 
     public var homeDirectory: URL
@@ -244,10 +242,6 @@ public struct AgentHookInstaller: Sendable {
         export default function (pi: ExtensionAPI) {
           pi.on("session_start", async () => trigger("session_start"));
           pi.on("input", async () => trigger("input"));
-          pi.on("turn_start", async () => trigger("turn_start"));
-          pi.on("tool_call", async () => trigger("tool_call"));
-          pi.on("tool_result", async () => trigger("tool_result"));
-          pi.on("turn_end", async () => trigger("turn_end"));
         }
 
         """
@@ -418,6 +412,8 @@ public struct AgentHookInstaller: Sendable {
         set -u
 
         MINUTES="${DSMN_HOOK_MINUTES:-20}"
+        MIN_INTERVAL_SECONDS="${DSMN_HOOK_MIN_INTERVAL_SECONDS:-120}"
+        STAMP_PATH="${DSMN_HOOK_STAMP:-$HOME/.dsmn/last-extend.stamp}"
         FALLBACK_SECONDS="${DSMN_HOOK_FALLBACK_SECONDS:-600}"
         LOG_PATH="${DSMN_HOOK_LOG:-/tmp/dsmn-agent-hook.log}"
         HOOK_AGENT="${DSMN_HOOK_AGENT:-agent}"
@@ -569,6 +565,26 @@ public struct AgentHookInstaller: Sendable {
           printf '%s\\n' "$event"
         }
 
+        should_skip_extend() {
+          local last now
+          [[ -f "$STAMP_PATH" ]] || return 1
+
+          last="$(tr -dc '0-9' <"$STAMP_PATH" 2>/dev/null || true)"
+          [[ -n "$last" ]] || return 1
+
+          now="$(date +%s)"
+          if (( now - last < MIN_INTERVAL_SECONDS )); then
+            return 0
+          fi
+
+          return 1
+        }
+
+        record_extend_stamp() {
+          mkdir -p "$(dirname "$STAMP_PATH")" 2>/dev/null || true
+          date +%s >"$STAMP_PATH" 2>/dev/null || true
+        }
+
         ctl="$(resolve_dsmnctl || true)"
         if [[ -z "$ctl" ]]; then
           log_event "dsmnctl not found"
@@ -580,6 +596,11 @@ public struct AgentHookInstaller: Sendable {
         REQUESTER_CONTEXT="$(hook_context)"
         REQUESTER_EVENT="$(hook_event)"
 
+        if should_skip_extend; then
+          log_event "dsmn extend throttled seconds=$MIN_INTERVAL_SECONDS requester=$REQUESTER_NAME event=$REQUESTER_EVENT"
+          exit 0
+        fi
+
         manual_args=(manual --minutes "$MINUTES" --extend-only --requester "$REQUESTER_NAME" --json)
         [[ -n "$REQUESTER_CONTEXT" ]] && manual_args+=(--context "$REQUESTER_CONTEXT")
         [[ -n "$REQUESTER_EVENT" ]] && manual_args+=(--event "$REQUESTER_EVENT")
@@ -589,6 +610,8 @@ public struct AgentHookInstaller: Sendable {
           fallback_caffeinate
           exit 0
         fi
+
+        record_extend_stamp
 
         doctor="$("$ctl" doctor 2>&1 || true)"
 
