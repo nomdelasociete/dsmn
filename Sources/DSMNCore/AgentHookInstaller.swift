@@ -32,7 +32,9 @@ public struct AgentHookInstallReport: Codable, Equatable, Sendable {
 public struct AgentHookInstaller: Sendable {
     private static let hookEventNames = [
         "SessionStart",
-        "UserPromptSubmit"
+        "UserPromptSubmit",
+        "PreToolUse",
+        "PostToolUse"
     ]
 
     public var homeDirectory: URL
@@ -242,6 +244,10 @@ public struct AgentHookInstaller: Sendable {
         export default function (pi: ExtensionAPI) {
           pi.on("session_start", async () => trigger("session_start"));
           pi.on("input", async () => trigger("input"));
+          pi.on("turn_start", async () => trigger("turn_start"));
+          pi.on("tool_call", async () => trigger("tool_call"));
+          pi.on("tool_result", async () => trigger("tool_result"));
+          pi.on("turn_end", async () => trigger("turn_end"));
         }
 
         """

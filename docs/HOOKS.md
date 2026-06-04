@@ -59,9 +59,10 @@ pick up the extension.
 
 ## Behavior
 
-- run on session start and user prompt submit events where the agent supports
-  them (not on every tool call);
-- for Pi, run on `session_start` and `input` only;
+- run on session start, user prompt submit, pre-tool-use, and post-tool-use
+  events where the agent supports them;
+- for Pi, run on `session_start`, `input`, `turn_start`, `tool_call`,
+  `tool_result`, and `turn_end`;
 - skip `dsmnctl manual` when the last successful extend was within the minimum
   interval (default 120 seconds), using a stamp file at
   `~/.dsmn/last-extend.stamp`;
@@ -75,9 +76,11 @@ pick up the extension.
 - never use `caffeinate -d`, so the fallback does not intentionally keep the
   display awake.
 
-The manual timer is intentional for hooks: session start and prompt submit
-renew a bounded lease. Hook renewals are not additive and never shorten a longer
-manual timer; dsmn releases the lease automatically when activity stops.
+The manual timer is intentional for hooks: agent activity renews a bounded
+lease, but the shared hook throttles the actual `dsmnctl manual` calls so
+tool-heavy sessions do not invoke dsmnctl for every tool event. Hook renewals
+are not additive and never shorten a longer manual timer; dsmn releases the
+lease automatically when activity stops.
 
 Optional environment overrides:
 
@@ -94,12 +97,12 @@ Manual hook JSON example:
 ```json
 {
   "hooks": {
-    "UserPromptSubmit": [
+    "PreToolUse": [
       {
         "hooks": [
           {
             "type": "command",
-            "command": "DSMN_HOOK_AGENT='codex' DSMN_HOOK_EVENT='UserPromptSubmit' '/Users/jb/.dsmn/dsmn-agent-hook.sh'",
+            "command": "DSMN_HOOK_AGENT='codex' DSMN_HOOK_EVENT='PreToolUse' '/Users/jb/.dsmn/dsmn-agent-hook.sh'",
             "timeout": 5
           }
         ]

@@ -64,7 +64,13 @@ final class AgentHookInstallerTests: XCTestCase {
         let claude = try readJSON(home.appendingPathComponent(".claude/settings.json"))
         let claudeCommands = hookCommands(in: claude)
         XCTAssertTrue(claudeCommands.contains("/Users/jb/.claude/hooks/safety.sh"))
-        XCTAssertTrue(claudeCommands.contains { $0.contains("caffeinate") })
+        XCTAssertFalse(claudeCommands.contains { $0.contains("caffeinate") })
+        let dsmnClaudeHooks = hookCommands(
+            in: claude,
+            events: ["SessionStart", "UserPromptSubmit", "PreToolUse", "PostToolUse"]
+        ).filter { $0.contains("dsmn-agent-hook.sh") }
+        XCTAssertEqual(dsmnClaudeHooks.count, 4)
+        XCTAssertFalse(dsmnClaudeHooks.contains { $0.contains("caffeinate") })
         let claudeSessionHooks = hookCommands(
             in: claude,
             events: ["SessionStart", "UserPromptSubmit"]
@@ -72,14 +78,14 @@ final class AgentHookInstallerTests: XCTestCase {
         XCTAssertFalse(claudeSessionHooks.contains { $0.contains("caffeinate") })
         XCTAssertEqual(
             claudeCommands.filter { $0.contains(home.appendingPathComponent(".dsmn/dsmn-agent-hook.sh").path) }.count,
-            2
+            4
         )
         XCTAssertTrue(claudeCommands.allSatisfy { !$0.contains("dsmn-agent-hook.sh") || $0.contains("DSMN_HOOK_AGENT='claude'") })
 
         let codex = try readJSON(home.appendingPathComponent(".codex/hooks.json"))
         XCTAssertEqual(
             hookCommands(in: codex).filter { $0.contains(home.appendingPathComponent(".dsmn/dsmn-agent-hook.sh").path) }.count,
-            2
+            4
         )
         XCTAssertTrue(hookCommands(in: codex).allSatisfy { !$0.contains("dsmn-agent-hook.sh") || $0.contains("DSMN_HOOK_AGENT='codex'") })
         let codexConfig = try String(contentsOf: home.appendingPathComponent(".codex/config.toml"), encoding: .utf8)
@@ -89,14 +95,16 @@ final class AgentHookInstallerTests: XCTestCase {
         let grok = try readJSON(home.appendingPathComponent(".grok/hooks/dsmn.json"))
         XCTAssertEqual(
             hookCommands(in: grok).filter { $0.contains(home.appendingPathComponent(".dsmn/dsmn-agent-hook.sh").path) }.count,
-            2
+            4
         )
         XCTAssertTrue(hookCommands(in: grok).allSatisfy { !$0.contains("dsmn-agent-hook.sh") || $0.contains("DSMN_HOOK_AGENT='grok'") })
 
         let pi = try String(contentsOf: home.appendingPathComponent(".pi/agent/extensions/dsmn.ts"), encoding: .utf8)
         XCTAssertTrue(pi.contains("from \"@earendil-works/pi-coding-agent\""))
-        XCTAssertFalse(pi.contains("pi.on(\"tool_call\""))
-        XCTAssertFalse(pi.contains("pi.on(\"turn_start\""))
+        XCTAssertTrue(pi.contains("pi.on(\"tool_call\""))
+        XCTAssertTrue(pi.contains("pi.on(\"turn_start\""))
+        XCTAssertTrue(pi.contains("pi.on(\"tool_result\""))
+        XCTAssertTrue(pi.contains("pi.on(\"turn_end\""))
         XCTAssertTrue(pi.contains("child.on(\"error\""))
         XCTAssertTrue(pi.contains(home.appendingPathComponent(".dsmn/dsmn-agent-hook.sh").path))
     }
