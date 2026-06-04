@@ -7,88 +7,94 @@ struct DSMNOnboardingView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            header
+            ScrollView {
+                VStack(spacing: 0) {
+                    header
 
-            VStack(spacing: 14) {
-                OnboardingStepRow(
-                    systemImage: store.helperIsReady ? "checkmark.circle.fill" : "lock.shield",
-                    title: "Install the helper",
-                    detail: helperDetail,
-                    status: store.helperStatusDisplayName,
-                    isComplete: store.helperIsReady
-                ) {
-                    helperAction
-                }
-
-                OnboardingStepRow(
-                    systemImage: store.hooksStatusIconName,
-                    title: "Connect your agents",
-                    detail: "Install bounded hooks for Claude Code, Codex, Grok Build, and Pi.",
-                    status: store.hooksSummary,
-                    isComplete: store.hooksAreReady,
-                    isBusy: store.hooksAreBusy
-                ) {
-                    Button(store.hooksActionTitle) {
-                        store.installAgentHooks()
-                    }
-                    .disabled(store.hooksAreBusy)
-                }
-
-                OnboardingStepRow(
-                    systemImage: store.launchAtLoginEnabled ? "checkmark.circle.fill" : "power",
-                    title: "Launch with your Mac",
-                    detail: "Optional. Starts the menu bar app automatically when you log in.",
-                    status: store.launchAtLoginStatus.displayName,
-                    isComplete: store.launchAtLoginEnabled,
-                    isOptional: true
-                ) {
-                    Toggle("Launch at Login", isOn: Binding(
-                        get: { store.launchAtLoginEnabled },
-                        set: { store.setLaunchAtLogin($0) }
-                    ))
-                    .toggleStyle(.switch)
-                }
-
-                OnboardingStepRow(
-                    systemImage: "stethoscope",
-                    title: "Troubleshooting",
-                    detail: troubleshootingDetail,
-                    status: troubleshootingStatus,
-                    isComplete: store.helperIsReady,
-                    isOptional: true
-                ) {
-                    HStack(spacing: 8) {
-                        Button("Doctor") {
-                            store.runDoctor()
+                    VStack(spacing: 14) {
+                        OnboardingStepRow(
+                            systemImage: store.helperIsReady ? "checkmark.circle.fill" : "lock.shield",
+                            title: "Install the helper",
+                            detail: helperDetail,
+                            status: store.helperStatusDisplayName,
+                            isComplete: store.helperIsReady
+                        ) {
+                            helperAction
                         }
-                        .disabled(!store.canRunDoctor)
 
-                        Button("Repair") {
-                            store.runRepair()
+                        OnboardingStepRow(
+                            systemImage: store.hooksStatusIconName,
+                            title: "Connect your agents",
+                            detail: "Install bounded hooks for Claude Code, Codex, Grok Build, and Pi.",
+                            status: store.hooksSummary,
+                            isComplete: store.hooksAreReady,
+                            isBusy: store.hooksAreBusy
+                        ) {
+                            Button(store.hooksActionTitle) {
+                                store.installAgentHooks()
+                            }
+                            .disabled(store.hooksAreBusy)
                         }
-                        .disabled(!store.canRunHelperRepair)
-                        .help(store.repairUnavailableExplanation ?? "Repair helper state and release stuck sleep locks.")
+
+                        OnboardingStepRow(
+                            systemImage: store.launchAtLoginEnabled ? "checkmark.circle.fill" : "power",
+                            title: "Launch with your Mac",
+                            detail: "Optional. Starts the menu bar app automatically when you log in.",
+                            status: store.launchAtLoginStatus.displayName,
+                            isComplete: store.launchAtLoginEnabled,
+                            isOptional: true
+                        ) {
+                            Toggle("Launch at Login", isOn: Binding(
+                                get: { store.launchAtLoginEnabled },
+                                set: { store.setLaunchAtLogin($0) }
+                            ))
+                            .toggleStyle(.switch)
+                        }
+
+                        OnboardingStepRow(
+                            systemImage: "stethoscope",
+                            title: "Troubleshooting",
+                            detail: troubleshootingDetail,
+                            status: troubleshootingStatus,
+                            isComplete: store.helperIsReady,
+                            isOptional: true
+                        ) {
+                            HStack(spacing: 8) {
+                                Button("Doctor") {
+                                    store.runDoctor()
+                                }
+                                .disabled(!store.canRunDoctor)
+
+                                Button("Repair") {
+                                    store.runRepair()
+                                }
+                                .disabled(!store.canRunHelperRepair)
+                                .help(store.repairUnavailableExplanation ?? "Repair helper state and release stuck sleep locks.")
+                            }
+                        }
+                    }
+                    .padding(.top, 24)
+
+                    if let errorMessage = store.errorMessage {
+                        Text(errorMessage)
+                            .font(.footnote)
+                            .foregroundStyle(.red)
+                            .lineLimit(2)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.top, 12)
                     }
                 }
-            }
-            .padding(.top, 24)
-
-            if let errorMessage = store.errorMessage {
-                Text(errorMessage)
-                    .font(.footnote)
-                    .foregroundStyle(.red)
-                    .lineLimit(2)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.top, 12)
+                .padding(.horizontal, 32)
+                .padding(.top, 34)
+                .padding(.bottom, 18)
             }
 
             footer
-                .padding(.top, 18)
+                .padding(.horizontal, 32)
+                .padding(.vertical, 16)
+                .background(.regularMaterial)
         }
-        .padding(.horizontal, 32)
-        .padding(.top, 34)
-        .padding(.bottom, 28)
-        .frame(width: 720, height: 640, alignment: .top)
+        .frame(width: 720, height: 720, alignment: .top)
         .background(
             LinearGradient(
                 colors: [
