@@ -20,7 +20,7 @@ struct DSMNApp: App {
 
     var body: some Scene {
         MenuBarExtra {
-            DSMNMenuView(store: store, updater: softwareUpdateController.updater)
+            DSMNMenuView(store: store, updateController: softwareUpdateController)
                 .task {
                     await store.refresh()
                 }

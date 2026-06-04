@@ -3,7 +3,7 @@ import Foundation
 import Sparkle
 
 @MainActor
-final class SoftwareUpdateController: NSObject, SPUUpdaterDelegate {
+final class SoftwareUpdateController: NSObject, SPUUpdaterDelegate, SPUStandardUserDriverDelegate {
     private var updaterController: SPUStandardUpdaterController?
     private var isPresentingRecoveryAlert = false
 
@@ -23,8 +23,18 @@ final class SoftwareUpdateController: NSObject, SPUUpdaterDelegate {
         updaterController = SPUStandardUpdaterController(
             startingUpdater: true,
             updaterDelegate: self,
-            userDriverDelegate: nil
+            userDriverDelegate: self
         )
+    }
+
+    func checkForUpdates() {
+        bringUpdateUIToFront()
+
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(120))
+            bringUpdateUIToFront()
+            updater?.checkForUpdates()
+        }
     }
 
     func updater(_ updater: SPUUpdater, didAbortWithError error: Error) {
@@ -38,6 +48,28 @@ final class SoftwareUpdateController: NSObject, SPUUpdaterDelegate {
         }
 
         showInstallationRecoveryAlert(updater: updater)
+    }
+
+    nonisolated func standardUserDriverWillShowModalAlert() {
+        Task { @MainActor [weak self] in
+            self?.bringUpdateUIToFront()
+        }
+    }
+
+    nonisolated func standardUserDriverDidShowModalAlert() {
+        Task { @MainActor [weak self] in
+            self?.bringUpdateUIToFront()
+        }
+    }
+
+    nonisolated func standardUserDriverWillHandleShowingUpdate(
+        _ handleShowingUpdate: Bool,
+        forUpdate update: SUAppcastItem,
+        state: SPUUserUpdateState
+    ) {
+        Task { @MainActor [weak self] in
+            self?.bringUpdateUIToFront()
+        }
     }
 
     private static var isConfigured: Bool {
@@ -73,7 +105,7 @@ final class SoftwareUpdateController: NSObject, SPUUpdaterDelegate {
     }
 
     private func showInstallationRecoveryAlert(updater: SPUUpdater) {
-        NSApp.activate(ignoringOtherApps: true)
+        bringUpdateUIToFront()
 
         let alert = NSAlert()
         alert.alertStyle = .warning
@@ -91,13 +123,25 @@ final class SoftwareUpdateController: NSObject, SPUUpdaterDelegate {
 
         switch alert.runModal() {
         case .alertFirstButtonReturn:
-            updater.checkForUpdates()
+            checkForUpdates()
         case .alertSecondButtonReturn:
             if let url = URL(string: "https://dsmn.app/download/dsmn-latest.dmg") {
                 NSWorkspace.shared.open(url)
             }
         default:
             break
+        }
+    }
+
+    private func bringUpdateUIToFront() {
+        NSRunningApplication.current.activate(options: [
+            .activateIgnoringOtherApps,
+            .activateAllWindows
+        ])
+        NSApp.activate(ignoringOtherApps: true)
+
+        for window in NSApp.windows where window.isVisible {
+            window.orderFrontRegardless()
         }
     }
 }

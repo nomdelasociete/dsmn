@@ -3,17 +3,20 @@ import Sparkle
 import SwiftUI
 
 struct CheckForUpdatesView: View {
+    private let updateController: SoftwareUpdateController?
     private let updater: SPUUpdater?
     @StateObject private var viewModel: CheckForUpdatesViewModel
 
-    init(updater: SPUUpdater?) {
+    init(updateController: SoftwareUpdateController?) {
+        let updater = updateController?.updater
+        self.updateController = updateController
         self.updater = updater
         _viewModel = StateObject(wrappedValue: CheckForUpdatesViewModel(updater: updater))
     }
 
     var body: some View {
         Button("Check for Updates...") {
-            updater?.checkForUpdates()
+            updateController?.checkForUpdates()
         }
         .disabled(!viewModel.canCheckForUpdates)
     }
