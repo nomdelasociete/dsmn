@@ -119,6 +119,14 @@ Grok `dsmn.json`, Pi `dsmn.ts`, and (on full uninstall) `~/.dsmn/dsmn-agent-hook
 `AgentHookLogInspector` reports active fallback, doctor and menu must warn
 distinctly from normal `Active` + `Power lock: on`.
 
+### Menu bar menu structure
+
+Do not put nested SwiftUI `Menu` controls inside `DSMNMenuView`'s
+`MenuBarExtra` content. In practice those submenus can flicker, dismiss before
+clicks land, or make actions appear inert. Keep menu bar actions as direct
+top-level rows grouped by `Section`, and open a dedicated window for deeper
+workflows.
+
 ## Build And Test
 
 Use these checks for normal changes — **all four are required before opening a

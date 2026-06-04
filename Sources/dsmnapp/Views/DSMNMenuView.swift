@@ -15,9 +15,10 @@ struct DSMNMenuView: View {
         if store.prefersExpandedSetup {
             setupExpandedSection
         } else {
-            setupTroubleshootingMenu
+            setupCompactSection
         }
 
+        diagnosticsSection
         moreSection
     }
 
@@ -103,33 +104,26 @@ struct DSMNMenuView: View {
     }
 
     @ViewBuilder
-    private var setupTroubleshootingMenu: some View {
-        Menu {
-            setupStatusItems
-            Divider()
-            setupActionItems
-        } label: {
-            Label("Setup & Troubleshooting", systemImage: "wrench.and.screwdriver")
+    private var setupCompactSection: some View {
+        Section {
+            if !store.setupIsComplete {
+                setupStatusItems
+                Divider()
+                setupRequiredActionItems
+            }
+
+            Button {
+                OnboardingWindowPresenter.show(store: store)
+            } label: {
+                Label("Setup Guide", systemImage: "book")
+            }
+        } header: {
+            Text("Setup")
         }
     }
 
     @ViewBuilder
-    private var setupStatusItems: some View {
-        MenuStatusRow(
-            title: store.helperStatusLine,
-            systemImage: store.helperIsReady ? "checkmark.shield.fill" : "shield.slash",
-            prominent: false
-        )
-
-        MenuStatusRow(
-            title: "Hooks: \(store.hooksSummary)",
-            systemImage: store.hooksStatusIconName,
-            prominent: false
-        )
-    }
-
-    @ViewBuilder
-    private var setupActionItems: some View {
+    private var setupRequiredActionItems: some View {
         if let setupLine = store.setupLine {
             MenuStatusRow(title: setupLine, systemImage: "exclamationmark.circle", prominent: false)
         }
@@ -172,6 +166,26 @@ struct DSMNMenuView: View {
             Label(store.hooksActionTitle, systemImage: "link")
         }
         .disabled(store.hooksAreBusy)
+    }
+
+    @ViewBuilder
+    private var setupStatusItems: some View {
+        MenuStatusRow(
+            title: store.helperStatusLine,
+            systemImage: store.helperIsReady ? "checkmark.shield.fill" : "shield.slash",
+            prominent: false
+        )
+
+        MenuStatusRow(
+            title: "Hooks: \(store.hooksSummary)",
+            systemImage: store.hooksStatusIconName,
+            prominent: false
+        )
+    }
+
+    @ViewBuilder
+    private var setupActionItems: some View {
+        setupRequiredActionItems
 
         Button {
             store.runDoctor()
@@ -211,6 +225,44 @@ struct DSMNMenuView: View {
         }
     }
 
+    // MARK: - Diagnostics
+
+    @ViewBuilder
+    private var diagnosticsSection: some View {
+        Section {
+            Button {
+                NSApplication.shared.activate(ignoringOtherApps: true)
+                openWindow(id: "why-awake")
+            } label: {
+                Label("Why Awake?", systemImage: "questionmark.circle")
+            }
+
+            if store.showsActivityMenu {
+                MenuStatusRow(
+                    title: store.triggerActivityLine,
+                    systemImage: "waveform.path",
+                    prominent: false
+                )
+            }
+
+            Button {
+                store.runDoctor()
+            } label: {
+                Label("Run Doctor", systemImage: "stethoscope")
+            }
+            .disabled(!store.canRunDoctor)
+
+            Button {
+                store.runRepair()
+            } label: {
+                Label("Run Repair", systemImage: "bandage")
+            }
+            .disabled(!store.canRunHelperRepair)
+        } header: {
+            Text("Diagnostics")
+        }
+    }
+
     // MARK: - More
 
     @ViewBuilder
@@ -228,39 +280,6 @@ struct DSMNMenuView: View {
             }
 
             CheckForUpdatesView(updateController: updateController)
-
-            Menu {
-                Button {
-                    NSApplication.shared.activate(ignoringOtherApps: true)
-                    openWindow(id: "why-awake")
-                } label: {
-                    Label("Why Awake?", systemImage: "questionmark.circle")
-                }
-
-                if store.showsActivityMenu {
-                    MenuStatusRow(
-                        title: store.triggerActivityLine,
-                        systemImage: "waveform.path",
-                        prominent: false
-                    )
-                }
-
-                Button {
-                    store.runDoctor()
-                } label: {
-                    Label("Run Doctor", systemImage: "stethoscope")
-                }
-                .disabled(!store.canRunDoctor)
-
-                Button {
-                    store.runRepair()
-                } label: {
-                    Label("Run Repair", systemImage: "bandage")
-                }
-                .disabled(!store.canRunHelperRepair)
-            } label: {
-                Label("Diagnostics", systemImage: "waveform.path.ecg")
-            }
 
             Button {
                 FeedbackWindowPresenter.show(store: store)

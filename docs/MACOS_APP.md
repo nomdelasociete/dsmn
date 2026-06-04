@@ -55,16 +55,15 @@ The guide can be reopened from `Setup Guide` in the menu bar menu.
 
 - **Skip for Now** or closing the window dismisses the wizard (`onboardingWizardDismissed`)
   but does **not** mean setup is healthy. The menu keeps an expanded **Setup** section
-  (or a `Setup:` line inside **Setup & Troubleshooting**) until the helper is enabled
-  and hooks report ready.
+  until the helper is enabled and hooks report ready.
 - **Done** / **Finish Later** when helper or hooks are still incomplete shows a
   confirmation, then dismisses the wizard the same way as Skip. Setup reminders stay
   in the menu.
 - **Status** shows `Setup incomplete` after the wizard was dismissed while helper or
   hooks are still missing. The menu bar icon uses the warning state in that case.
 - **Hide Setup Reminders** collapses the expanded setup section while setup is still
-  incomplete. Helper/hook actions remain under **Setup & Troubleshooting**; use
-  **Setup Guide** to reopen the full window.
+  incomplete. Helper/hook actions remain as direct rows in a compact **Setup**
+  section; use **Setup Guide** to reopen the full window.
 
 The important readiness signal is `Power lock`, not music playback or the
 screen state. `Power lock: on` means dsmn successfully owns the macOS
@@ -73,8 +72,8 @@ system value as `SleepDisabled 1` in `pmset -g live`.
 
 1. Launch the archived `dsmn.app`.
 2. Open the menu bar icon.
-3. In the **Setup** section (or **Setup & Troubleshooting** when healthy), click
-   **Install Helper** if the status line says setup is required.
+3. In the **Setup** section, click **Install Helper** if the status line says
+   setup is required.
 4. If needed, click **Approve Helper in Login Items**, enable dsmn in System
    Settings, then **Refresh Status** under **More**.
 5. Install agent hooks from the same setup area. Setup is ready when the helper
