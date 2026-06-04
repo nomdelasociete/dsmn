@@ -129,6 +129,53 @@ For Raycast changes:
 npm run build --prefix raycast
 ```
 
+## Known Failure Modes
+
+- A public release can be correct while the local `/Applications/dsmn.app` is
+  stale. Always check the installed app version/build when investigating user
+  reports:
+
+  ```sh
+  /usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' /Applications/dsmn.app/Contents/Info.plist
+  /usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' /Applications/dsmn.app/Contents/Info.plist
+  ```
+
+- Replacing or self-updating the app can leave `SMAppService` helper
+  registration stale, unregistered, or attached to the previous parent bundle
+  build. If hooks fire but closed-lid protection does not work, check both
+  `dsmnctl doctor` and launchd:
+
+  ```sh
+  /Applications/dsmn.app/Contents/Library/Helpers/dsmnctl doctor
+  launchctl print system/com.nomdelasociete.dsmn.helper
+  ```
+
+  Good state is `Status source: helper`, launchd `job state = running`, and
+  `parent bundle version` matching the installed app build. If launchd says
+  `spawn failed`, `EX_CONFIG`, `needs LWCR update`, or the helper is missing,
+  use the app menu action `Update Helper`, `Repair Helper`, or `1. Install
+  Helper`. Do not try to install the LaunchDaemon by copying files into
+  `/Library/LaunchDaemons`; `SMAppService` must own registration.
+
+- `Status: active` means a bounded dsmn timer is active. `Power lock: off` can
+  still be expected while the lid is open after the grace window; the helper
+  applies the macOS sleep lock only when the decision engine needs to prevent
+  sleep. Do not diagnose this as a failed hook unless `doctor` reports
+  `Status source: local fallback`, no active timer, or no recent requester.
+
+- When diagnosing agent hooks, verify the shared hook and the last requester
+  before changing detection logic:
+
+  ```sh
+  grep -n 'Status: active\|macOS SleepDisabled' ~/.dsmn/dsmn-agent-hook.sh
+  tail -n 80 /tmp/dsmn-agent-hook.log
+  /Applications/dsmn.app/Contents/Library/Helpers/dsmnctl status --json
+  ```
+
+  Grok Build should appear as `Grok Build` in `lastRequester` or
+  `recentRequesters`. Reinstall hooks with `dsmnctl install-hooks all` after a
+  release if the shared hook template changed.
+
 ## Runtime Verification
 
 Useful commands:
