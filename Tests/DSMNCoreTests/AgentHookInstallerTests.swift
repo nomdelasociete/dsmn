@@ -200,6 +200,45 @@ final class AgentHookInstallerTests: XCTestCase {
         XCTAssertTrue(hookCommands(in: claude).filter { $0.contains("dsmn-agent-hook.sh") }.isEmpty)
     }
 
+    func testUninstallPreservesUnrelatedHooksInsideMixedGroup() throws {
+        let home = temporaryHome()
+        defer {
+            try? FileManager.default.removeItem(at: home)
+        }
+
+        try FileManager.default.createDirectory(
+            at: home.appendingPathComponent(".claude", isDirectory: true),
+            withIntermediateDirectories: true
+        )
+        try """
+        {
+          "hooks": {
+            "PostToolUse": [
+              {
+                "matcher": "Bash",
+                "hooks": [
+                  { "type": "command", "command": "/Users/jb/.claude/hooks/safety.sh" },
+                  { "type": "command", "command": "DSMN_HOOK_AGENT='claude' DSMN_HOOK_EVENT='PostToolUse' '\(home.path)/.dsmn/dsmn-agent-hook.sh'" }
+                ]
+              }
+            ]
+          }
+        }
+        """.write(
+            to: home.appendingPathComponent(".claude/settings.json"),
+            atomically: true,
+            encoding: .utf8
+        )
+
+        let installer = AgentHookInstaller(homeDirectory: home, dsmnctlPath: "/tmp/dsmnctl")
+        let reports = try installer.uninstall(targets: [.claude])
+
+        XCTAssertEqual(reports.first { $0.target == "claude" }?.message, "removed")
+        let claude = try readJSON(home.appendingPathComponent(".claude/settings.json"))
+        XCTAssertTrue(hookCommands(in: claude).contains("/Users/jb/.claude/hooks/safety.sh"))
+        XCTAssertTrue(hookCommands(in: claude).filter { $0.contains("dsmn-agent-hook.sh") }.isEmpty)
+    }
+
     func testUninstallIsIdempotent() throws {
         let home = temporaryHome()
         defer {

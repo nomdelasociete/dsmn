@@ -349,12 +349,26 @@ public struct AgentHookInstaller: Sendable {
                 continue
             }
 
-            let originalCount = groups.count
-            groups = groups.filter { group in
-                !isDsmnHookGroup(group, target: target)
-            }
-            if groups.count != originalCount {
-                changed = true
+            groups = groups.compactMap { group in
+                var updatedGroup = group
+                guard let groupHooks = updatedGroup["hooks"] as? [[String: Any]] else {
+                    return group
+                }
+
+                let filteredHooks = groupHooks.filter { hook in
+                    !isDsmnHook(hook, target: target)
+                }
+
+                if filteredHooks.count != groupHooks.count {
+                    changed = true
+                }
+
+                guard !filteredHooks.isEmpty else {
+                    return nil
+                }
+
+                updatedGroup["hooks"] = filteredHooks
+                return updatedGroup
             }
 
             if groups.isEmpty {
@@ -373,29 +387,24 @@ public struct AgentHookInstaller: Sendable {
         return changed
     }
 
-    private func isDsmnHookGroup(_ group: [String: Any], target: AgentHookTarget) -> Bool {
-        guard let hooks = group["hooks"] as? [[String: Any]] else {
+    private func isDsmnHook(_ hook: [String: Any], target: AgentHookTarget) -> Bool {
+        guard let command = hook["command"] as? String else {
+            return false
+        }
+
+        if command.contains("claude-hook.sh") {
+            return true
+        }
+
+        guard command.contains("dsmn-agent-hook.sh") else {
             return false
         }
 
         let agentMarker = "DSMN_HOOK_AGENT=\(shellSingleQuoted(target.rawValue))"
         let agentMarkerSingleQuoted = "DSMN_HOOK_AGENT='\(target.rawValue)'"
-
-        return hooks.contains { hook in
-            guard let command = hook["command"] as? String else {
-                return false
-            }
-
-            guard command.contains("dsmn-agent-hook.sh")
-                || command.contains("claude-hook.sh")
-            else {
-                return false
-            }
-
-            return command.contains(agentMarker)
-                || command.contains(agentMarkerSingleQuoted)
-                || command.contains("DSMN_HOOK_AGENT=\(target.rawValue)")
-        }
+        return command.contains(agentMarker)
+            || command.contains(agentMarkerSingleQuoted)
+            || command.contains("DSMN_HOOK_AGENT=\(target.rawValue)")
     }
 
     private func hookCommands(in root: [String: Any]) -> [String] {
