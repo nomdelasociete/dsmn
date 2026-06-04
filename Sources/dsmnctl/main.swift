@@ -56,6 +56,10 @@ struct DSMNCTL {
             let installer = AgentHookInstaller(dsmnctlPath: executablePath())
             let reports = try installer.install(targets: targets)
             try printHookInstallReports(reports, json: json)
+        case "uninstall-hooks":
+            let targets = try parseHookTargets(arguments: Array(arguments.dropFirst()))
+            let reports = try AgentHookInstaller().uninstall(targets: targets)
+            try printHookInstallReports(reports, json: json)
         case "repair":
             let report = try preferHelper(
                 { try helper.repair() },
@@ -348,6 +352,7 @@ struct DSMNCTL {
               stop [--json]
               doctor
               install-hooks [all|claude|codex|grok|pi] [--json]
+              uninstall-hooks [all|claude|codex|grok|pi] [--json]
               repair
             """
         )

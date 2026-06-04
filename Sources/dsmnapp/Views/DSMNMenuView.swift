@@ -253,7 +253,7 @@ struct DSMNMenuView: View {
             }
 
             Button {
-                AboutPanelPresenter.show()
+                AboutPanelPresenter.show(store: store)
             } label: {
                 Label("About dsmn", systemImage: "info.circle")
             }

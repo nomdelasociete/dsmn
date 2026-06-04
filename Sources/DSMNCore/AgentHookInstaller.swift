@@ -8,7 +8,7 @@ public enum AgentHookTarget: String, CaseIterable, Codable, Hashable, Sendable {
 
     public static func parse(_ value: String) throws -> AgentHookTarget {
         guard let target = AgentHookTarget(rawValue: value) else {
-            throw DSMNError.invalidCommand("install-hooks target \(value)")
+            throw DSMNError.invalidCommand("hook target \(value)")
         }
 
         return target
@@ -68,6 +68,27 @@ public struct AgentHookInstaller: Sendable {
                 return try installPiHook()
             }
         }
+    }
+
+    public func uninstall(targets: [AgentHookTarget] = AgentHookTarget.allCases) throws -> [AgentHookInstallReport] {
+        var reports = try targets.map { target in
+            switch target {
+            case .claude:
+                return try uninstallClaudeHook()
+            case .codex:
+                return try uninstallCodexHook()
+            case .grok:
+                return try uninstallGrokHook()
+            case .pi:
+                return try uninstallPiHook()
+            }
+        }
+
+        if Set(targets) == Set(AgentHookTarget.allCases) {
+            reports.append(try uninstallHookScript())
+        }
+
+        return reports
     }
 
     private func installHookScript() throws {
@@ -159,6 +180,135 @@ public struct AgentHookInstaller: Sendable {
         )
     }
 
+    private func uninstallClaudeHook() throws -> AgentHookInstallReport {
+        let path = homeDirectory.appendingPathComponent(".claude/settings.json")
+        guard FileManager.default.fileExists(atPath: path.path) else {
+            return AgentHookInstallReport(
+                target: AgentHookTarget.claude.rawValue,
+                path: path.path,
+                changed: false,
+                message: "not installed"
+            )
+        }
+
+        var root = try readJSONObject(path)
+        let changed = try uninstallHook(from: &root, target: .claude)
+        if changed {
+            try writeJSONObject(root, to: path)
+        }
+
+        return AgentHookInstallReport(
+            target: AgentHookTarget.claude.rawValue,
+            path: path.path,
+            changed: changed,
+            message: changed ? "removed" : "not installed"
+        )
+    }
+
+    private func uninstallCodexHook() throws -> AgentHookInstallReport {
+        let path = homeDirectory.appendingPathComponent(".codex/hooks.json")
+        guard FileManager.default.fileExists(atPath: path.path) else {
+            return AgentHookInstallReport(
+                target: AgentHookTarget.codex.rawValue,
+                path: path.path,
+                changed: false,
+                message: "not installed"
+            )
+        }
+
+        var root = try readJSONObject(path)
+        let changed = try uninstallHook(from: &root, target: .codex)
+        if changed {
+            try writeJSONObject(root, to: path)
+        }
+
+        return AgentHookInstallReport(
+            target: AgentHookTarget.codex.rawValue,
+            path: path.path,
+            changed: changed,
+            message: changed ? "removed" : "not installed"
+        )
+    }
+
+    private func uninstallGrokHook() throws -> AgentHookInstallReport {
+        let path = homeDirectory
+            .appendingPathComponent(".grok", isDirectory: true)
+            .appendingPathComponent("hooks", isDirectory: true)
+            .appendingPathComponent("dsmn.json")
+
+        guard FileManager.default.fileExists(atPath: path.path) else {
+            return AgentHookInstallReport(
+                target: AgentHookTarget.grok.rawValue,
+                path: path.path,
+                changed: false,
+                message: "not installed"
+            )
+        }
+
+        let root = try readJSONObject(path)
+        let hadDsmnHooks = hookCommands(in: root).contains { $0.contains("dsmn-agent-hook.sh") }
+        if hadDsmnHooks {
+            try FileManager.default.removeItem(at: path)
+        }
+
+        return AgentHookInstallReport(
+            target: AgentHookTarget.grok.rawValue,
+            path: path.path,
+            changed: hadDsmnHooks,
+            message: hadDsmnHooks ? "removed" : "not installed"
+        )
+    }
+
+    private func uninstallPiHook() throws -> AgentHookInstallReport {
+        let path = homeDirectory
+            .appendingPathComponent(".pi", isDirectory: true)
+            .appendingPathComponent("agent", isDirectory: true)
+            .appendingPathComponent("extensions", isDirectory: true)
+            .appendingPathComponent("dsmn.ts")
+
+        guard FileManager.default.fileExists(atPath: path.path) else {
+            return AgentHookInstallReport(
+                target: AgentHookTarget.pi.rawValue,
+                path: path.path,
+                changed: false,
+                message: "not installed"
+            )
+        }
+
+        let current = try String(contentsOf: path, encoding: .utf8)
+        let isDsmnExtension = current.contains("dsmn-agent-hook.sh")
+            && current.contains("DSMN_HOOK_AGENT: \"pi\"")
+        if isDsmnExtension {
+            try FileManager.default.removeItem(at: path)
+        }
+
+        return AgentHookInstallReport(
+            target: AgentHookTarget.pi.rawValue,
+            path: path.path,
+            changed: isDsmnExtension,
+            message: isDsmnExtension ? "removed" : "not installed"
+        )
+    }
+
+    private func uninstallHookScript() throws -> AgentHookInstallReport {
+        guard FileManager.default.fileExists(atPath: hookScriptPath.path) else {
+            return AgentHookInstallReport(
+                target: "hook-script",
+                path: hookScriptPath.path,
+                changed: false,
+                message: "not present"
+            )
+        }
+
+        try FileManager.default.removeItem(at: hookScriptPath)
+        return AgentHookInstallReport(
+            target: "hook-script",
+            path: hookScriptPath.path,
+            changed: true,
+            message: "removed"
+        )
+    }
+
     private func installHook(into root: inout [String: Any], target: AgentHookTarget) throws -> Bool {
         var changed = false
         var hooks = root["hooks"] as? [String: Any] ?? [:]
@@ -185,6 +335,81 @@ public struct AgentHookInstaller: Sendable {
 
         root["hooks"] = hooks
         return changed
+    }
+
+    private func uninstallHook(from root: inout [String: Any], target: AgentHookTarget) throws -> Bool {
+        guard var hooks = root["hooks"] as? [String: Any] else {
+            return false
+        }
+
+        var changed = false
+
+        for eventName in Self.hookEventNames {
+            guard var groups = hooks[eventName] as? [[String: Any]] else {
+                continue
+            }
+
+            let originalCount = groups.count
+            groups = groups.filter { group in
+                !isDsmnHookGroup(group, target: target)
+            }
+            if groups.count != originalCount {
+                changed = true
+            }
+
+            if groups.isEmpty {
+                hooks.removeValue(forKey: eventName)
+            } else {
+                hooks[eventName] = groups
+            }
+        }
+
+        if hooks.isEmpty {
+            root.removeValue(forKey: "hooks")
+        } else {
+            root["hooks"] = hooks
+        }
+
+        return changed
+    }
+
+    private func isDsmnHookGroup(_ group: [String: Any], target: AgentHookTarget) -> Bool {
+        guard let hooks = group["hooks"] as? [[String: Any]] else {
+            return false
+        }
+
+        let agentMarker = "DSMN_HOOK_AGENT=\(shellSingleQuoted(target.rawValue))"
+        let agentMarkerSingleQuoted = "DSMN_HOOK_AGENT='\(target.rawValue)'"
+
+        return hooks.contains { hook in
+            guard let command = hook["command"] as? String else {
+                return false
+            }
+
+            guard command.contains("dsmn-agent-hook.sh")
+                || command.contains("claude-hook.sh")
+            else {
+                return false
+            }
+
+            return command.contains(agentMarker)
+                || command.contains(agentMarkerSingleQuoted)
+                || command.contains("DSMN_HOOK_AGENT=\(target.rawValue)")
+        }
+    }
+
+    private func hookCommands(in root: [String: Any]) -> [String] {
+        guard let hooks = root["hooks"] as? [String: Any] else {
+            return []
+        }
+
+        return hooks.values.flatMap { eventValue in
+            (eventValue as? [[String: Any]] ?? []).flatMap { group in
+                (group["hooks"] as? [[String: Any]] ?? []).compactMap { hook in
+                    hook["command"] as? String
+                }
+            }
+        }
     }
 
     private func hookEventPayload() -> [String: Any] {

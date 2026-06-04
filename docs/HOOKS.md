@@ -57,6 +57,26 @@ For Pi, dsmn installs a native TypeScript extension in Pi's global extension
 directory. Existing Pi sessions may need `/reload` or a restart before they
 pick up the extension.
 
+## Uninstall
+
+Remove dsmn hook entries without touching unrelated agent configuration:
+
+```sh
+dsmnctl uninstall-hooks
+dsmnctl uninstall-hooks claude
+dsmnctl uninstall-hooks all --json
+```
+
+`uninstall-hooks` with no target or `all` removes Claude, Codex, Grok, and Pi
+entries and deletes `~/.dsmn/dsmn-agent-hook.sh`. A partial target uninstall
+leaves the shared script in place for the remaining agents.
+
+The menu bar app exposes the same full uninstall from **About dsmn → Remove
+Agent Hooks…** (with confirmation). That does not quit dsmn or stop an active
+manual timer.
+
+Re-run `dsmnctl install-hooks` to restore hooks after uninstalling.
+
 ## Behavior
 
 - run on session start, user prompt submit, pre-tool-use, and post-tool-use
