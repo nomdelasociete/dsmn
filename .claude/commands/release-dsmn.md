@@ -129,7 +129,36 @@ Follow this runbook exactly:
    rm -rf "$workdir"
    ```
 
-7. Finish with repository and release state.
+7. Check maintainer-machine state when running on the dsmn maintainer Mac.
+
+   Public release success does not mean the local `/Applications/dsmn.app`,
+   helper registration, or installed shared hook are already updated. If
+   `/Applications/dsmn.app` exists, check it:
+
+   ```sh
+   /usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' /Applications/dsmn.app/Contents/Info.plist
+   /usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' /Applications/dsmn.app/Contents/Info.plist
+   /Applications/dsmn.app/Contents/Library/Helpers/dsmnctl doctor
+   launchctl print system/com.nomdelasociete.dsmn.helper
+   ```
+
+   If the installed app is stale and the user expects this machine to test the
+   release immediately, replace `/Applications/dsmn.app` from `dist/export`,
+   relaunch it, and update or reinstall the helper through the app menu. Do not
+   copy helper files into `/Library/LaunchDaemons`; use the app's `Update
+   Helper`, `Repair Helper`, or `1. Install Helper` action.
+
+   Reinstall hooks after a release that changes `AgentHookInstaller`:
+
+   ```sh
+   /Applications/dsmn.app/Contents/Library/Helpers/dsmnctl install-hooks all
+   grep -n 'dist/export\|.build/debug' ~/.dsmn/dsmn-agent-hook.sh
+   ```
+
+   The grep should return no lines in production hooks unless a developer path
+   was intentionally reintroduced.
+
+8. Finish with repository and release state.
 
    ```sh
    git status --short --branch

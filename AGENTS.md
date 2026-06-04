@@ -85,6 +85,13 @@ After a merge or push to `main`, use the project slash command
 public artifact verification flow. The command lives at
 `.claude/commands/release-dsmn.md`.
 
+Publishing a release does not automatically update the maintainer machine. If a
+release changed hook installation or helper behavior, also check the local
+`/Applications/dsmn.app`, helper `parent bundle version`, and installed
+`~/.dsmn/dsmn-agent-hook.sh`. Reinstall hooks with
+`/Applications/dsmn.app/Contents/Library/Helpers/dsmnctl install-hooks all`
+after updating the local app.
+
 After `./scripts/publish_release.sh`, verify:
 
 ```sh
