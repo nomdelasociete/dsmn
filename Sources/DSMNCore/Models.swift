@@ -179,6 +179,10 @@ public struct DSMNState: Codable, Equatable, Sendable {
     public var recentRequesters: [ActivationRequester]
     public var triggerHistory: [ActivationRequester]
     public var triggerActivityBuckets: [TriggerActivityBucket]
+    /// When the lid last transitioned from closed to open; anchors lid-open grace.
+    public var lidOpenedAt: Date?
+    /// Previous reconcile snapshot of `SystemSnapshot.lidClosed` for edge detection.
+    public var lastLidClosed: Bool?
     public var createdAt: Date
     public var updatedAt: Date
 
@@ -191,6 +195,8 @@ public struct DSMNState: Codable, Equatable, Sendable {
         recentRequesters: [ActivationRequester] = [],
         triggerHistory: [ActivationRequester] = [],
         triggerActivityBuckets: [TriggerActivityBucket] = [],
+        lidOpenedAt: Date? = nil,
+        lastLidClosed: Bool? = nil,
         createdAt: Date = Date(),
         updatedAt: Date = Date()
     ) {
@@ -202,6 +208,8 @@ public struct DSMNState: Codable, Equatable, Sendable {
         self.recentRequesters = recentRequesters
         self.triggerHistory = triggerHistory
         self.triggerActivityBuckets = triggerActivityBuckets
+        self.lidOpenedAt = lidOpenedAt
+        self.lastLidClosed = lastLidClosed
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }
@@ -215,6 +223,8 @@ public struct DSMNState: Codable, Equatable, Sendable {
         case recentRequesters
         case triggerHistory
         case triggerActivityBuckets
+        case lidOpenedAt
+        case lastLidClosed
         case createdAt
         case updatedAt
     }
@@ -242,6 +252,8 @@ public struct DSMNState: Codable, Equatable, Sendable {
         } else {
             triggerActivityBuckets = Self.makeTriggerActivityBuckets(from: triggerHistory)
         }
+        lidOpenedAt = try container.decodeIfPresent(Date.self, forKey: .lidOpenedAt)
+        lastLidClosed = try container.decodeIfPresent(Bool.self, forKey: .lastLidClosed)
         createdAt = try container.decodeIfPresent(Date.self, forKey: .createdAt) ?? Date()
         updatedAt = try container.decodeIfPresent(Date.self, forKey: .updatedAt) ?? createdAt
     }
@@ -257,8 +269,40 @@ public struct DSMNState: Codable, Equatable, Sendable {
         try container.encode(recentRequesters, forKey: .recentRequesters)
         try container.encode(triggerHistory, forKey: .triggerHistory)
         try container.encode(triggerActivityBuckets, forKey: .triggerActivityBuckets)
+        try container.encodeIfPresent(lidOpenedAt, forKey: .lidOpenedAt)
+        try container.encodeIfPresent(lastLidClosed, forKey: .lastLidClosed)
         try container.encode(createdAt, forKey: .createdAt)
         try container.encode(updatedAt, forKey: .updatedAt)
+    }
+
+    /// Updates lid-open grace anchors from the latest snapshot. Call before power evaluation.
+    public mutating func syncLidOpenGrace(with snapshot: SystemSnapshot) {
+        let lidClosed = snapshot.lidClosed
+
+        if lidClosed == true {
+            lidOpenedAt = nil
+        } else if lidClosed == false, lastLidClosed == true {
+            lidOpenedAt = snapshot.now
+        }
+
+        lastLidClosed = lidClosed
+    }
+
+    public func lidOpenGraceRemainingSeconds(at date: Date, graceSeconds: Int) -> Int? {
+        guard let lidOpenedAt else {
+            return nil
+        }
+
+        let remaining = Int(lidOpenedAt.addingTimeInterval(TimeInterval(graceSeconds)).timeIntervalSince(date).rounded(.down))
+        return max(0, remaining)
+    }
+
+    public func isWithinLidOpenGrace(at date: Date, graceSeconds: Int) -> Bool {
+        guard let remaining = lidOpenGraceRemainingSeconds(at: date, graceSeconds: graceSeconds) else {
+            return false
+        }
+
+        return remaining > 0
     }
 
     public mutating func recordRequester(

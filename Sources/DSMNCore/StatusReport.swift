@@ -107,6 +107,8 @@ public struct DSMNController: Sendable {
     public func stop(now: Date = Date()) throws -> StatusReport {
         var state = try store.load()
         state.manualUntil = nil
+        state.lidOpenedAt = nil
+        state.lastLidClosed = nil
         state.lastStopReason = "user_stop"
         state.updatedAt = now
         try store.save(state)
@@ -117,6 +119,8 @@ public struct DSMNController: Sendable {
         var state = try store.load()
         state.manualUntil = nil
         state.ownsSleepDisable = false
+        state.lidOpenedAt = nil
+        state.lastLidClosed = nil
         state.lastStopReason = "repair"
         state.updatedAt = now
         try store.save(state)
@@ -127,9 +131,11 @@ public struct DSMNController: Sendable {
         let originalState = try store.load()
         let agents = try detector.detect(using: processListing)
         let snapshot = try snapshotProvider.snapshot(now: now)
-        let decision = decisionEngine.evaluate(state: originalState, agents: agents, snapshot: snapshot)
+        var evaluatedState = originalState
+        evaluatedState.syncLidOpenGrace(with: snapshot)
+        let decision = decisionEngine.evaluate(state: evaluatedState, agents: agents, snapshot: snapshot)
 
-        var nextState = originalState
+        var nextState = evaluatedState
         var operation: PowerOperationResult?
 
         if let manualUntil = nextState.manualUntil, manualUntil <= now {
@@ -178,14 +184,16 @@ public struct DSMNController: Sendable {
     private func makeStatus(state: DSMNState, now: Date) throws -> StatusReport {
         let agents = try detector.detect(using: processListing)
         let snapshot = try snapshotProvider.snapshot(now: now)
-        let decision = decisionEngine.evaluate(state: state, agents: agents, snapshot: snapshot)
+        var evaluatedState = state
+        evaluatedState.syncLidOpenGrace(with: snapshot)
+        let decision = decisionEngine.evaluate(state: evaluatedState, agents: agents, snapshot: snapshot)
         return StatusReport(
             generatedAt: now,
-            state: state,
+            state: evaluatedState,
             snapshot: snapshot,
             agents: agents,
             decision: decision,
-            manualRemainingSeconds: state.manualRemainingSeconds(at: now)
+            manualRemainingSeconds: evaluatedState.manualRemainingSeconds(at: now)
         )
     }
 
