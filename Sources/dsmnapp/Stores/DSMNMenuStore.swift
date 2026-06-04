@@ -46,6 +46,12 @@ final class DSMNMenuStore: ObservableObject {
     @Published private(set) var helperXPCUnavailable = false
     @Published private(set) var launchAtLoginStatus: LaunchAtLoginStatus = .notRegistered
     @Published private(set) var hookSetupStatus: AgentHooksSetupStatus = .checking
+    @Published private(set) var hookFallbackStatus = AgentHookFallbackStatus(
+        isActive: false,
+        logPath: AgentHookLogInspector.defaultLogPath,
+        lastStartedAt: nil,
+        fallbackSeconds: AgentHookLogInspector.defaultFallbackSeconds
+    )
 
     private let controller: DSMNController?
     private let helper = HelperServiceClient()
@@ -67,12 +73,28 @@ final class DSMNMenuStore: ObservableObject {
     }
 
     var menuBarIconState: MenuBarIconState {
-        MenuBarIconState.resolve(report: report, errorMessage: errorMessage)
+        MenuBarIconState.resolve(
+            report: report,
+            errorMessage: errorMessage,
+            hookFallbackActive: hookFallbackNeedsAttention
+        )
     }
 
     var statusLine: String {
         guard let report else {
             return errorMessage ?? "Loading"
+        }
+
+        if hookFallbackNeedsAttention {
+            if let remaining = report.state.manualRemainingSeconds(at: Date()), remaining > 0 {
+                return "Active (hook fallback) - \(formatDuration(remaining))"
+            }
+
+            if report.decision.shouldPreventSleep {
+                return "Active (hook fallback)"
+            }
+
+            return "Hook fallback"
         }
 
         if report.decision.shouldPreventSleep && !report.state.ownsSleepDisable {
@@ -195,7 +217,19 @@ final class DSMNMenuStore: ObservableObject {
             return nil
         }
 
+        if hookFallbackNeedsAttention {
+            return "Power lock: off (hook fallback caffeinate)"
+        }
+
         return "Power lock: \(report.state.ownsSleepDisable ? "on" : "off")"
+    }
+
+    var hookFallbackLine: String? {
+        guard hookFallbackNeedsAttention else {
+            return nil
+        }
+
+        return "Hook fallback: caffeinate (no closed-lid lock)"
     }
 
     var lastRequesterLine: String? {
@@ -220,6 +254,14 @@ final class DSMNMenuStore: ObservableObject {
 
     var canRunAwakeCommands: Bool {
         helperStatus == .enabled
+    }
+
+    private var hookFallbackNeedsAttention: Bool {
+        guard hookFallbackStatus.isActive else {
+            return false
+        }
+
+        return report?.state.ownsSleepDisable != true
     }
 
     var helperNeedsUpdate: Bool {
@@ -307,6 +349,7 @@ final class DSMNMenuStore: ObservableObject {
             if hookSetupStatus != .installing {
                 hookSetupStatus = await inspectHookSetupStatus()
             }
+            hookFallbackStatus = AgentHookLogInspector.recentFallbackStatus()
             report = try await readStatus(controller: controller)
             await repairHelperAfterXPCFailureIfNeeded()
             errorMessage = helperXPCUnavailable ? "Helper unavailable; repair helper" : nil

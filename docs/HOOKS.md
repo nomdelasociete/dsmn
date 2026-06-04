@@ -76,6 +76,22 @@ pick up the extension.
 - never use `caffeinate -d`, so the fallback does not intentionally keep the
   display awake.
 
+### Fallback caffeinate and clamshell mode
+
+When `dsmnctl` or the privileged helper is unavailable, the hook logs
+`fallback caffeinate started` and runs `caffeinate -is -t 600` (or
+`DSMN_HOOK_FALLBACK_SECONDS`) instead of renewing a dsmn manual timer.
+
+That fallback only prevents idle system sleep while the Mac is awake with the
+lid open. It does **not** apply dsmn's macOS power lock, so **closed-lid /
+clamshell protection is not available** during fallback. A MacBook can still
+sleep with the lid closed even while agent work continues.
+
+`dsmnctl doctor` and the menu bar app read `DSMN_HOOK_LOG` (default
+`/tmp/dsmn-agent-hook.log`) and warn when a fallback event is still inside the
+fallback window. Normal protected state shows `Hook fallback: inactive`,
+`Status source: helper`, and `Power lock: on`.
+
 The manual timer is intentional for hooks: agent activity renews a bounded
 lease, but the shared hook throttles the actual `dsmnctl manual` calls so
 tool-heavy sessions do not invoke dsmnctl for every tool event. Hook renewals
@@ -125,10 +141,16 @@ tail -n 20 /tmp/dsmn-agent-hook.log
 Expected while protected:
 
 ```text
+Hook fallback: inactive
+Status source: helper
 Power lock: on
 macOS SleepDisabled: on
 SleepDisabled 1
 ```
+
+If the hook log shows a recent `fallback caffeinate started` line, `doctor`
+prints `Hook fallback: active` and a warning that closed-lid sleep prevention
+is unavailable until the helper path is restored.
 
 Throttled invocations log a line like `dsmn extend throttled` and exit without
 calling `dsmnctl manual` again.

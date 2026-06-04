@@ -36,6 +36,7 @@
 		7AB68B7EEC2FFDBB33183F64 /* dsmnd in Embed Dependencies */ = {isa = PBXBuildFile; fileRef = 4FF12FB4F2E9D0CA91282B07 /* dsmnd */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		7D5CAFC6A7CAE4F80B25C8A0 /* WhyAwakeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8310C6F9E6BB445D3331F01 /* WhyAwakeView.swift */; };
 		809705EFBD76D07779E7138F /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7B4A2E7E5EA04A0BF90449F /* Models.swift */; };
+		81C315970D886B7C9522A1B5 /* AgentHookLogInspector.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC102235C1EE46A73C04E17C /* AgentHookLogInspector.swift */; };
 		8BB43E1563BD73705526097D /* PowerDecisionEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4ED81C70EF47353A88BF55D1 /* PowerDecisionEngine.swift */; };
 		901BC43E9E0364F95FE9F074 /* DSMNCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 74B444C620310ADFA67DB8E3 /* DSMNCore.framework */; };
 		B3DFFD72854DAF3E6FE29A2B /* PowerManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 905431EEC13EC448A5EB8382 /* PowerManager.swift */; };
@@ -166,6 +167,7 @@
 		C5BBDCFF55A2F8F35800A50E /* HelperServiceClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperServiceClient.swift; sourceTree = "<group>"; };
 		C92E378A107B31D8A2594DF8 /* DSMNApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DSMNApp.swift; sourceTree = "<group>"; };
 		CC8C8661F0C29336DF4C864E /* StateStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StateStore.swift; sourceTree = "<group>"; };
+		DC102235C1EE46A73C04E17C /* AgentHookLogInspector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentHookLogInspector.swift; sourceTree = "<group>"; };
 		E03AF3CD060A3DFA891C3B89 /* FeedbackService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedbackService.swift; sourceTree = "<group>"; };
 		E0D529786998707F7F4A7C78 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		E31259AF4C8DAEEDBADD9EDD /* SleepDiagnosticsInspector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SleepDiagnosticsInspector.swift; sourceTree = "<group>"; };
@@ -326,6 +328,7 @@
 			children = (
 				4D67112750F54179C1E0BEEC /* AgentDetector.swift */,
 				22FC037E46E8EBB70D7AB405 /* AgentHookInstaller.swift */,
+				DC102235C1EE46A73C04E17C /* AgentHookLogInspector.swift */,
 				F6D2A8150F5191D00E4A19F5 /* CommandRunner.swift */,
 				61FE22C17B810CA959C3CACA /* HelperXPC.swift */,
 				24C77EE9388701AB19E70A0C /* MenuBarCountdownFormatter.swift */,
@@ -516,6 +519,7 @@
 			files = (
 				07021235DBF2A577E657BF8B /* AgentDetector.swift in Sources */,
 				D5AAB60F45FEDADAAA13104B /* AgentHookInstaller.swift in Sources */,
+				81C315970D886B7C9522A1B5 /* AgentHookLogInspector.swift in Sources */,
 				D98AF5874BCF38EA0012AE27 /* CommandRunner.swift in Sources */,
 				BA4E80D2B6B0BBFDEEA0B2FB /* HelperXPC.swift in Sources */,
 				394D5CF05FEB9D34FB876D9D /* MenuBarCountdownFormatter.swift in Sources */,
