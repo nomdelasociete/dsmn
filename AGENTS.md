@@ -242,11 +242,35 @@ macOS SleepDisabled: on
 SleepDisabled 1
 ```
 
+## macOS Menu Bar Menu (`MenuBarExtra`)
+
+`DSMNMenuView` is grouped into **Status**, **Control**, **Setup**, and **More**
+(see `MenuBarMenuPresentation.swift`). Presentation rules live on
+`DSMNMenuStore`; the view should stay layout-only.
+
+Rules learned from shipping #9:
+
+- **Static status text** — use plain `Label` rows in menu sections. Do not wrap
+  status copy in `Button { }` with `.disabled(true)`; that breaks macOS menu
+  highlighting, keyboard navigation, and submenu behavior.
+- **Stop is always available** — do not gate **Stop** on `canRunAwakeCommands`.
+  Users must be able to release a timer even when the helper is missing or
+  mid-registration; only **Keep Awake** actions use `canRunAwakeCommands`.
+- **Custom duration** — lives in **Control** via `NSAlert` + `NSTextField`
+  (1–720 minutes, floating window). Match `SafetyPolicy.maxManualDurationMinutes`
+  if that policy becomes persisted (#38).
+- **Sparkle** — menu takes `SoftwareUpdateController?` and uses
+  `CheckForUpdatesView(updateController:)`, not a raw `SPUUpdater`.
+- **Manual test required** — `swift test` does not exercise `MenuBarExtra` menus.
+  After menu changes, open the live menu: status glance, Stop while helper
+  unregistered, nested **Setup & Troubleshooting** and **Diagnostics**, shortcuts
+  ⌘3 / ⌘9 / ⌘. / ⌘R / ⌘Q.
+
 ## Agent Workflow
 
 - After the maintainer merges and publishes, `git pull` on `main` and read
-  post-merge fix commits (for example hook-throttle or decision-engine
-  corrections) before starting new work.
+  post-merge fix commits (for example hook-throttle, decision-engine, or menu
+  row behavior) before starting new work.
 - Parallel issue branches in separate worktrees are fine; expect merge
   conflicts in `DSMNMenuStore.swift` when multiple menu PRs land together.
 - Prefer shared logic in `DSMNCore` (formatter/inspector) over duplicating CLI
@@ -255,8 +279,7 @@ SleepDisabled 1
   size in `OnboardingWindowPresenter` (currently 720×720).
 - When changing `PowerDecisionEngine` or hook scripts, update `docs/SAFETY.md`
   and `docs/HOOKS.md` in the same PR.
-- Current shipped baseline: **0.1.18** (build **19**), **82** `swift test`
-  cases on `main`.
+- Current shipped baseline: **0.1.20**, **82** `swift test` cases on `main`.
 
 ## Safety Notes
 
