@@ -19,15 +19,44 @@ final class DoctorReportFormatterTests: XCTestCase {
 
     func testFormatWarnsWhenUsingLocalFallback() throws {
         let report = sampleReport(ownsSleepDisable: false, agentCount: 0)
+        let hookFallback = AgentHookFallbackStatus(
+            isActive: true,
+            logPath: "/tmp/dsmn-agent-hook.log",
+            lastStartedAt: Date(timeIntervalSince1970: 1_000),
+            fallbackSeconds: 600
+        )
         let text = DoctorReportFormatter.format(
             report: report,
             source: .local,
-            liveSleepDisabled: nil
+            liveSleepDisabled: nil,
+            hookFallback: hookFallback
         )
 
         XCTAssertTrue(text.contains("Status source: local fallback"))
+        XCTAssertTrue(text.contains("Hook fallback: active"))
         XCTAssertTrue(text.contains("macOS SleepDisabled: unknown"))
+        XCTAssertTrue(text.contains("fallback caffeinate"))
         XCTAssertTrue(text.contains("Warning: helper unavailable"))
+    }
+
+    func testFormatSuppressesFallbackWarningWhenPowerLockIsOn() throws {
+        let report = sampleReport(ownsSleepDisable: true, agentCount: 0)
+        let hookFallback = AgentHookFallbackStatus(
+            isActive: true,
+            logPath: "/tmp/dsmn-agent-hook.log",
+            lastStartedAt: Date(timeIntervalSince1970: 1_000),
+            fallbackSeconds: 600
+        )
+        let text = DoctorReportFormatter.format(
+            report: report,
+            source: .helper,
+            liveSleepDisabled: true,
+            hookFallback: hookFallback
+        )
+
+        XCTAssertTrue(text.contains("Hook fallback: active"))
+        XCTAssertFalse(text.contains("closed-lid sleep prevention is unavailable"))
+        XCTAssertTrue(text.contains("Ready: dsmn owns the macOS power lock."))
     }
 
     func testFormatRepairResultSummarizesStatus() throws {

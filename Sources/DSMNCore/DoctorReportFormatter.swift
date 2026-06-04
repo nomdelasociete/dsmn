@@ -18,7 +18,8 @@ public struct DoctorReportFormatter: Sendable {
     public static func format(
         report: StatusReport,
         source: DoctorStatusSource,
-        liveSleepDisabled: Bool?
+        liveSleepDisabled: Bool?,
+        hookFallback: AgentHookFallbackStatus? = nil
     ) -> String {
         var lines: [String] = []
         lines.append("dsmn doctor")
@@ -26,7 +27,18 @@ public struct DoctorReportFormatter: Sendable {
         lines.append("Status: \(statusLabel(for: report))")
         lines.append("Timer: \(timerLabel(for: report))")
         lines.append("Power lock: \(report.state.ownsSleepDisable ? "on" : "off")")
+        if let hookFallback {
+            lines.append("Hook fallback: \(hookFallback.isActive ? "active" : "inactive")")
+        }
         lines.append("macOS SleepDisabled: \(formatOptionalFlag(liveSleepDisabled))")
+        if let hookFallbackWarning = hookFallback.flatMap({
+            AgentHookLogInspector.doctorWarning(
+                for: $0,
+                ownsSleepDisable: report.state.ownsSleepDisable
+            )
+        }) {
+            lines.append(hookFallbackWarning)
+        }
 
         if let requester = report.state.lastRequester {
             lines.append("Last request: \(requester.displayText)")

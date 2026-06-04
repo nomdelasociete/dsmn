@@ -42,11 +42,13 @@ struct DSMNCTL {
         case "doctor":
             let status = try readStatus(helper: helper, controller: controller)
             let liveSleepDisabled = try? SleepDiagnosticsInspector().report().sleepDisabled
+            let hookFallback = AgentHookLogInspector.recentFallbackStatus()
             print(
                 DoctorReportFormatter.format(
                     report: status.report,
                     source: status.source == .helper ? .helper : .local,
-                    liveSleepDisabled: liveSleepDisabled
+                    liveSleepDisabled: liveSleepDisabled,
+                    hookFallback: hookFallback
                 )
             )
         case "install-hooks":

@@ -36,6 +36,33 @@ final class MenuBarIconStateTests: XCTestCase {
         XCTAssertEqual(MenuBarIconState.resolve(report: report, errorMessage: nil), .off)
     }
 
+    func testShowsWarningWhenHookFallbackIsActive() {
+        let now = Date(timeIntervalSince1970: 1_000)
+        let report = makeReport(
+            shouldPreventSleep: false,
+            manualUntil: now.addingTimeInterval(1_200)
+        )
+
+        XCTAssertEqual(
+            MenuBarIconState.resolve(report: report, errorMessage: nil, hookFallbackActive: true),
+            .warning
+        )
+    }
+
+    func testShowsManualWhenHookFallbackIsRecentButPowerLockIsOn() {
+        let now = Date(timeIntervalSince1970: 1_000)
+        let report = makeReport(
+            ownsSleepDisable: true,
+            shouldPreventSleep: true,
+            manualUntil: now.addingTimeInterval(1_200)
+        )
+
+        XCTAssertEqual(
+            MenuBarIconState.resolve(report: report, errorMessage: nil, hookFallbackActive: true),
+            .manualActive
+        )
+    }
+
     private func makeReport(
         ownsSleepDisable: Bool = false,
         shouldPreventSleep: Bool = false,
