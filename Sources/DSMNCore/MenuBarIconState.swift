@@ -6,13 +6,21 @@ public enum MenuBarIconState: String, Codable, Equatable, Sendable {
     case warning
     case manualActive
 
-    public static func resolve(report: StatusReport?, errorMessage: String?) -> MenuBarIconState {
+    public static func resolve(
+        report: StatusReport?,
+        errorMessage: String?,
+        hookFallbackActive: Bool = false
+    ) -> MenuBarIconState {
         if errorMessage != nil, report == nil {
             return .warning
         }
 
         guard let report else {
             return .loading
+        }
+
+        if hookFallbackActive {
+            return .warning
         }
 
         if report.decision.shouldPreventSleep && !report.state.ownsSleepDisable {

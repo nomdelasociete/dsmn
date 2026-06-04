@@ -20,6 +20,10 @@ struct DSMNMenuView: View {
             Text(powerLockLine)
         }
 
+        if let hookFallbackLine = store.hookFallbackLine {
+            Text(hookFallbackLine)
+        }
+
         if let lastRequesterLine = store.lastRequesterLine {
             Text(lastRequesterLine)
         }

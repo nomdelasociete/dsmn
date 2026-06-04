@@ -41,7 +41,13 @@ struct DSMNCTL {
             try printReport(report, json: json)
         case "doctor":
             let status = try readStatus(helper: helper, controller: controller)
-            printDoctor(status.report, source: status.source, liveSleepDisabled: readLiveSleepDisabled())
+            let hookFallback = AgentHookLogInspector.recentFallbackStatus()
+            printDoctor(
+                status.report,
+                source: status.source,
+                liveSleepDisabled: readLiveSleepDisabled(),
+                hookFallback: hookFallback
+            )
         case "install-hooks":
             let targets = try parseHookTargets(arguments: Array(arguments.dropFirst()))
             let installer = AgentHookInstaller(dsmnctlPath: executablePath())
@@ -323,13 +329,22 @@ struct DSMNCTL {
         return nil
     }
 
-    private static func printDoctor(_ report: StatusReport, source: StatusSource, liveSleepDisabled: Bool?) {
+    private static func printDoctor(
+        _ report: StatusReport,
+        source: StatusSource,
+        liveSleepDisabled: Bool?,
+        hookFallback: AgentHookFallbackStatus
+    ) {
         print("dsmn doctor")
         print("Status source: \(source == .helper ? "helper" : "local fallback")")
         print("Status: \(statusLabel(for: report))")
         print("Timer: \(timerLabel(for: report))")
         print("Power lock: \(report.state.ownsSleepDisable ? "on" : "off")")
+        print("Hook fallback: \(hookFallback.isActive ? "active" : "inactive")")
         print("macOS SleepDisabled: \(formatOptionalFlag(liveSleepDisabled))")
+        if let warning = AgentHookLogInspector.doctorWarning(for: hookFallback) {
+            print(warning)
+        }
         if let requester = report.state.lastRequester {
             print("Last request: \(requester.displayText)")
             if let event = requester.event {
