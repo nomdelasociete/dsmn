@@ -179,6 +179,7 @@ public struct DSMNState: Codable, Equatable, Sendable {
     public var recentRequesters: [ActivationRequester]
     public var triggerHistory: [ActivationRequester]
     public var triggerActivityBuckets: [TriggerActivityBucket]
+    public var noRouteUnavailableSince: Date?
     public var createdAt: Date
     public var updatedAt: Date
 
@@ -191,6 +192,7 @@ public struct DSMNState: Codable, Equatable, Sendable {
         recentRequesters: [ActivationRequester] = [],
         triggerHistory: [ActivationRequester] = [],
         triggerActivityBuckets: [TriggerActivityBucket] = [],
+        noRouteUnavailableSince: Date? = nil,
         createdAt: Date = Date(),
         updatedAt: Date = Date()
     ) {
@@ -202,6 +204,7 @@ public struct DSMNState: Codable, Equatable, Sendable {
         self.recentRequesters = recentRequesters
         self.triggerHistory = triggerHistory
         self.triggerActivityBuckets = triggerActivityBuckets
+        self.noRouteUnavailableSince = noRouteUnavailableSince
         self.createdAt = createdAt
         self.updatedAt = updatedAt
     }
@@ -215,6 +218,7 @@ public struct DSMNState: Codable, Equatable, Sendable {
         case recentRequesters
         case triggerHistory
         case triggerActivityBuckets
+        case noRouteUnavailableSince
         case createdAt
         case updatedAt
     }
@@ -242,6 +246,7 @@ public struct DSMNState: Codable, Equatable, Sendable {
         } else {
             triggerActivityBuckets = Self.makeTriggerActivityBuckets(from: triggerHistory)
         }
+        noRouteUnavailableSince = try container.decodeIfPresent(Date.self, forKey: .noRouteUnavailableSince)
         createdAt = try container.decodeIfPresent(Date.self, forKey: .createdAt) ?? Date()
         updatedAt = try container.decodeIfPresent(Date.self, forKey: .updatedAt) ?? createdAt
     }
@@ -257,8 +262,29 @@ public struct DSMNState: Codable, Equatable, Sendable {
         try container.encode(recentRequesters, forKey: .recentRequesters)
         try container.encode(triggerHistory, forKey: .triggerHistory)
         try container.encode(triggerActivityBuckets, forKey: .triggerActivityBuckets)
+        try container.encodeIfPresent(noRouteUnavailableSince, forKey: .noRouteUnavailableSince)
         try container.encode(createdAt, forKey: .createdAt)
         try container.encode(updatedAt, forKey: .updatedAt)
+    }
+
+    public mutating func updateNoRouteTracking(snapshot: SystemSnapshot) {
+        let now = snapshot.now
+        if manualIsActive(at: now), snapshot.defaultRouteAvailable == false {
+            if noRouteUnavailableSince == nil {
+                noRouteUnavailableSince = now
+            }
+        } else {
+            noRouteUnavailableSince = nil
+        }
+    }
+
+    public func noRouteGraceRemainingSeconds(at date: Date, graceSeconds: Int) -> Int? {
+        guard manualIsActive(at: date), let since = noRouteUnavailableSince else {
+            return nil
+        }
+
+        let elapsed = Int(date.timeIntervalSince(since).rounded(.down))
+        return max(0, graceSeconds - elapsed)
     }
 
     public mutating func recordRequester(

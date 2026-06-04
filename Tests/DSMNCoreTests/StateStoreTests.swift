@@ -17,6 +17,7 @@ final class StateStoreTests: XCTestCase {
             ownsSleepDisable: true,
             lastActivationReason: "manual_timer",
             lastStopReason: nil,
+            noRouteUnavailableSince: Date(timeIntervalSince1970: 2_500),
             createdAt: createdAt,
             updatedAt: updatedAt
         )
