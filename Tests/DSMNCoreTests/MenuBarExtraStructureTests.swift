@@ -3,13 +3,7 @@ import XCTest
 
 final class MenuBarExtraStructureTests: XCTestCase {
     func testMenuBarViewAvoidsNestedSwiftUIMenus() throws {
-        let repositoryRoot = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-        let menuViewPath = repositoryRoot
-            .appendingPathComponent("Sources/dsmnapp/Views/DSMNMenuView.swift")
-        let menuViewSource = try String(contentsOf: menuViewPath)
+        let menuViewSource = try sourceFile(at: "Sources/dsmnapp/Views/DSMNMenuView.swift")
         let hasNestedMenu = menuViewSource
             .components(separatedBy: .newlines)
             .contains { $0.trimmingCharacters(in: .whitespaces).hasPrefix("Menu {") }
@@ -18,5 +12,41 @@ final class MenuBarExtraStructureTests: XCTestCase {
             hasNestedMenu,
             "Do not put nested SwiftUI Menu controls inside the MenuBarExtra menu. Use direct Section rows instead."
         )
+    }
+
+    func testSetupTroubleshootingMenuEntryOpensDedicatedWindow() throws {
+        let menuViewSource = try sourceFile(at: "Sources/dsmnapp/Views/DSMNMenuView.swift")
+
+        XCTAssertTrue(menuViewSource.contains("Setup & Troubleshooting..."))
+        XCTAssertTrue(menuViewSource.contains("SetupTroubleshootingWindowPresenter.show(store: store)"))
+        XCTAssertFalse(menuViewSource.contains("Label(\"Setup Guide\", systemImage: \"book\")"))
+    }
+
+    func testSetupTroubleshootingWindowContainsOperationalActions() throws {
+        let windowSource = try sourceFile(at: "Sources/dsmnapp/Views/DSMNSetupTroubleshootingView.swift")
+        let presenterSource = try sourceFile(at: "Sources/dsmnapp/Services/SetupTroubleshootingWindowPresenter.swift")
+
+        XCTAssertTrue(presenterSource.contains("newWindow.title = \"Setup & Troubleshooting\""))
+        XCTAssertTrue(windowSource.contains("Install Helper"))
+        XCTAssertTrue(windowSource.contains("Update Helper"))
+        XCTAssertTrue(windowSource.contains("Repair Helper"))
+        XCTAssertTrue(windowSource.contains("store.installAgentHooks()"))
+        XCTAssertTrue(windowSource.contains("Why Awake?"))
+        XCTAssertTrue(windowSource.contains("Doctor"))
+        XCTAssertTrue(windowSource.contains("Repair"))
+        XCTAssertTrue(windowSource.contains("Setup Guide"))
+        XCTAssertTrue(windowSource.contains(".accessibilityIdentifier(\"setup.refresh\")"))
+        XCTAssertTrue(windowSource.contains(".accessibilityIdentifier(\"setup.guide\")"))
+        XCTAssertTrue(windowSource.contains(".accessibilityIdentifier(\"setup.done\")"))
+    }
+
+    private func sourceFile(at relativePath: String) throws -> String {
+        let repositoryRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let path = repositoryRoot.appendingPathComponent(relativePath)
+
+        return try String(contentsOf: path)
     }
 }

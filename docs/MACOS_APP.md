@@ -33,11 +33,12 @@ The menu bar menu is grouped into four sections:
 |---------|---------|
 | **Status** | Primary state line, one secondary detail (power lock, fallback, or last requester), and errors |
 | **Control** | Keep Awake 30m / 90m, Custom Duration, and Stop (keyboard shortcuts preserved) |
-| **Setup** | Helper, hooks, Doctor, and Repair — shown inline when setup is incomplete; collapsed into **Setup & Troubleshooting** when healthy |
-| **More** | Countdown and login toggles, updates, diagnostics, feedback, refresh, quit |
+| **Setup** | Current setup warning plus **Setup & Troubleshooting...**, which opens the dedicated setup/diagnostic window |
+| **Diagnostics** | **Why Awake?**, trigger activity, Doctor, and Repair |
+| **More** | Countdown and login toggles, updates, feedback, refresh, quit |
 
-Trigger activity appears under **More → Diagnostics** while a session is active,
-not in the default status block.
+Trigger activity appears under **Diagnostics** while a session is active, not in
+the default status block.
 
 ## First-run setup
 
@@ -49,21 +50,22 @@ actions as the menu:
 - install agent hooks for Claude Code, Codex, Grok Build, and Pi;
 - optionally enable `Launch at Login`.
 
-The guide can be reopened from `Setup Guide` in the menu bar menu.
+The guide can be reopened from **Setup & Troubleshooting... → Setup Guide**.
 
 ### Skip, Done, and incomplete setup
 
 - **Skip for Now** or closing the window dismisses the wizard (`onboardingWizardDismissed`)
-  but does **not** mean setup is healthy. The menu keeps an expanded **Setup** section
-  until the helper is enabled and hooks report ready.
+  but does **not** mean setup is healthy. The menu keeps a **Setup** warning plus
+  **Setup & Troubleshooting...** until the helper is enabled and hooks report
+  ready.
 - **Done** / **Finish Later** when helper or hooks are still incomplete shows a
   confirmation, then dismisses the wizard the same way as Skip. Setup reminders stay
   in the menu.
 - **Status** shows `Setup incomplete` after the wizard was dismissed while helper or
   hooks are still missing. The menu bar icon uses the warning state in that case.
-- **Hide Setup Reminders** collapses the expanded setup section while setup is still
-  incomplete. Helper/hook actions remain as direct rows in a compact **Setup**
-  section; use **Setup Guide** to reopen the full window.
+- **Hide Setup Reminders** hides setup warning attention while setup is still
+  incomplete. Helper/hook actions remain available from **Setup &
+  Troubleshooting...**.
 
 The important readiness signal is `Power lock`, not music playback or the
 screen state. `Power lock: on` means dsmn successfully owns the macOS

@@ -124,8 +124,10 @@ distinctly from normal `Active` + `Power lock: on`.
 Do not put nested SwiftUI `Menu` controls inside `DSMNMenuView`'s
 `MenuBarExtra` content. In practice those submenus can flicker, dismiss before
 clicks land, or make actions appear inert. Keep menu bar actions as direct
-top-level rows grouped by `Section`, and open a dedicated window for deeper
-workflows.
+top-level rows grouped by `Section`. The **Setup & Troubleshooting...** menu
+item must be a direct button that opens `SetupTroubleshootingWindowPresenter`,
+not a nested menu. Put helper, hook, repair, and setup-guide actions in that
+dedicated window.
 
 ## Build And Test
 
@@ -137,6 +139,12 @@ swift test
 xcodegen generate
 xcodebuild -project dsmn.xcodeproj -scheme dsmn -configuration Debug -destination 'platform=macOS' -derivedDataPath DerivedData build
 ./scripts/verify_bundle.sh DerivedData/Build/Products/Debug/dsmn.app
+```
+
+For menu bar interaction changes, also run:
+
+```sh
+./scripts/e2e_menu_setup.sh
 ```
 
 For distribution-affecting changes:
