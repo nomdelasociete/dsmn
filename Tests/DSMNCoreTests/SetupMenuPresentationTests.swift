@@ -46,6 +46,37 @@ final class SetupMenuPresentationTests: XCTestCase {
         XCTAssertTrue(SetupMenuPresentation.prefersExpandedSetup(from: signals))
     }
 
+    func testHelperUpdateIsAdvisoryWhenHooksReady() {
+        let signals = SetupMenuSignals(
+            helperIsReady: false,
+            helperNeedsRepair: false,
+            helperNeedsUpdate: true,
+            helperNeedsApproval: false,
+            helperNeedsInstall: false,
+            hooksAreReady: true
+        )
+
+        XCTAssertTrue(signals.isSetupComplete)
+        XCTAssertEqual(SetupMenuPresentation.setupLine(from: signals), "Helper update available")
+        XCTAssertNil(
+            SetupMenuPresentation.setupIncompleteStatusTitle(from: signals, wizardDismissed: true)
+        )
+    }
+
+    func testHelperRepairStillBlocksSetupEvenWhenUpdateAvailable() {
+        let signals = SetupMenuSignals(
+            helperIsReady: false,
+            helperNeedsRepair: true,
+            helperNeedsUpdate: true,
+            helperNeedsApproval: false,
+            helperNeedsInstall: false,
+            hooksAreReady: true
+        )
+
+        XCTAssertFalse(signals.isSetupComplete)
+        XCTAssertEqual(SetupMenuPresentation.setupLine(from: signals), "Setup: repair helper")
+    }
+
     func testPrefersCollapsedSetupWhenSuppressedAndOnlyHooksMissing() {
         let signals = SetupMenuSignals(
             helperIsReady: true,

@@ -30,6 +30,9 @@ final class MenuBarExtraStructureTests: XCTestCase {
         XCTAssertTrue(windowSource.contains("Install Helper"))
         XCTAssertTrue(windowSource.contains("Update Helper"))
         XCTAssertTrue(windowSource.contains("Repair Helper"))
+        XCTAssertTrue(windowSource.contains("Helper update available"))
+        XCTAssertTrue(windowSource.contains("setup.helper-update-later"))
+        XCTAssertTrue(windowSource.contains("setup.helper-update-now"))
         XCTAssertTrue(windowSource.contains("store.installAgentHooks()"))
         XCTAssertTrue(windowSource.contains("Why Awake?"))
         XCTAssertTrue(windowSource.contains("Doctor"))
@@ -38,6 +41,14 @@ final class MenuBarExtraStructureTests: XCTestCase {
         XCTAssertTrue(windowSource.contains(".accessibilityIdentifier(\"setup.refresh\")"))
         XCTAssertTrue(windowSource.contains(".accessibilityIdentifier(\"setup.guide\")"))
         XCTAssertTrue(windowSource.contains(".accessibilityIdentifier(\"setup.done\")"))
+    }
+
+    func testAppLaunchSurfacesVoluntaryHelperUpdateReminder() throws {
+        let appSource = try sourceFile(at: "Sources/dsmnapp/App/DSMNApp.swift")
+
+        XCTAssertTrue(appSource.contains("store.shouldPresentHelperUpdateReminder"))
+        XCTAssertTrue(appSource.contains("SetupTroubleshootingWindowPresenter.show(store: store)"))
+        XCTAssertTrue(appSource.contains("OnboardingWindowPresenter.showIfNeeded(store: store)"))
     }
 
     private func sourceFile(at relativePath: String) throws -> String {

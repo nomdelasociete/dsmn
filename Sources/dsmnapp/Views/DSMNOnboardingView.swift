@@ -189,7 +189,7 @@ struct DSMNOnboardingView: View {
         }
 
         if store.helperNeedsUpdate {
-            return "A newer dsmn is installed. Update the helper so hooks and sleep locks use the current version."
+            return store.helperUpdateDetail
         }
 
         switch store.helperStatus {
