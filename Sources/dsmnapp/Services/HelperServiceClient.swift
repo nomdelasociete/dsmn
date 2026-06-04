@@ -82,6 +82,13 @@ final class HelperServiceClient {
         }.value
     }
 
+    func repair() async throws -> StatusReport {
+        let client = helperClient
+        return try await Task.detached {
+            try client.repair()
+        }.value
+    }
+
     nonisolated private static func readParentBundleVersion() -> Int? {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/bin/launchctl")

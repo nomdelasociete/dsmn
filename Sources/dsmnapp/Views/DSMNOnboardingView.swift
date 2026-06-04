@@ -48,6 +48,28 @@ struct DSMNOnboardingView: View {
                     ))
                     .toggleStyle(.switch)
                 }
+
+                OnboardingStepRow(
+                    systemImage: "stethoscope",
+                    title: "Troubleshooting",
+                    detail: troubleshootingDetail,
+                    status: troubleshootingStatus,
+                    isComplete: store.helperIsReady,
+                    isOptional: true
+                ) {
+                    HStack(spacing: 8) {
+                        Button("Doctor") {
+                            store.runDoctor()
+                        }
+                        .disabled(!store.canRunDoctor)
+
+                        Button("Repair") {
+                            store.runRepair()
+                        }
+                        .disabled(!store.canRunHelperRepair)
+                        .help(store.repairUnavailableExplanation ?? "Repair helper state and release stuck sleep locks.")
+                    }
+                }
             }
             .padding(.top, 24)
 
@@ -132,6 +154,26 @@ struct DSMNOnboardingView: View {
                 store.installHelper()
             }
         }
+    }
+
+    private var troubleshootingDetail: String {
+        if let repairUnavailableExplanation = store.repairUnavailableExplanation {
+            return "Run Doctor to inspect helper source, power lock, SleepDisabled, and agents. Repair needs the helper: \(repairUnavailableExplanation)"
+        }
+
+        return "Run Doctor to inspect helper source, power lock, SleepDisabled, and agents. Repair clears stale state via the helper."
+    }
+
+    private var troubleshootingStatus: String {
+        if store.helperIsReady {
+            return "Doctor and repair available"
+        }
+
+        if store.canRunDoctor {
+            return "Doctor available; repair needs helper"
+        }
+
+        return "Unavailable until dsmn finishes loading"
     }
 
     private var helperDetail: String {

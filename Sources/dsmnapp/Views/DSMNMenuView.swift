@@ -124,6 +124,17 @@ struct DSMNMenuView: View {
             }
         }
 
+        Button("Run Doctor") {
+            store.runDoctor()
+        }
+        .disabled(!store.canRunDoctor)
+
+        Button("Run Repair") {
+            store.runRepair()
+        }
+        .disabled(!store.canRunHelperRepair)
+        .help(store.repairUnavailableExplanation ?? "Clear stale dsmn state and release the macOS sleep lock.")
+
         Divider()
 
         Button("Quit") {
