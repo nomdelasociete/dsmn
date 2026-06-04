@@ -123,6 +123,29 @@ public struct DSMNController: Sendable {
         return try makeStatus(state: state, now: now)
     }
 
+    public func repair(powerManager: any PowerManaging, now: Date = Date()) throws -> DaemonRunReport {
+        let originalState = try store.load()
+        var forcedRelease: PowerOperationResult?
+
+        if originalState.ownsSleepDisable {
+            forcedRelease = try powerManager.setSleepDisabled(false)
+        }
+
+        _ = try repairState(now: now)
+        var report = try reconcile(powerManager: powerManager, now: now)
+
+        if let forcedRelease {
+            report = DaemonRunReport(
+                generatedAt: report.generatedAt,
+                status: report.status,
+                operation: forcedRelease,
+                stateChanged: report.stateChanged || originalState != report.status.state
+            )
+        }
+
+        return report
+    }
+
     public func reconcile(powerManager: any PowerManaging, now: Date = Date()) throws -> DaemonRunReport {
         let originalState = try store.load()
         let agents = try detector.detect(using: processListing)

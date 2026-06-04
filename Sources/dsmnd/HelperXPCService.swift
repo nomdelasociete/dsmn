@@ -61,6 +61,12 @@ final class DSMNHelperXPCService: NSObject, DSMNHelperXPCProtocol {
         })
     }
 
+    func repair(withReply reply: @escaping (String) -> Void) {
+        reply(encode {
+            .success(run: try controller.repair(powerManager: powerManager))
+        })
+    }
+
     func startPeriodicReconcile(interval: TimeInterval) {
         reconcileSilently()
         reconcileTimer = Timer.scheduledTimer(

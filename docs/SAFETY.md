@@ -47,14 +47,17 @@ Initial defaults:
 
 ## Recovery
 
-`dsmnctl repair` will force a cleanup path:
+`dsmnctl repair` clears stale local state and, when the helper is available,
+forces a cleanup path through the privileged helper:
 
 ```sh
 pmset -a disablesleep 0
 ```
 
-The command belongs to the helper boundary and must be exposed through a controlled
-helper request rather than run by Raycast directly.
+The helper runs `repair` over XPC: it releases `pmset` when dsmn still owns the
+sleep lock, resets persisted state, then reconciles. Raycast and CLI invoke
+`dsmnctl repair`; they never call `pmset` directly. Without a registered helper,
+`dsmnctl repair` only repairs local state (development fallback).
 
 ## Development guard
 
