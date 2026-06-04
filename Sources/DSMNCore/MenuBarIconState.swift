@@ -9,7 +9,8 @@ public enum MenuBarIconState: String, Codable, Equatable, Sendable {
     public static func resolve(
         report: StatusReport?,
         errorMessage: String?,
-        hookFallbackActive: Bool = false
+        hookFallbackActive: Bool = false,
+        setupNeedsAttention: Bool = false
     ) -> MenuBarIconState {
         if errorMessage != nil, report == nil {
             return .warning
@@ -29,6 +30,10 @@ public enum MenuBarIconState: String, Codable, Equatable, Sendable {
 
         if report.decision.shouldPreventSleep || report.state.manualIsActive(at: report.generatedAt) {
             return .manualActive
+        }
+
+        if setupNeedsAttention {
+            return .warning
         }
 
         return .off

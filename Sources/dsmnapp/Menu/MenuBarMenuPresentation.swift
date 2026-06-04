@@ -2,15 +2,6 @@ import DSMNCore
 import Foundation
 
 extension DSMNMenuStore {
-    /// One glance at the menu: helper/hooks broken, or explicit setup line from the engine.
-    var prefersExpandedSetup: Bool {
-        if helperNeedsRepair || !helperIsReady || !hooksAreReady {
-            return true
-        }
-
-        return setupLine != nil
-    }
-
     var menuStatusSystemImage: String {
         switch menuBarIconState {
         case .loading:
