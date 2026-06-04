@@ -20,12 +20,11 @@ public enum DSMNXPCClientAuthentication {
     }
 
     public static func validate(connection: NSXPCConnection) -> ValidationResult {
-        let auditTokenSelector = NSSelectorFromString("auditToken")
-        guard connection.responds(to: auditTokenSelector) else {
+        guard let auditTokenValue = XPCConnectionPrivateAPI.auditToken(from: connection) else {
             return .rejectedUnsupportedClient
         }
 
-        var auditToken = connection.auditToken
+        var auditToken = auditTokenValue
         let auditTokenData = Data(bytes: &auditToken, count: MemoryLayout<audit_token_t>.size)
         let attributes: [String: Any] = [
             kSecGuestAttributeAudit as String: auditTokenData
@@ -92,12 +91,23 @@ public enum DSMNXPCClientAuthentication {
     }
 }
 
-private extension NSXPCConnection {
-    @objc var auditToken: audit_token_t {
-        typealias AuditTokenGetter = @convention(c) (NSXPCConnection, Selector) -> audit_token_t
-        let selector = NSSelectorFromString("auditToken")
-        let implementation = class_getMethodImplementation(NSXPCConnection.self, selector)
+/// Reads NSXPCConnection's private `auditToken` without declaring an `@objc auditToken` member
+/// (that collides with the runtime selector and can crash when the getter is invoked).
+private enum XPCConnectionPrivateAPI {
+    private static let auditTokenSelector = NSSelectorFromString("auditToken")
+
+    static func auditToken(from connection: NSXPCConnection) -> audit_token_t? {
+        guard connection.responds(to: auditTokenSelector) else {
+            return nil
+        }
+
+        guard let method = class_getInstanceMethod(NSXPCConnection.self, auditTokenSelector) else {
+            return nil
+        }
+
+        typealias AuditTokenGetter = @convention(c) (AnyObject, Selector) -> audit_token_t
+        let implementation = method_getImplementation(method)
         let getter = unsafeBitCast(implementation, to: AuditTokenGetter.self)
-        return getter(self, selector)
+        return getter(connection, auditTokenSelector)
     }
 }
