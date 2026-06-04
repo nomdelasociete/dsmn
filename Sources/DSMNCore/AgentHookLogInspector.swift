@@ -65,8 +65,11 @@ public enum AgentHookLogInspector {
         )
     }
 
-    public static func doctorWarning(for status: AgentHookFallbackStatus) -> String? {
-        guard status.isActive else {
+    public static func doctorWarning(
+        for status: AgentHookFallbackStatus,
+        ownsSleepDisable: Bool = false
+    ) -> String? {
+        guard status.isActive, !ownsSleepDisable else {
             return nil
         }
 

@@ -57,11 +57,25 @@ final class AgentHookInstallerTests: XCTestCase {
         XCTAssertTrue(FileManager.default.isExecutableFile(atPath: hookScriptURL.path))
         let hookScript = try String(contentsOf: hookScriptURL, encoding: .utf8)
         XCTAssertTrue(hookScript.contains(#"manual_args=(manual --minutes "$MINUTES" --extend-only --requester "$REQUESTER_NAME" --json)"#))
+        XCTAssertTrue(hookScript.contains("MIN_INTERVAL_SECONDS=\"${DSMN_HOOK_MIN_INTERVAL_SECONDS:-120}\""))
+        XCTAssertTrue(hookScript.contains("should_skip_extend"))
+        XCTAssertTrue(hookScript.contains("record_extend_stamp"))
 
         let claude = try readJSON(home.appendingPathComponent(".claude/settings.json"))
         let claudeCommands = hookCommands(in: claude)
         XCTAssertTrue(claudeCommands.contains("/Users/jb/.claude/hooks/safety.sh"))
         XCTAssertFalse(claudeCommands.contains { $0.contains("caffeinate") })
+        let dsmnClaudeHooks = hookCommands(
+            in: claude,
+            events: ["SessionStart", "UserPromptSubmit", "PreToolUse", "PostToolUse"]
+        ).filter { $0.contains("dsmn-agent-hook.sh") }
+        XCTAssertEqual(dsmnClaudeHooks.count, 4)
+        XCTAssertFalse(dsmnClaudeHooks.contains { $0.contains("caffeinate") })
+        let claudeSessionHooks = hookCommands(
+            in: claude,
+            events: ["SessionStart", "UserPromptSubmit"]
+        )
+        XCTAssertFalse(claudeSessionHooks.contains { $0.contains("caffeinate") })
         XCTAssertEqual(
             claudeCommands.filter { $0.contains(home.appendingPathComponent(".dsmn/dsmn-agent-hook.sh").path) }.count,
             4
@@ -88,6 +102,9 @@ final class AgentHookInstallerTests: XCTestCase {
         let pi = try String(contentsOf: home.appendingPathComponent(".pi/agent/extensions/dsmn.ts"), encoding: .utf8)
         XCTAssertTrue(pi.contains("from \"@earendil-works/pi-coding-agent\""))
         XCTAssertTrue(pi.contains("pi.on(\"tool_call\""))
+        XCTAssertTrue(pi.contains("pi.on(\"turn_start\""))
+        XCTAssertTrue(pi.contains("pi.on(\"tool_result\""))
+        XCTAssertTrue(pi.contains("pi.on(\"turn_end\""))
         XCTAssertTrue(pi.contains("child.on(\"error\""))
         XCTAssertTrue(pi.contains(home.appendingPathComponent(".dsmn/dsmn-agent-hook.sh").path))
     }
@@ -153,12 +170,22 @@ final class AgentHookInstallerTests: XCTestCase {
         return try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
     }
 
-    private func hookCommands(in root: [String: Any]) -> [String] {
+    private func hookCommands(
+        in root: [String: Any],
+        events: [String]? = nil
+    ) -> [String] {
         guard let hooks = root["hooks"] as? [String: Any] else {
             return []
         }
 
-        return hooks.values.flatMap { eventValue in
+        let eventValues: [Any]
+        if let events {
+            eventValues = events.compactMap { hooks[$0] }
+        } else {
+            eventValues = Array(hooks.values)
+        }
+
+        return eventValues.flatMap { eventValue in
             (eventValue as? [[String: Any]] ?? []).flatMap { group in
                 (group["hooks"] as? [[String: Any]] ?? []).compactMap { hook in
                     hook["command"] as? String

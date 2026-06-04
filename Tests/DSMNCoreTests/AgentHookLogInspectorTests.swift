@@ -82,6 +82,7 @@ final class AgentHookLogInspectorTests: XCTestCase {
         )
 
         XCTAssertNotNil(AgentHookLogInspector.doctorWarning(for: active))
+        XCTAssertNil(AgentHookLogInspector.doctorWarning(for: active, ownsSleepDisable: true))
         XCTAssertNil(AgentHookLogInspector.doctorWarning(for: inactive))
     }
 

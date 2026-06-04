@@ -63,7 +63,11 @@ pick up the extension.
   events where the agent supports them;
 - for Pi, run on `session_start`, `input`, `turn_start`, `tool_call`,
   `tool_result`, and `turn_end`;
-- call `dsmnctl manual --minutes 20 --extend-only --requester <agent>`;
+- skip `dsmnctl manual` when the last successful extend was within the minimum
+  interval (default 120 seconds), using a stamp file at
+  `~/.dsmn/last-extend.stamp`;
+- call `dsmnctl manual --minutes 20 --extend-only --requester <agent>` when not
+  throttled;
 - record the last requester and a short recent-requester list in dsmn state,
   with project/session context when the hook payload exposes it;
 - verify that `dsmnctl doctor` sees the helper and `macOS SleepDisabled: on`;
@@ -88,16 +92,20 @@ sleep with the lid closed even while agent work continues.
 fallback window. Normal protected state shows `Hook fallback: inactive`,
 `Status source: helper`, and `Power lock: on`.
 
-The manual timer is intentional for hooks: every tool call renews a bounded
-lease. Hook renewals are not additive and never shorten a longer manual timer;
-dsmn releases the lease automatically if tool calls stop.
+The manual timer is intentional for hooks: agent activity renews a bounded
+lease, but the shared hook throttles the actual `dsmnctl manual` calls so
+tool-heavy sessions do not invoke dsmnctl for every tool event. Hook renewals
+are not additive and never shorten a longer manual timer; dsmn releases the
+lease automatically when activity stops.
 
 Optional environment overrides:
 
 ```sh
-DSMN_HOOK_MINUTES=30     # manual timer duration
+DSMN_HOOK_MINUTES=30                  # manual timer duration
+DSMN_HOOK_MIN_INTERVAL_SECONDS=120    # minimum seconds between dsmnctl manual calls
 DSMNCTL_PATH=/path/to/dsmnctl
 DSMN_HOOK_LOG=/tmp/dsmn-agent-hook.log
+DSMN_HOOK_STAMP=~/.dsmn/last-extend.stamp
 ```
 
 Manual hook JSON example:
@@ -143,3 +151,6 @@ SleepDisabled 1
 If the hook log shows a recent `fallback caffeinate started` line, `doctor`
 prints `Hook fallback: active` and a warning that closed-lid sleep prevention
 is unavailable until the helper path is restored.
+
+Throttled invocations log a line like `dsmn extend throttled` and exit without
+calling `dsmnctl manual` again.

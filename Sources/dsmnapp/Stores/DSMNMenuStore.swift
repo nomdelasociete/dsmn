@@ -76,7 +76,7 @@ final class DSMNMenuStore: ObservableObject {
         MenuBarIconState.resolve(
             report: report,
             errorMessage: errorMessage,
-            hookFallbackActive: hookFallbackStatus.isActive
+            hookFallbackActive: hookFallbackNeedsAttention
         )
     }
 
@@ -85,7 +85,7 @@ final class DSMNMenuStore: ObservableObject {
             return errorMessage ?? "Loading"
         }
 
-        if hookFallbackStatus.isActive {
+        if hookFallbackNeedsAttention {
             if let remaining = report.state.manualRemainingSeconds(at: Date()), remaining > 0 {
                 return "Active (hook fallback) - \(formatDuration(remaining))"
             }
@@ -217,7 +217,7 @@ final class DSMNMenuStore: ObservableObject {
             return nil
         }
 
-        if hookFallbackStatus.isActive {
+        if hookFallbackNeedsAttention {
             return "Power lock: off (hook fallback caffeinate)"
         }
 
@@ -225,7 +225,7 @@ final class DSMNMenuStore: ObservableObject {
     }
 
     var hookFallbackLine: String? {
-        guard hookFallbackStatus.isActive else {
+        guard hookFallbackNeedsAttention else {
             return nil
         }
 
@@ -254,6 +254,14 @@ final class DSMNMenuStore: ObservableObject {
 
     var canRunAwakeCommands: Bool {
         helperStatus == .enabled
+    }
+
+    private var hookFallbackNeedsAttention: Bool {
+        guard hookFallbackStatus.isActive else {
+            return false
+        }
+
+        return report?.state.ownsSleepDisable != true
     }
 
     var helperNeedsUpdate: Bool {

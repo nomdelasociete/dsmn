@@ -32,7 +32,7 @@ struct DSMNMenuView: View {
             .font(.caption.monospacedDigit())
 
         if let errorMessage = store.errorMessage {
-            Text(short(errorMessage))
+            menuErrorText(errorMessage)
         }
 
         Text(store.helperStatusLine)
@@ -167,11 +167,10 @@ struct DSMNMenuView: View {
         }
     }
 
-    private func short(_ value: String) -> String {
-        if value.count <= 30 {
-            return value
-        }
-
-        return String(value.prefix(27)) + "..."
+    private func menuErrorText(_ message: String) -> some View {
+        Text(message)
+            .font(.footnote)
+            .foregroundStyle(.red)
+            .fixedSize(horizontal: false, vertical: true)
     }
 }

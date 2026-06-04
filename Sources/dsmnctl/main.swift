@@ -342,7 +342,10 @@ struct DSMNCTL {
         print("Power lock: \(report.state.ownsSleepDisable ? "on" : "off")")
         print("Hook fallback: \(hookFallback.isActive ? "active" : "inactive")")
         print("macOS SleepDisabled: \(formatOptionalFlag(liveSleepDisabled))")
-        if let warning = AgentHookLogInspector.doctorWarning(for: hookFallback) {
+        if let warning = AgentHookLogInspector.doctorWarning(
+            for: hookFallback,
+            ownsSleepDisable: report.state.ownsSleepDisable
+        ) {
             print(warning)
         }
         if let requester = report.state.lastRequester {

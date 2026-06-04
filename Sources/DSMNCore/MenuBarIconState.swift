@@ -19,7 +19,7 @@ public enum MenuBarIconState: String, Codable, Equatable, Sendable {
             return .loading
         }
 
-        if hookFallbackActive {
+        if hookFallbackActive && !report.state.ownsSleepDisable {
             return .warning
         }
 
