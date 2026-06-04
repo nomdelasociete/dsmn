@@ -43,6 +43,7 @@ final class DSMNMenuStore: ObservableObject {
     @Published private(set) var isRefreshing = false
     @Published private(set) var helperStatus: HelperRegistrationStatus = .notFound
     @Published private(set) var helperRuntimeInfo: HelperRuntimeInfo?
+    @Published private(set) var helperXPCUnavailable = false
     @Published private(set) var launchAtLoginStatus: LaunchAtLoginStatus = .notRegistered
     @Published private(set) var hookSetupStatus: AgentHooksSetupStatus = .checking
 
@@ -77,11 +78,11 @@ final class DSMNMenuStore: ObservableObject {
             return helperStatus == .enabled ? "Applying" : "Helper required"
         }
 
-        if report.decision.shouldPreventSleep {
-            if let remaining = report.state.manualRemainingSeconds(at: Date()), remaining > 0 {
-                return "Active - \(formatDuration(remaining))"
-            }
+        if let remaining = report.state.manualRemainingSeconds(at: Date()), remaining > 0 {
+            return "Active - \(formatDuration(remaining))"
+        }
 
+        if report.decision.shouldPreventSleep {
             return "Active"
         }
 
@@ -89,6 +90,10 @@ final class DSMNMenuStore: ObservableObject {
     }
 
     var helperStatusLine: String {
+        if helperNeedsRepair {
+            return "Helper: repair required"
+        }
+
         if helperNeedsUpdate {
             return "Helper: update required"
         }
@@ -109,7 +114,7 @@ final class DSMNMenuStore: ObservableObject {
     }
 
     var helperIsReady: Bool {
-        helperStatus == .enabled && !helperNeedsUpdate
+        helperStatus == .enabled && !helperNeedsAttention
     }
 
     var hooksAreReady: Bool {
@@ -162,6 +167,10 @@ final class DSMNMenuStore: ObservableObject {
     }
 
     var setupLine: String? {
+        if helperNeedsRepair {
+            return "Setup: repair helper"
+        }
+
         if helperNeedsUpdate {
             return "Setup: update helper"
         }
@@ -223,7 +232,19 @@ final class DSMNMenuStore: ObservableObject {
         return helperBuild < currentBuildNumber
     }
 
+    var helperNeedsRepair: Bool {
+        helperStatus == .enabled && helperXPCUnavailable
+    }
+
+    private var helperNeedsAttention: Bool {
+        helperNeedsUpdate || helperNeedsRepair
+    }
+
     var helperStatusDisplayName: String {
+        if helperNeedsRepair {
+            return "repair required"
+        }
+
         if helperNeedsUpdate {
             return "update required"
         }
@@ -236,7 +257,7 @@ final class DSMNMenuStore: ObservableObject {
     }
 
     var canUpdateHelper: Bool {
-        helperNeedsUpdate
+        helperNeedsUpdate || helperNeedsRepair
     }
 
     var canUnregisterHelper: Bool {
@@ -286,7 +307,7 @@ final class DSMNMenuStore: ObservableObject {
                 hookSetupStatus = await inspectHookSetupStatus()
             }
             report = try await readStatus(controller: controller)
-            errorMessage = nil
+            errorMessage = helperXPCUnavailable ? "Helper unavailable; repair helper" : nil
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -352,13 +373,24 @@ final class DSMNMenuStore: ObservableObject {
         do {
             helperStatus = helper.registrationStatus
             if helperStatus == .enabled {
-                report = try await helperOperation()
+                do {
+                    report = try await helperOperation()
+                    helperXPCUnavailable = false
+                    errorMessage = nil
+                } catch {
+                    helperXPCUnavailable = true
+                    report = try await Task.detached {
+                        try localOperation(controller)
+                    }.value
+                    errorMessage = "Helper unavailable; repair helper"
+                }
             } else {
                 report = try await Task.detached {
                     try localOperation(controller)
                 }.value
+                helperXPCUnavailable = false
+                errorMessage = nil
             }
-            errorMessage = nil
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -392,6 +424,7 @@ final class DSMNMenuStore: ObservableObject {
             do {
                 helperStatus = try helper.updateRegistration()
                 helperRuntimeInfo = await helper.runtimeInfo()
+                helperXPCUnavailable = false
                 errorMessage = helperStatus == .requiresApproval ? "Approve helper in System Settings" : nil
                 await refresh()
             } catch {
@@ -412,6 +445,7 @@ final class DSMNMenuStore: ObservableObject {
             do {
                 helperStatus = try helper.unregister()
                 helperRuntimeInfo = await helper.runtimeInfo()
+                helperXPCUnavailable = false
                 errorMessage = nil
                 await refresh()
             } catch {
@@ -478,18 +512,16 @@ final class DSMNMenuStore: ObservableObject {
     }
 
     private func readStatus(controller: DSMNController) async throws -> StatusReport {
-        if helperStatus == .enabled {
-            return try await helper.status()
-        }
-
         do {
             let helperReport = try await helper.status()
             helperStatus = .enabled
+            helperXPCUnavailable = false
             return helperReport
         } catch {
             // SMAppService can report an ambiguous status when a different copy
             // of dsmn registered the helper. If XPC is unavailable too, fall
             // back to local status so the menu still opens.
+            helperXPCUnavailable = helperStatus == .enabled
         }
 
         return try await Task.detached {

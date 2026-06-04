@@ -115,6 +115,10 @@ struct DSMNOnboardingView: View {
         if store.helperIsReady {
             Button("Ready") {}
                 .disabled(true)
+        } else if store.helperNeedsRepair {
+            Button("Repair Helper") {
+                store.updateHelper()
+            }
         } else if store.helperNeedsUpdate {
             Button("Update Helper") {
                 store.updateHelper()
@@ -131,6 +135,10 @@ struct DSMNOnboardingView: View {
     }
 
     private var helperDetail: String {
+        if store.helperNeedsRepair {
+            return "The helper is registered but not responding. Repair it so hooks and closed-lid protection use the current version."
+        }
+
         if store.helperNeedsUpdate {
             return "A newer dsmn is installed. Update the helper so hooks and sleep locks use the current version."
         }

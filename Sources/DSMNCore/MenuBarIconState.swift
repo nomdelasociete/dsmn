@@ -19,7 +19,7 @@ public enum MenuBarIconState: String, Codable, Equatable, Sendable {
             return .warning
         }
 
-        if report.decision.shouldPreventSleep {
+        if report.decision.shouldPreventSleep || report.state.manualIsActive(at: report.generatedAt) {
             return .manualActive
         }
 

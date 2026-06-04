@@ -2,7 +2,7 @@ import Foundation
 
 public enum MenuBarCountdownFormatter {
     public static func text(report: StatusReport?, at date: Date = Date()) -> String? {
-        guard let report, report.decision.shouldPreventSleep else {
+        guard let report else {
             return nil
         }
 

@@ -107,7 +107,7 @@ struct DSMNMenuView: View {
         }
 
         if store.canUpdateHelper {
-            Button("Update Helper") {
+            Button(store.helperNeedsRepair ? "Repair Helper" : "Update Helper") {
                 store.updateHelper()
             }
         }

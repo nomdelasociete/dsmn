@@ -2,10 +2,10 @@ import XCTest
 @testable import DSMNCore
 
 final class MenuBarCountdownFormatterTests: XCTestCase {
-    func testReturnsNilWhenInactive() {
+    func testFormatsCountdownWhenPowerLockIsOffDuringLidOpenGrace() {
         let report = makeReport(manualUntil: Date(timeIntervalSince1970: 2_200), shouldPreventSleep: false)
 
-        XCTAssertNil(MenuBarCountdownFormatter.text(report: report, at: Date(timeIntervalSince1970: 1_000)))
+        XCTAssertEqual(MenuBarCountdownFormatter.text(report: report, at: Date(timeIntervalSince1970: 1_000)), "20m")
     }
 
     func testReturnsNilWhenNoManualTimerExists() {
