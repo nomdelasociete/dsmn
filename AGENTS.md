@@ -80,6 +80,11 @@ Do not treat a local archive as proof that a release is good. For any
 release-bearing fix, publish the release and verify the public artifacts that a
 real user or Sparkle will download.
 
+After a merge or push to `main`, use the project slash command
+`/release-dsmn [version] [build]` to run the full version bump, publish, and
+public artifact verification flow. The command lives at
+`.claude/commands/release-dsmn.md`.
+
 After `./scripts/publish_release.sh`, verify:
 
 ```sh
