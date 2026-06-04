@@ -129,6 +129,25 @@ item must be a direct button that opens `SetupTroubleshootingWindowPresenter`,
 not a nested menu. Put helper, hook, repair, and setup-guide actions in that
 dedicated window.
 
+### Helper updates after app updates
+
+Normal app updates can leave the privileged helper running the previous parent
+bundle build until the user chooses **Update Helper**. Treat that state as
+advisory, not broken:
+
+- Do not mark setup incomplete only because `helperNeedsUpdate` is true while
+  the helper is enabled and responding.
+- Do not switch the menu bar icon to warning for ordinary helper version drift.
+- Do not hide trigger activity or block manual timer commands because of helper
+  version drift.
+- Surface it as **Helper update available** with an explicit **Update Helper**
+  action and a **Later** path for the current app build.
+
+`helperNeedsRepair`, missing helper registration, and Login Items approval are
+still blocking setup states. If a future helper protocol change truly requires
+an immediate helper update, add a separate required-update state and tests
+instead of reusing ordinary version drift.
+
 ## Build And Test
 
 Use these checks for normal changes — **all four are required before opening a
