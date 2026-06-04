@@ -133,6 +133,13 @@ final class DSMNHelperXPCDelegate: NSObject, NSXPCListenerDelegate {
     }
 
     func listener(_ listener: NSXPCListener, shouldAcceptNewConnection connection: NSXPCConnection) -> Bool {
+        let validation = DSMNXPCClientAuthentication.validate(connection: connection)
+        guard case .accepted = validation else {
+            DSMNXPCClientAuthentication.logRejection(validation)
+            connection.invalidate()
+            return false
+        }
+
         connection.exportedInterface = NSXPCInterface(with: DSMNHelperXPCProtocol.self)
         connection.exportedObject = service
         connection.resume()

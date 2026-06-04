@@ -2,9 +2,16 @@ import Foundation
 
 public enum DSMNServiceConstants {
     public static let appBundleIdentifier = "com.nomdelasociete.dsmn"
+    public static let ctlBundleIdentifier = "com.nomdelasociete.dsmn.dsmnctl"
+    public static let developmentTeamID = "JSFMAD28GS"
     public static let helperLabel = "com.nomdelasociete.dsmn.helper"
     public static let helperMachServiceName = "com.nomdelasociete.dsmn.helper"
     public static let helperPlistName = "com.nomdelasociete.dsmn.helper.plist"
+
+    public static let trustedXPCClientBundleIdentifiers = [
+        appBundleIdentifier,
+        ctlBundleIdentifier
+    ]
 }
 
 @objc(DSMNHelperXPCProtocol)
