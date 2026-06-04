@@ -52,6 +52,7 @@ final class DSMNMenuStore: ObservableObject {
     private let launchAtLogin = LaunchAtLoginService()
     private let setupError: Error?
     private var refreshLoopTask: Task<Void, Never>?
+    private var hasAttemptedAutomaticHelperRepair = false
 
     init() {
         do {
@@ -307,6 +308,7 @@ final class DSMNMenuStore: ObservableObject {
                 hookSetupStatus = await inspectHookSetupStatus()
             }
             report = try await readStatus(controller: controller)
+            await repairHelperAfterXPCFailureIfNeeded()
             errorMessage = helperXPCUnavailable ? "Helper unavailable; repair helper" : nil
         } catch {
             errorMessage = error.localizedDescription
@@ -406,6 +408,7 @@ final class DSMNMenuStore: ObservableObject {
             do {
                 helperStatus = try helper.register()
                 helperRuntimeInfo = await helper.runtimeInfo()
+                hasAttemptedAutomaticHelperRepair = false
                 errorMessage = helperStatus == .requiresApproval ? "Approve helper in System Settings" : nil
             } catch {
                 errorMessage = error.localizedDescription
@@ -422,6 +425,7 @@ final class DSMNMenuStore: ObservableObject {
             }
 
             do {
+                hasAttemptedAutomaticHelperRepair = false
                 helperStatus = try helper.updateRegistration()
                 helperRuntimeInfo = await helper.runtimeInfo()
                 helperXPCUnavailable = false
@@ -446,6 +450,7 @@ final class DSMNMenuStore: ObservableObject {
                 helperStatus = try helper.unregister()
                 helperRuntimeInfo = await helper.runtimeInfo()
                 helperXPCUnavailable = false
+                hasAttemptedAutomaticHelperRepair = false
                 errorMessage = nil
                 await refresh()
             } catch {
@@ -527,6 +532,29 @@ final class DSMNMenuStore: ObservableObject {
         return try await Task.detached {
             try controller.status()
         }.value
+    }
+
+    private func repairHelperAfterXPCFailureIfNeeded() async {
+        guard helperNeedsRepair, !hasAttemptedAutomaticHelperRepair else {
+            return
+        }
+
+        hasAttemptedAutomaticHelperRepair = true
+
+        do {
+            helperStatus = try helper.updateRegistration()
+            helperRuntimeInfo = await helper.runtimeInfo()
+
+            guard helperStatus == .enabled else {
+                helperXPCUnavailable = false
+                return
+            }
+
+            report = try await helper.status()
+            helperXPCUnavailable = false
+        } catch {
+            helperXPCUnavailable = true
+        }
     }
 
     private func formatDuration(_ seconds: Int) -> String {
