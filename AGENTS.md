@@ -74,6 +74,50 @@ ditto -c -k --keepParent dist/export/dsmn.app dist/dsmn-notarized.zip
 ./scripts/generate_appcast.sh dist/dsmn-notarized.zip
 ```
 
+## Release Guardrails
+
+Do not treat a local archive as proof that a release is good. For any
+release-bearing fix, publish the release and verify the public artifacts that a
+real user or Sparkle will download.
+
+After `./scripts/publish_release.sh`, verify:
+
+```sh
+curl -fsSL https://dsmn.app/appcast.xml -o /tmp/dsmn-appcast.xml
+curl -fsSL https://dsmn.app/download/dsmn-latest.zip -o /tmp/dsmn-latest.zip
+curl -fsSL https://dsmn.app/download/dsmn-latest.dmg -o /tmp/dsmn-latest.dmg
+hdiutil verify /tmp/dsmn-latest.dmg
+```
+
+Extract the public ZIP and confirm the exact shipped app, not `dist/export`:
+
+```sh
+ditto -x -k /tmp/dsmn-latest.zip /tmp/dsmn-public
+app=/tmp/dsmn-public/dsmn.app
+/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$app/Contents/Info.plist"
+/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$app/Contents/Info.plist"
+codesign -v --deep --strict "$app"
+spctl -a -vv --type execute "$app"
+```
+
+For XPC/client-auth changes, also verify nested code identifiers. Do not assume
+`PRODUCT_BUNDLE_IDENTIFIER` controls the codesign identifier for command-line
+targets.
+
+Expected identifiers:
+
+```text
+dsmn.app: com.nomdelasociete.dsmn
+dsmnctl: com.nomdelasociete.dsmn.dsmnctl
+dsmnd: com.nomdelasociete.dsmn.helper
+```
+
+Use `codesign -dv` on nested binaries and fail the release if `dsmnctl` is
+signed as plain `dsmnctl` or `dsmnd` is signed as plain `dsmnd`. If a bad
+Sparkle release is already public, bump both marketing version and build number
+before publishing the corrected build; Sparkle will not reliably replace a
+same-build update.
+
 For Raycast changes:
 
 ```sh
