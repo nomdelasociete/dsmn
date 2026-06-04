@@ -48,9 +48,11 @@ struct DSMNCTL {
             let reports = try installer.install(targets: targets)
             try printHookInstallReports(reports, json: json)
         case "repair":
-            let report = try controller.repairState()
+            let report = try preferHelper(
+                { try helper.repair() },
+                fallback: { try controller.repairState() }
+            )
             try printReport(report, json: json)
-            print("repair: dry-run state repaired; helper power cleanup is not implemented yet")
         case "help", "--help", "-h":
             printHelp()
         default:

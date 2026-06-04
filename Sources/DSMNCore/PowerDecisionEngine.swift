@@ -27,7 +27,7 @@ public struct PowerDecisionEngine: Sendable {
     }
 
     public func evaluate(state: DSMNState, agents: [AgentProcess], snapshot: SystemSnapshot) -> PowerDecision {
-        let safetyBlocks = safetyBlocks(for: snapshot)
+        let safetyBlocks = safetyBlocks(state: state, snapshot: snapshot)
         if !safetyBlocks.isEmpty {
             return PowerDecision(
                 shouldPreventSleep: false,
@@ -38,22 +38,43 @@ public struct PowerDecisionEngine: Sendable {
         }
 
         var reasons: [String] = []
+        let manualActive = state.manualIsActive(at: snapshot.now)
 
-        if state.manualIsActive(at: snapshot.now) {
+        if manualActive {
             reasons.append("manual_timer")
         }
 
-        let shouldPreventSleep = state.manualIsActive(at: snapshot.now)
+        if manualActive, state.isWithinLidOpenGrace(at: snapshot.now, graceSeconds: policy.lidOpenGraceSeconds) {
+            reasons.append("lid_open_grace")
+        }
+
+        let shouldPreventSleep = manualActive && shouldPreventSleepForManual(state: state, snapshot: snapshot)
 
         return PowerDecision(
             shouldPreventSleep: shouldPreventSleep,
             reasons: reasons,
             safetyBlocks: [],
-            stopReason: shouldPreventSleep ? nil : inactiveReason(state: state, agents: agents, at: snapshot.now)
+            stopReason: shouldPreventSleep ? nil : inactiveReason(state: state, agents: agents, snapshot: snapshot)
         )
     }
 
-    private func safetyBlocks(for snapshot: SystemSnapshot) -> [String] {
+    private func shouldPreventSleepForManual(state: DSMNState, snapshot: SystemSnapshot) -> Bool {
+        guard state.manualIsActive(at: snapshot.now) else {
+            return false
+        }
+
+        guard let lidClosed = snapshot.lidClosed else {
+            return true
+        }
+
+        if lidClosed {
+            return true
+        }
+
+        return state.isWithinLidOpenGrace(at: snapshot.now, graceSeconds: policy.lidOpenGraceSeconds)
+    }
+
+    private func safetyBlocks(state: DSMNState, snapshot: SystemSnapshot) -> [String] {
         var blocks: [String] = []
 
         if snapshot.powerSource == .battery,
@@ -62,15 +83,35 @@ public struct PowerDecisionEngine: Sendable {
             blocks.append("battery_below_threshold")
         }
 
-        if snapshot.defaultRouteAvailable == false {
+        if snapshot.defaultRouteAvailable == false,
+           shouldBlockForNoRoute(state: state, snapshot: snapshot) {
             blocks.append("network_unavailable")
         }
 
         return blocks
     }
 
-    private func inactiveReason(state: DSMNState, agents: [AgentProcess], at date: Date) -> String {
-        if let manualUntil = state.manualUntil, manualUntil <= date {
+    private func shouldBlockForNoRoute(state: DSMNState, snapshot: SystemSnapshot) -> Bool {
+        guard state.manualIsActive(at: snapshot.now) else {
+            return false
+        }
+
+        guard let since = state.noRouteUnavailableSince else {
+            return false
+        }
+
+        let elapsed = snapshot.now.timeIntervalSince(since)
+        return elapsed >= TimeInterval(policy.noRouteGraceSeconds)
+    }
+
+    private func inactiveReason(state: DSMNState, agents: [AgentProcess], snapshot: SystemSnapshot) -> String {
+        if state.manualIsActive(at: snapshot.now),
+           snapshot.lidClosed == false,
+           !state.isWithinLidOpenGrace(at: snapshot.now, graceSeconds: policy.lidOpenGraceSeconds) {
+            return "lid_open_grace_elapsed"
+        }
+
+        if let manualUntil = state.manualUntil, manualUntil <= snapshot.now {
             return "manual_expired"
         }
 

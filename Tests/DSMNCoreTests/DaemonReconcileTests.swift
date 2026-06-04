@@ -88,6 +88,111 @@ final class DaemonReconcileTests: XCTestCase {
         XCTAssertFalse(try store.load().ownsSleepDisable)
     }
 
+    func testReconcilePersistsNoRouteUnavailableSinceDuringGrace() throws {
+        let now = Date(timeIntervalSince1970: 40_000)
+        let store = try makeStore()
+        try store.save(DSMNState(manualUntil: now.addingTimeInterval(60 * 60)))
+
+        let controller = DSMNController(
+            store: store,
+            processListing: StaticProcessListing([]),
+            snapshotProvider: StaticSystemSnapshotProvider(
+                SystemSnapshot(now: now, powerSource: .ac, defaultRouteAvailable: false)
+            )
+        )
+
+        let report = try controller.reconcile(powerManager: RecordingPowerManager(dryRun: true), now: now)
+
+        XCTAssertEqual(try store.load().noRouteUnavailableSince, now)
+        XCTAssertTrue(report.status.decision.shouldPreventSleep)
+        XCTAssertEqual(report.status.noRouteGraceRemainingSeconds, 15 * 60)
+    }
+
+    func testReconcileClearsNoRouteUnavailableSinceWhenRouteReturns() throws {
+        let now = Date(timeIntervalSince1970: 50_000)
+        let store = try makeStore()
+        try store.save(
+            DSMNState(
+                manualUntil: now.addingTimeInterval(60 * 60),
+                noRouteUnavailableSince: now.addingTimeInterval(-120)
+            )
+        )
+
+        let controller = DSMNController(
+            store: store,
+            processListing: StaticProcessListing([]),
+            snapshotProvider: StaticSystemSnapshotProvider(
+                SystemSnapshot(now: now, powerSource: .ac, defaultRouteAvailable: true)
+            )
+        )
+
+        _ = try controller.reconcile(powerManager: RecordingPowerManager(dryRun: true), now: now)
+
+        XCTAssertNil(try store.load().noRouteUnavailableSince)
+    }
+
+    func testReconcilePersistsLidOpenGraceAcrossTicks() throws {
+        let openedAt = Date(timeIntervalSince1970: 1_000)
+        let midGrace = openedAt.addingTimeInterval(120)
+        let store = try makeStore()
+        try store.save(
+            DSMNState(
+                manualUntil: openedAt.addingTimeInterval(3_600),
+                ownsSleepDisable: true,
+                lidOpenedAt: openedAt,
+                lastLidClosed: false
+            )
+        )
+
+        let powerManager = RecordingPowerManager(dryRun: false)
+        let controller = DSMNController(
+            store: store,
+            processListing: StaticProcessListing([]),
+            snapshotProvider: StaticSystemSnapshotProvider(
+                SystemSnapshot(now: midGrace, powerSource: .ac, lidClosed: false)
+            ),
+            decisionEngine: PowerDecisionEngine(policy: SafetyPolicy(lidOpenGraceSeconds: 300))
+        )
+
+        let report = try controller.reconcile(powerManager: powerManager, now: midGrace)
+
+        XCTAssertTrue(report.status.decision.shouldPreventSleep)
+        XCTAssertEqual(report.status.decision.reasons, ["manual_timer", "lid_open_grace"])
+        XCTAssertEqual(try store.load().lidOpenedAt, openedAt)
+        XCTAssertEqual(powerManager.requests, [])
+    }
+
+    func testReconcileReleasesAfterLidOpenGraceWhileManualTimerStillActive() throws {
+        let openedAt = Date(timeIntervalSince1970: 1_000)
+        let afterGrace = openedAt.addingTimeInterval(301)
+        let store = try makeStore()
+        try store.save(
+            DSMNState(
+                manualUntil: afterGrace.addingTimeInterval(3_600),
+                ownsSleepDisable: true,
+                lidOpenedAt: openedAt,
+                lastLidClosed: false
+            )
+        )
+
+        let powerManager = RecordingPowerManager(dryRun: false)
+        let controller = DSMNController(
+            store: store,
+            processListing: StaticProcessListing([]),
+            snapshotProvider: StaticSystemSnapshotProvider(
+                SystemSnapshot(now: afterGrace, powerSource: .ac, lidClosed: false)
+            ),
+            decisionEngine: PowerDecisionEngine(policy: SafetyPolicy(lidOpenGraceSeconds: 300))
+        )
+
+        let report = try controller.reconcile(powerManager: powerManager, now: afterGrace)
+
+        XCTAssertFalse(report.status.decision.shouldPreventSleep)
+        XCTAssertEqual(report.status.decision.stopReason, "lid_open_grace_elapsed")
+        XCTAssertEqual(powerManager.requests, [false])
+        XCTAssertFalse(report.status.state.ownsSleepDisable)
+    }
+
     func testStopPreservesOwnershipUntilReconcileReleasesPower() throws {
         let now = Date(timeIntervalSince1970: 1_000)
         let store = try makeStore()

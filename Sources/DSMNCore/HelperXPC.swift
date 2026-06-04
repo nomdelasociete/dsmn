@@ -2,9 +2,16 @@ import Foundation
 
 public enum DSMNServiceConstants {
     public static let appBundleIdentifier = "com.nomdelasociete.dsmn"
+    public static let ctlBundleIdentifier = "com.nomdelasociete.dsmn.dsmnctl"
+    public static let developmentTeamID = "JSFMAD28GS"
     public static let helperLabel = "com.nomdelasociete.dsmn.helper"
     public static let helperMachServiceName = "com.nomdelasociete.dsmn.helper"
     public static let helperPlistName = "com.nomdelasociete.dsmn.helper.plist"
+
+    public static let trustedXPCClientBundleIdentifiers = [
+        appBundleIdentifier,
+        ctlBundleIdentifier
+    ]
 }
 
 @objc(DSMNHelperXPCProtocol)
@@ -21,6 +28,7 @@ public protocol DSMNHelperXPCProtocol {
     )
     func stop(withReply reply: @escaping (String) -> Void)
     func reconcile(withReply reply: @escaping (String) -> Void)
+    func repair(withReply reply: @escaping (String) -> Void)
 }
 
 public struct DSMNHelperCommandResponse: Codable, Equatable, Sendable {
@@ -127,6 +135,12 @@ public final class DSMNHelperXPCClient: @unchecked Sendable {
         }
 
         return run
+    }
+
+    public func repair() throws -> StatusReport {
+        try request { proxy, reply in
+            proxy.repair(withReply: reply)
+        }
     }
 
     private func extendManualWithLegacyHelper(minutes: Int) throws -> StatusReport {

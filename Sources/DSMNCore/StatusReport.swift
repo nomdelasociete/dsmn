@@ -7,6 +7,7 @@ public struct StatusReport: Codable, Equatable, Sendable {
     public var agents: [AgentProcess]
     public var decision: PowerDecision
     public var manualRemainingSeconds: Int?
+    public var noRouteGraceRemainingSeconds: Int?
 
     public init(
         generatedAt: Date,
@@ -14,7 +15,8 @@ public struct StatusReport: Codable, Equatable, Sendable {
         snapshot: SystemSnapshot,
         agents: [AgentProcess],
         decision: PowerDecision,
-        manualRemainingSeconds: Int?
+        manualRemainingSeconds: Int?,
+        noRouteGraceRemainingSeconds: Int? = nil
     ) {
         self.generatedAt = generatedAt
         self.state = state
@@ -22,6 +24,7 @@ public struct StatusReport: Codable, Equatable, Sendable {
         self.agents = agents
         self.decision = decision
         self.manualRemainingSeconds = manualRemainingSeconds
+        self.noRouteGraceRemainingSeconds = noRouteGraceRemainingSeconds
     }
 }
 
@@ -107,6 +110,9 @@ public struct DSMNController: Sendable {
     public func stop(now: Date = Date()) throws -> StatusReport {
         var state = try store.load()
         state.manualUntil = nil
+        state.noRouteUnavailableSince = nil
+        state.lidOpenedAt = nil
+        state.lastLidClosed = nil
         state.lastStopReason = "user_stop"
         state.updatedAt = now
         try store.save(state)
@@ -117,19 +123,47 @@ public struct DSMNController: Sendable {
         var state = try store.load()
         state.manualUntil = nil
         state.ownsSleepDisable = false
+        state.noRouteUnavailableSince = nil
+        state.lidOpenedAt = nil
+        state.lastLidClosed = nil
         state.lastStopReason = "repair"
         state.updatedAt = now
         try store.save(state)
         return try makeStatus(state: state, now: now)
     }
 
+    public func repair(powerManager: any PowerManaging, now: Date = Date()) throws -> DaemonRunReport {
+        let originalState = try store.load()
+        var forcedRelease: PowerOperationResult?
+
+        if originalState.ownsSleepDisable {
+            forcedRelease = try powerManager.setSleepDisabled(false)
+        }
+
+        _ = try repairState(now: now)
+        var report = try reconcile(powerManager: powerManager, now: now)
+
+        if let forcedRelease {
+            report = DaemonRunReport(
+                generatedAt: report.generatedAt,
+                status: report.status,
+                operation: forcedRelease,
+                stateChanged: report.stateChanged || originalState != report.status.state
+            )
+        }
+
+        return report
+    }
+
     public func reconcile(powerManager: any PowerManaging, now: Date = Date()) throws -> DaemonRunReport {
         let originalState = try store.load()
         let agents = try detector.detect(using: processListing)
         let snapshot = try snapshotProvider.snapshot(now: now)
-        let decision = decisionEngine.evaluate(state: originalState, agents: agents, snapshot: snapshot)
+        var evaluatedState = originalState
+        evaluatedState.syncSnapshotTracking(with: snapshot)
+        let decision = decisionEngine.evaluate(state: evaluatedState, agents: agents, snapshot: snapshot)
 
-        var nextState = originalState
+        var nextState = evaluatedState
         var operation: PowerOperationResult?
 
         if let manualUntil = nextState.manualUntil, manualUntil <= now {
@@ -158,13 +192,12 @@ public struct DSMNController: Sendable {
         }
 
         let finalDecision = decisionEngine.evaluate(state: nextState, agents: agents, snapshot: snapshot)
-        let status = StatusReport(
-            generatedAt: now,
+        let status = makeStatusReport(
             state: nextState,
             snapshot: snapshot,
             agents: agents,
             decision: finalDecision,
-            manualRemainingSeconds: nextState.manualRemainingSeconds(at: now)
+            now: now
         )
 
         return DaemonRunReport(
@@ -178,14 +211,36 @@ public struct DSMNController: Sendable {
     private func makeStatus(state: DSMNState, now: Date) throws -> StatusReport {
         let agents = try detector.detect(using: processListing)
         let snapshot = try snapshotProvider.snapshot(now: now)
-        let decision = decisionEngine.evaluate(state: state, agents: agents, snapshot: snapshot)
-        return StatusReport(
+        var evaluatedState = state
+        evaluatedState.syncSnapshotTracking(with: snapshot)
+        let decision = decisionEngine.evaluate(state: evaluatedState, agents: agents, snapshot: snapshot)
+        return makeStatusReport(
+            state: evaluatedState,
+            snapshot: snapshot,
+            agents: agents,
+            decision: decision,
+            now: now
+        )
+    }
+
+    private func makeStatusReport(
+        state: DSMNState,
+        snapshot: SystemSnapshot,
+        agents: [AgentProcess],
+        decision: PowerDecision,
+        now: Date
+    ) -> StatusReport {
+        StatusReport(
             generatedAt: now,
             state: state,
             snapshot: snapshot,
             agents: agents,
             decision: decision,
-            manualRemainingSeconds: state.manualRemainingSeconds(at: now)
+            manualRemainingSeconds: state.manualRemainingSeconds(at: now),
+            noRouteGraceRemainingSeconds: state.noRouteGraceRemainingSeconds(
+                at: now,
+                graceSeconds: decisionEngine.policy.noRouteGraceSeconds
+            )
         )
     }
 

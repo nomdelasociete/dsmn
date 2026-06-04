@@ -12,6 +12,7 @@
 		0643E25D3C36B6DF1A393C9B /* dsmnctl in Embed Dependencies */ = {isa = PBXBuildFile; fileRef = F0EF5AEFD1754A2A344509EC /* dsmnctl */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		07021235DBF2A577E657BF8B /* AgentDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D67112750F54179C1E0BEEC /* AgentDetector.swift */; };
 		0B89FDFAD900348B587898D2 /* DSMNLogoIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBED8BCEB1A618ADE50C5249 /* DSMNLogoIcon.swift */; };
+		13E74C509EE6834302AF906C /* XPCClientAuthentication.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7489AD4B0CDAEC9E6870B93 /* XPCClientAuthentication.swift */; };
 		17EAA3C353FEC29A807F96E5 /* DSMNOnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 171C6E232736EB7D17692DC5 /* DSMNOnboardingView.swift */; };
 		231FA510E94F11D4FB5D29A5 /* DSMNFeedbackView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FA7A4EADB04DB2BFFEF1241 /* DSMNFeedbackView.swift */; };
 		317D2B2D40ADF21191974887 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 9AA42F96CD573113144B9278 /* Sparkle */; };
@@ -157,6 +158,7 @@
 		8FA7A4EADB04DB2BFFEF1241 /* DSMNFeedbackView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DSMNFeedbackView.swift; sourceTree = "<group>"; };
 		905431EEC13EC448A5EB8382 /* PowerManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerManager.swift; sourceTree = "<group>"; };
 		9C89A4114361C6F9FACA4919 /* DSMND.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DSMND.swift; sourceTree = "<group>"; };
+		A7489AD4B0CDAEC9E6870B93 /* XPCClientAuthentication.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XPCClientAuthentication.swift; sourceTree = "<group>"; };
 		AAA3593C1FB4896356B24159 /* LaunchAtLoginService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchAtLoginService.swift; sourceTree = "<group>"; };
 		B2C80055A7FD5F82CDA2B5E5 /* FeedbackWindowPresenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedbackWindowPresenter.swift; sourceTree = "<group>"; };
 		B631CA4B883E9FCF612EA3B6 /* HelperXPCService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperXPCService.swift; sourceTree = "<group>"; };
@@ -336,6 +338,7 @@
 				3619C42C42B624EEF07BA6AC /* StatusReport.swift */,
 				F670FC14F66FBA7A602B5CBE /* SystemSnapshotProvider.swift */,
 				5DA64BBB8035E795523E90FD /* TriggerActivitySummary.swift */,
+				A7489AD4B0CDAEC9E6870B93 /* XPCClientAuthentication.swift */,
 			);
 			name = DSMNCore;
 			path = Sources/DSMNCore;
@@ -525,6 +528,7 @@
 				44D1F403292D62A04AB4BEFC /* StatusReport.swift in Sources */,
 				6F0918E8F5D6C670806C0BC1 /* SystemSnapshotProvider.swift in Sources */,
 				3E2C9C782AC7E952FA4A55F1 /* TriggerActivitySummary.swift in Sources */,
+				13E74C509EE6834302AF906C /* XPCClientAuthentication.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
