@@ -42,7 +42,6 @@ The helper must release sleep prevention when any hard stop applies:
 - no manual timer is active;
 - battery is at or below the configured threshold while not on AC power;
 - no default network route is available for the configured grace period;
-- the lid has been open (not closed) for the configured grace period;
 - helper starts and finds stale ownership state from a previous crash;
 - user runs stop or repair.
 
@@ -51,7 +50,8 @@ The helper must release sleep prevention when any hard stop applies:
 Initial defaults:
 
 - battery stop threshold: 20%;
-- lid-open grace: 5 minutes;
+- lid-open grace: 5 minutes (diagnostic `lid_open_grace` reason only; does not
+  release `pmset` while a manual timer is still active);
 - no-route grace: 15 minutes;
 - maximum manual duration: 8 hours.
 

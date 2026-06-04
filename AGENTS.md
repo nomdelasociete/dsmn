@@ -28,7 +28,13 @@ helper owns the actual power-management operation.
 
 - `Sources/DSMNCore`: state, process detection, snapshots, decision engine,
   hook installation, XPC client, and CLI-facing models.
+  - `DoctorReportFormatter` — shared human-readable doctor text for `dsmnctl`
+    and the menu bar Doctor window.
+  - `AgentHookLogInspector` — reads `DSMN_HOOK_LOG` for fallback-caffeinate
+    warnings (doctor + menu).
 - `Sources/dsmnapp`: SwiftUI menu bar app and helper registration UI.
+  - `DoctorWindowPresenter`, `RepairResultPresenter`, `DSMNDoctorView` — menu
+    and onboarding troubleshooting; call helper XPC via `HelperServiceClient`.
 - `Sources/dsmnd`: privileged helper daemon and XPC service.
 - `Sources/dsmnctl`: CLI used by the app, hooks, Raycast, and debugging.
 - `raycast`: Raycast remote-control extension.
@@ -53,9 +59,43 @@ The script calls `dsmnctl manual --minutes 20 --extend-only --requester <agent>`
 by default, records the last requester when possible, and falls back to
 `caffeinate -is -t 600` only if `dsmnctl` or the helper is unavailable.
 
+## Product Semantics (Do Not Regress)
+
+These behaviors were corrected after the P1 quick-win PRs; treat GitHub issue
+wording literally and verify against `main` before changing them.
+
+### Manual timer and `pmset`
+
+While `manualUntil > now`, `PowerDecisionEngine.shouldPreventSleepForManual`
+returns **true** regardless of lid state. An open lid does **not** release the
+macOS sleep lock while the manual timer is still running. The `lid_open_grace`
+reason is informational only; it is not a release condition in
+`docs/SAFETY.md`.
+
+Do not reintroduce `lid_open_grace_elapsed` as a `stopReason` without an
+explicit product decision.
+
+### Hook throttling
+
+Throttle **`dsmnctl manual` calls**, not agent hook events. The installer must
+keep firing hooks on `SessionStart`, `UserPromptSubmit`, `PreToolUse`, and
+`PostToolUse` (and Pi’s extended events). The shared script skips `manual` when
+`~/.dsmn/last-extend.stamp` is newer than `DSMN_HOOK_MIN_INTERVAL_SECONDS`
+(default 120). See `docs/HOOKS.md`.
+
+Wrong approach: removing `PreToolUse` / `PostToolUse` from
+`AgentHookInstaller.hookEventNames` to reduce load.
+
+### Hook fallback vs protected
+
+`caffeinate` fallback does not provide closed-lid protection. When
+`AgentHookLogInspector` reports active fallback, doctor and menu must warn
+distinctly from normal `Active` + `Power lock: on`.
+
 ## Build And Test
 
-Use these checks for normal changes:
+Use these checks for normal changes — **all four are required before opening a
+PR**, not only `swift test`:
 
 ```sh
 swift test
@@ -164,11 +204,11 @@ npm run build --prefix raycast
   Helper`. Do not try to install the LaunchDaemon by copying files into
   `/Library/LaunchDaemons`; `SMAppService` must own registration.
 
-- `Status: active` means a bounded dsmn timer is active. `Power lock: off` can
-  still be expected while the lid is open after the grace window; the helper
-  applies the macOS sleep lock only when the decision engine needs to prevent
-  sleep. Do not diagnose this as a failed hook unless `doctor` reports
-  `Status source: local fallback`, no active timer, or no recent requester.
+- `Status: active` means a bounded manual timer is running. With
+  `Status source: helper`, expect `Power lock: on` and `macOS SleepDisabled: on`
+  for the whole timer, including when the lid is open. If the timer is active
+  but the lock is off, check `doctor` for `Hook fallback: active` or
+  `Status source: local fallback` before changing hook or detection logic.
 
 - When diagnosing agent hooks, verify the shared hook and the last requester
   before changing detection logic:
@@ -202,10 +242,26 @@ macOS SleepDisabled: on
 SleepDisabled 1
 ```
 
+## Agent Workflow
+
+- After the maintainer merges and publishes, `git pull` on `main` and read
+  post-merge fix commits (for example hook-throttle or decision-engine
+  corrections) before starting new work.
+- Parallel issue branches in separate worktrees are fine; expect merge
+  conflicts in `DSMNMenuStore.swift` when multiple menu PRs land together.
+- Prefer shared logic in `DSMNCore` (formatter/inspector) over duplicating CLI
+  text in the app.
+- UI work that adds onboarding steps: use `ScrollView` and verify the window
+  size in `OnboardingWindowPresenter` (currently 720×720).
+- When changing `PowerDecisionEngine` or hook scripts, update `docs/SAFETY.md`
+  and `docs/HOOKS.md` in the same PR.
+- Current shipped baseline: **0.1.18** (build **19**), **82** `swift test`
+  cases on `main`.
+
 ## Safety Notes
 
-- Hooks create bounded manual leases; repeated tool calls renew the lease
-  without adding time or shortening a longer manual timer.
+- Hooks create bounded manual leases; the hook script may run on every tool
+  event but throttles `dsmnctl manual` to at most once per minimum interval.
 - Hooks record the last requester, for example `Codex - dsmn - session abc12345`
   when the hook payload exposes session context.
 - Long-lived agent processes alone do not keep the Mac awake; dsmn only stays
