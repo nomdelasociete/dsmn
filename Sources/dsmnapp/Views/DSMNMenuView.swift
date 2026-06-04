@@ -66,6 +66,13 @@ struct DSMNMenuView: View {
             .disabled(!store.canRunAwakeCommands)
 
             Button {
+                requestCustomDuration()
+            } label: {
+                Label("Custom Duration...", systemImage: "slider.horizontal.3")
+            }
+            .disabled(!store.canRunAwakeCommands)
+
+            Button {
                 store.stop()
             } label: {
                 Label("Stop", systemImage: "stop.circle")
@@ -304,6 +311,34 @@ struct DSMNMenuView: View {
         default:
             break
         }
+    }
+
+    private func requestCustomDuration() {
+        NSApplication.shared.activate(ignoringOtherApps: true)
+
+        let input = NSTextField(string: "45")
+        input.frame = NSRect(x: 0, y: 0, width: 160, height: 24)
+        input.alignment = .right
+        input.placeholderString = "Minutes"
+
+        let alert = NSAlert()
+        alert.messageText = "Keep Awake"
+        alert.informativeText = "Enter a duration between 1 and 720 minutes."
+        alert.accessoryView = input
+        alert.addButton(withTitle: "Start Timer")
+        alert.addButton(withTitle: "Cancel")
+        alert.window.level = .floating
+
+        guard alert.runModal() == .alertFirstButtonReturn else {
+            return
+        }
+
+        let minutes = Int(input.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)) ?? 0
+        guard (1...720).contains(minutes) else {
+            return
+        }
+
+        store.keepAwake(minutes: minutes)
     }
 
     private func menuErrorText(_ message: String) -> some View {

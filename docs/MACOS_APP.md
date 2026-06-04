@@ -32,7 +32,7 @@ The menu bar menu is grouped into four sections:
 | Section | Purpose |
 |---------|---------|
 | **Status** | Primary state line, one secondary detail (power lock, fallback, or last requester), and errors |
-| **Control** | Keep Awake 30m / 90m and Stop (keyboard shortcuts preserved) |
+| **Control** | Keep Awake 30m / 90m, Custom Duration, and Stop (keyboard shortcuts preserved) |
 | **Setup** | Helper, hooks, Doctor, and Repair — shown inline when setup is incomplete; collapsed into **Setup & Troubleshooting** when healthy |
 | **More** | Countdown and login toggles, updates, diagnostics, feedback, refresh, quit |
 
