@@ -36,6 +36,14 @@ struct DSMNMenuView: View {
                 MenuStatusRow(title: subtitle, systemImage: "info.circle", prominent: false)
             }
 
+            if let setupStatus = store.menuSetupIncompleteStatusTitle {
+                MenuStatusRow(
+                    title: setupStatus,
+                    systemImage: "exclamationmark.circle",
+                    prominent: false
+                )
+            }
+
             if let errorMessage = store.errorMessage {
                 menuErrorText(errorMessage)
             }
@@ -192,6 +200,14 @@ struct DSMNMenuView: View {
             OnboardingWindowPresenter.show(store: store)
         } label: {
             Label("Setup Guide", systemImage: "book")
+        }
+
+        if store.canSuppressSetupReminders {
+            Button {
+                store.suppressSetupReminders()
+            } label: {
+                Label("Hide Setup Reminders", systemImage: "bell.slash")
+            }
         }
     }
 

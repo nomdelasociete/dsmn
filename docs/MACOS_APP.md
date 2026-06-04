@@ -51,6 +51,21 @@ actions as the menu:
 
 The guide can be reopened from `Setup Guide` in the menu bar menu.
 
+### Skip, Done, and incomplete setup
+
+- **Skip for Now** or closing the window dismisses the wizard (`onboardingWizardDismissed`)
+  but does **not** mean setup is healthy. The menu keeps an expanded **Setup** section
+  (or a `Setup:` line inside **Setup & Troubleshooting**) until the helper is enabled
+  and hooks report ready.
+- **Done** / **Finish Later** when helper or hooks are still incomplete shows a
+  confirmation, then dismisses the wizard the same way as Skip. Setup reminders stay
+  in the menu.
+- **Status** shows `Setup incomplete` after the wizard was dismissed while helper or
+  hooks are still missing. The menu bar icon uses the warning state in that case.
+- **Hide Setup Reminders** collapses the expanded setup section while setup is still
+  incomplete. Helper/hook actions remain under **Setup & Troubleshooting**; use
+  **Setup Guide** to reopen the full window.
+
 The important readiness signal is `Power lock`, not music playback or the
 screen state. `Power lock: on` means dsmn successfully owns the macOS
 `disablesleep` setting through its privileged helper. macOS exposes the live

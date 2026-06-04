@@ -3,7 +3,8 @@ import SwiftUI
 
 struct DSMNOnboardingView: View {
     @ObservedObject var store: DSMNMenuStore
-    var onClose: (Bool) -> Void
+    var onSkip: () -> Void
+    var onDone: () -> Void
 
     var body: some View {
         VStack(spacing: 0) {
@@ -213,11 +214,12 @@ struct DSMNOnboardingView: View {
             Spacer()
 
             Button("Skip for Now") {
-                onClose(false)
+                onSkip()
             }
+            .help("Close the guide. Setup stays visible in the menu until helper and hooks are ready.")
 
-            Button("Done") {
-                onClose(true)
+            Button(store.setupIsComplete ? "Done" : "Finish Later") {
+                onDone()
             }
             .keyboardShortcut(.defaultAction)
         }

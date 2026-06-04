@@ -61,6 +61,8 @@ final class DSMNMenuStore: ObservableObject {
     private var hasAttemptedAutomaticHelperRepair = false
 
     init() {
+        OnboardingPreferences.migrateLegacyKeysIfNeeded()
+
         do {
             let store = try StateStore.defaultStore()
             controller = DSMNController(store: store)
@@ -72,12 +74,101 @@ final class DSMNMenuStore: ObservableObject {
         }
     }
 
+    var onboardingWizardDismissed: Bool {
+        OnboardingPreferences.wizardDismissed
+    }
+
+    var setupRemindersSuppressed: Bool {
+        OnboardingPreferences.setupRemindersSuppressed
+    }
+
+    var setupIsComplete: Bool {
+        setupMenuSignals.isSetupComplete
+    }
+
     var menuBarIconState: MenuBarIconState {
         MenuBarIconState.resolve(
             report: report,
             errorMessage: errorMessage,
-            hookFallbackActive: hookFallbackNeedsAttention
+            hookFallbackActive: hookFallbackNeedsAttention,
+            setupNeedsAttention: menuBarShowsSetupAttention
         )
+    }
+
+    var menuBarShowsSetupAttention: Bool {
+        onboardingWizardDismissed
+            && !setupRemindersSuppressed
+            && setupMenuSignals.isSetupIncomplete
+    }
+
+    var menuSetupIncompleteStatusTitle: String? {
+        SetupMenuPresentation.setupIncompleteStatusTitle(
+            from: setupMenuSignals,
+            wizardDismissed: onboardingWizardDismissed
+        )
+    }
+
+    var prefersExpandedSetup: Bool {
+        SetupMenuPresentation.prefersExpandedSetup(from: setupMenuSignals)
+    }
+
+    var canSuppressSetupReminders: Bool {
+        onboardingWizardDismissed
+            && !setupRemindersSuppressed
+            && !setupIsComplete
+    }
+
+    var setupMenuSignals: SetupMenuSignals {
+        var partialInstalled: Int?
+        var partialTotal: Int?
+        var hooksFailed = false
+        var hooksNeedInstall = false
+
+        switch hookSetupStatus {
+        case let .partial(installed, total):
+            partialInstalled = installed
+            partialTotal = total
+            hooksNeedInstall = true
+        case .failed:
+            hooksFailed = true
+            hooksNeedInstall = true
+        case .checking, .installing:
+            hooksNeedInstall = !hooksAreReady
+        case .ready:
+            break
+        }
+
+        let powerLockPending: Bool = {
+            guard helperStatus == .enabled,
+                  let report,
+                  report.decision.shouldPreventSleep,
+                  !report.state.ownsSleepDisable
+            else {
+                return false
+            }
+
+            return true
+        }()
+
+        return SetupMenuSignals(
+            helperIsReady: helperIsReady,
+            helperNeedsRepair: helperNeedsRepair,
+            helperNeedsUpdate: helperNeedsUpdate,
+            helperNeedsApproval: helperNeedsApproval,
+            helperNeedsInstall: canInstallHelper,
+            hooksAreReady: hooksAreReady,
+            hooksPartialInstalled: partialInstalled,
+            hooksPartialTotal: partialTotal,
+            hooksFailed: hooksFailed,
+            hooksNeedInstall: hooksNeedInstall,
+            remindersSuppressed: setupRemindersSuppressed,
+            powerLockPending: powerLockPending
+        )
+    }
+
+    func suppressSetupReminders() {
+        OnboardingPreferences.setupRemindersSuppressed = true
+        objectWillChange.send()
     }
 
     var statusLine: String {
@@ -190,26 +281,7 @@ final class DSMNMenuStore: ObservableObject {
     }
 
     var setupLine: String? {
-        if helperNeedsRepair {
-            return "Setup: repair helper"
-        }
-
-        if helperNeedsUpdate {
-            return "Setup: update helper"
-        }
-
-        switch helperStatus {
-        case .notRegistered, .notFound:
-            return "Setup: install helper"
-        case .requiresApproval:
-            return "Setup: approve Login Items"
-        case .enabled:
-            if let report, report.decision.shouldPreventSleep && !report.state.ownsSleepDisable {
-                return "Power lock: pending"
-            }
-
-            return nil
-        }
+        SetupMenuPresentation.setupLine(from: setupMenuSignals)
     }
 
     var powerLockLine: String? {

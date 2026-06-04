@@ -36,6 +36,15 @@ final class MenuBarIconStateTests: XCTestCase {
         XCTAssertEqual(MenuBarIconState.resolve(report: report, errorMessage: nil), .off)
     }
 
+    func testShowsWarningWhenSetupNeedsAttention() {
+        let report = makeReport()
+
+        XCTAssertEqual(
+            MenuBarIconState.resolve(report: report, errorMessage: nil, setupNeedsAttention: true),
+            .warning
+        )
+    }
+
     func testShowsWarningWhenHookFallbackIsActive() {
         let now = Date(timeIntervalSince1970: 1_000)
         let report = makeReport(
