@@ -9,142 +9,278 @@ struct DSMNMenuView: View {
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
-        Text(store.statusLine)
+        statusSection
+        controlSection
 
+        if store.prefersExpandedSetup {
+            setupExpandedSection
+        } else {
+            setupTroubleshootingMenu
+        }
+
+        moreSection
+    }
+
+    // MARK: - Status
+
+    @ViewBuilder
+    private var statusSection: some View {
+        Section {
+            MenuStatusRow(
+                title: store.statusLine,
+                systemImage: store.menuStatusSystemImage,
+                prominent: true
+            )
+
+            if let subtitle = store.menuStatusSubtitle {
+                MenuStatusRow(title: subtitle, systemImage: "info.circle", prominent: false)
+            }
+
+            if let errorMessage = store.errorMessage {
+                menuErrorText(errorMessage)
+            }
+        } header: {
+            Text("Status")
+        }
+    }
+
+    // MARK: - Control
+
+    @ViewBuilder
+    private var controlSection: some View {
+        Section {
+            Button {
+                store.keepAwake(minutes: 30)
+            } label: {
+                Label("Keep Awake for 30 Minutes", systemImage: "clock")
+            }
+            .keyboardShortcut("3")
+            .disabled(!store.canRunAwakeCommands)
+
+            Button {
+                store.keepAwake(minutes: 90)
+            } label: {
+                Label("Keep Awake for 90 Minutes", systemImage: "clock.badge.checkmark")
+            }
+            .keyboardShortcut("9")
+            .disabled(!store.canRunAwakeCommands)
+
+            Button {
+                requestCustomDuration()
+            } label: {
+                Label("Custom Duration...", systemImage: "slider.horizontal.3")
+            }
+            .disabled(!store.canRunAwakeCommands)
+
+            Button {
+                store.stop()
+            } label: {
+                Label("Stop", systemImage: "stop.circle")
+            }
+            .keyboardShortcut(".")
+        } header: {
+            Text("Control")
+        }
+    }
+
+    // MARK: - Setup
+
+    @ViewBuilder
+    private var setupExpandedSection: some View {
+        Section {
+            setupActionItems
+        } header: {
+            Text("Setup")
+        }
+    }
+
+    @ViewBuilder
+    private var setupTroubleshootingMenu: some View {
+        Menu {
+            setupStatusItems
+            Divider()
+            setupActionItems
+        } label: {
+            Label("Setup & Troubleshooting", systemImage: "wrench.and.screwdriver")
+        }
+    }
+
+    @ViewBuilder
+    private var setupStatusItems: some View {
+        MenuStatusRow(
+            title: store.helperStatusLine,
+            systemImage: store.helperIsReady ? "checkmark.shield.fill" : "shield.slash",
+            prominent: false
+        )
+
+        MenuStatusRow(
+            title: "Hooks: \(store.hooksSummary)",
+            systemImage: store.hooksStatusIconName,
+            prominent: false
+        )
+    }
+
+    @ViewBuilder
+    private var setupActionItems: some View {
         if let setupLine = store.setupLine {
-            Text(setupLine)
+            MenuStatusRow(title: setupLine, systemImage: "exclamationmark.circle", prominent: false)
         }
-
-        if let powerLockLine = store.powerLockLine {
-            Text(powerLockLine)
-        }
-
-        if let hookFallbackLine = store.hookFallbackLine {
-            Text(hookFallbackLine)
-        }
-
-        if let lastRequesterLine = store.lastRequesterLine {
-            Text(lastRequesterLine)
-        }
-
-        Text(store.triggerActivityLine)
-            .font(.caption.monospacedDigit())
-
-        if let errorMessage = store.errorMessage {
-            menuErrorText(errorMessage)
-        }
-
-        Text(store.helperStatusLine)
-        Text(store.launchAtLoginStatusLine)
-
-        Divider()
-
-        Toggle("Show Countdown", isOn: $showMenuBarCountdown)
-
-        Toggle("Launch at Login", isOn: Binding(
-            get: { store.launchAtLoginEnabled },
-            set: { store.setLaunchAtLogin($0) }
-        ))
-
-        if store.loginItemNeedsApproval {
-            Button("Open Login Items") {
-                store.openLoginItemsSettings()
-            }
-        }
-
-        Divider()
-
-        Button("Keep Awake 30m") {
-            store.keepAwake(minutes: 30)
-        }
-        .keyboardShortcut("3")
-        .disabled(!store.canRunAwakeCommands)
-
-        Button("Keep Awake 90m") {
-            store.keepAwake(minutes: 90)
-        }
-        .keyboardShortcut("9")
-        .disabled(!store.canRunAwakeCommands)
-
-        Button("Stop") {
-            store.stop()
-        }
-        .keyboardShortcut(".")
-
-        Divider()
-
-        CheckForUpdatesView(updateController: updateController)
-
-        Divider()
-
-        Button("Send Feedback") {
-            FeedbackWindowPresenter.show(store: store)
-        }
-
-        Button("About dsmn") {
-            AboutPanelPresenter.show()
-        }
-
-        Button("Why Awake?") {
-            NSApplication.shared.activate(ignoringOtherApps: true)
-            openWindow(id: "why-awake")
-        }
-
-        Button("Setup Guide") {
-            OnboardingWindowPresenter.show(store: store)
-        }
-
-        Button("Refresh") {
-            Task {
-                await store.refresh()
-            }
-        }
-        .keyboardShortcut("r")
-
-        Divider()
 
         if store.canInstallHelper {
-            Button("1. Install Helper") {
+            Button {
                 store.installHelper()
+            } label: {
+                Label("Install Helper", systemImage: "arrow.down.app")
             }
         }
 
         if store.canUpdateHelper {
-            Button(store.helperNeedsRepair ? "Repair Helper" : "Update Helper") {
+            Button {
                 store.updateHelper()
+            } label: {
+                Label(store.helperUpdateButtonTitle, systemImage: "arrow.triangle.2.circlepath")
             }
         }
 
         if store.helperNeedsApproval {
-            Button("2. Open Login Items") {
+            Button {
                 store.openHelperSettings()
+            } label: {
+                Label("Approve Helper in Login Items", systemImage: "person.crop.circle.badge.checkmark")
             }
         }
 
-        if store.canUnregisterHelper {
-            Button("Unregister Helper") {
-                store.unregisterHelper()
+        if store.loginItemNeedsApproval {
+            Button {
+                store.openLoginItemsSettings()
+            } label: {
+                Label("Approve Launch at Login", systemImage: "power")
             }
         }
 
-        Button("Run Doctor") {
+        Button {
+            store.installAgentHooks()
+        } label: {
+            Label(store.hooksActionTitle, systemImage: "link")
+        }
+        .disabled(store.hooksAreBusy)
+
+        Button {
             store.runDoctor()
+        } label: {
+            Label("Run Doctor", systemImage: "stethoscope")
         }
         .disabled(!store.canRunDoctor)
 
-        Button("Run Repair") {
+        Button {
             store.runRepair()
+        } label: {
+            Label("Run Repair", systemImage: "bandage")
         }
         .disabled(!store.canRunHelperRepair)
-        .help(store.repairUnavailableExplanation ?? "Clear stale dsmn state and release the macOS sleep lock.")
+        .help(store.repairUnavailableExplanation ?? "Clear stale state and release the macOS sleep lock.")
 
-        Divider()
-
-        Button("Quit") {
-            quit()
+        if store.canUnregisterHelper {
+            Button {
+                store.unregisterHelper()
+            } label: {
+                Label("Unregister Helper", systemImage: "trash")
+            }
         }
-        .keyboardShortcut("q")
+
+        Button {
+            OnboardingWindowPresenter.show(store: store)
+        } label: {
+            Label("Setup Guide", systemImage: "book")
+        }
     }
+
+    // MARK: - More
+
+    @ViewBuilder
+    private var moreSection: some View {
+        Section {
+            Toggle(isOn: $showMenuBarCountdown) {
+                Label("Show Countdown in Menu Bar", systemImage: "timer")
+            }
+
+            Toggle(isOn: Binding(
+                get: { store.launchAtLoginEnabled },
+                set: { store.setLaunchAtLogin($0) }
+            )) {
+                Label("Launch at Login", systemImage: "power")
+            }
+
+            CheckForUpdatesView(updateController: updateController)
+
+            Menu {
+                Button {
+                    NSApplication.shared.activate(ignoringOtherApps: true)
+                    openWindow(id: "why-awake")
+                } label: {
+                    Label("Why Awake?", systemImage: "questionmark.circle")
+                }
+
+                if store.showsActivityMenu {
+                    MenuStatusRow(
+                        title: store.triggerActivityLine,
+                        systemImage: "waveform.path",
+                        prominent: false
+                    )
+                }
+
+                Button {
+                    store.runDoctor()
+                } label: {
+                    Label("Run Doctor", systemImage: "stethoscope")
+                }
+                .disabled(!store.canRunDoctor)
+
+                Button {
+                    store.runRepair()
+                } label: {
+                    Label("Run Repair", systemImage: "bandage")
+                }
+                .disabled(!store.canRunHelperRepair)
+            } label: {
+                Label("Diagnostics", systemImage: "waveform.path.ecg")
+            }
+
+            Button {
+                FeedbackWindowPresenter.show(store: store)
+            } label: {
+                Label("Send Feedback", systemImage: "envelope")
+            }
+
+            Button {
+                AboutPanelPresenter.show()
+            } label: {
+                Label("About dsmn", systemImage: "info.circle")
+            }
+
+            Button {
+                Task {
+                    await store.refresh()
+                }
+            } label: {
+                Label("Refresh Status", systemImage: "arrow.clockwise")
+            }
+            .keyboardShortcut("r")
+
+            Divider()
+
+            Button {
+                quit()
+            } label: {
+                Label("Quit", systemImage: "power")
+            }
+            .keyboardShortcut("q")
+        } header: {
+            Text("More")
+        }
+    }
+
+    // MARK: - Helpers
 
     private func quit() {
         guard store.isProtectingSleep else {
@@ -177,10 +313,62 @@ struct DSMNMenuView: View {
         }
     }
 
+    private func requestCustomDuration() {
+        NSApplication.shared.activate(ignoringOtherApps: true)
+
+        let input = NSTextField(string: "45")
+        input.frame = NSRect(x: 0, y: 0, width: 160, height: 24)
+        input.alignment = .right
+        input.placeholderString = "Minutes"
+
+        let alert = NSAlert()
+        alert.messageText = "Keep Awake"
+        alert.informativeText = "Enter a duration between 1 and 720 minutes."
+        alert.accessoryView = input
+        alert.addButton(withTitle: "Start Timer")
+        alert.addButton(withTitle: "Cancel")
+        alert.window.level = .floating
+
+        guard alert.runModal() == .alertFirstButtonReturn else {
+            return
+        }
+
+        let minutes = Int(input.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)) ?? 0
+        guard (1...720).contains(minutes) else {
+            return
+        }
+
+        store.keepAwake(minutes: minutes)
+    }
+
     private func menuErrorText(_ message: String) -> some View {
-        Text(message)
-            .font(.footnote)
-            .foregroundStyle(.red)
-            .fixedSize(horizontal: false, vertical: true)
+        Label {
+            Text(message)
+                .fixedSize(horizontal: false, vertical: true)
+        } icon: {
+            Image(systemName: "xmark.octagon.fill")
+        }
+        .foregroundStyle(.red)
+        .font(.footnote)
+    }
+}
+
+// MARK: - Menu status row
+
+private struct MenuStatusRow: View {
+    let title: String
+    let systemImage: String
+    let prominent: Bool
+
+    var body: some View {
+        Label {
+            Text(title)
+                .font(prominent ? .body.weight(.semibold) : .footnote)
+                .foregroundStyle(prominent ? .primary : .secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        } icon: {
+            Image(systemName: systemImage)
+                .symbolRenderingMode(.hierarchical)
+        }
     }
 }
