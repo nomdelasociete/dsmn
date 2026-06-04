@@ -81,7 +81,7 @@ the Mac awake. A large timestamp gap means the machine slept.
 You can also inspect the current state from the archived app bundle:
 
 ```sh
-/Users/jb/Documents/Github/NomDeLaSociete/dsmn/dist/export/dsmn.app/Contents/Library/Helpers/dsmnctl doctor
+dsmnctl doctor
 pmset -g live | rg 'SleepDisabled'
 ```
 

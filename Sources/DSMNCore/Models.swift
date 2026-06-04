@@ -151,20 +151,17 @@ public struct SystemSnapshot: Codable, Equatable, Sendable {
 public struct SafetyPolicy: Codable, Equatable, Sendable {
     public var minimumBatteryPercent: Int
     public var maxManualDurationMinutes: Int
-    public var noAgentGraceSeconds: Int
     public var lidOpenGraceSeconds: Int
     public var noRouteGraceSeconds: Int
 
     public init(
         minimumBatteryPercent: Int = 20,
         maxManualDurationMinutes: Int = 8 * 60,
-        noAgentGraceSeconds: Int = 5 * 60,
         lidOpenGraceSeconds: Int = 5 * 60,
         noRouteGraceSeconds: Int = 15 * 60
     ) {
         self.minimumBatteryPercent = minimumBatteryPercent
         self.maxManualDurationMinutes = maxManualDurationMinutes
-        self.noAgentGraceSeconds = noAgentGraceSeconds
         self.lidOpenGraceSeconds = lidOpenGraceSeconds
         self.noRouteGraceSeconds = noRouteGraceSeconds
     }
