@@ -4,7 +4,13 @@
 
 - Always run `git fetch --all --prune` and check `git status --short --branch`
   before changing code.
-- Keep changes scoped and commit/push each completed step.
+- **Never commit or push directly to `main`.** Work on a feature branch, push
+  the branch, and open a PR (`gh pr create`). Link the GitHub issue in the PR
+  body (`Closes #N`). If you committed on local `main` by mistake: create a
+  branch at that commit, `git reset --hard origin/main` on `main`, push only the
+  branch.
+- Keep changes scoped and commit/push each completed step (on the feature
+  branch).
 - Do not revert unrelated user changes.
 - Use `apply_patch` for manual file edits.
 - Prefer `rg` and `rg --files` for repository search.
@@ -89,6 +95,23 @@ keep firing hooks on `SessionStart`, `UserPromptSubmit`, `PreToolUse`, and
 
 Wrong approach: removing `PreToolUse` / `PostToolUse` from
 `AgentHookInstaller.hookEventNames` to reduce load.
+
+### Hook uninstall (#17 / PR #55)
+
+`AgentHookInstaller.uninstall` is symmetric to `install` for Claude/Codex JSON,
+Grok `dsmn.json`, Pi `dsmn.ts`, and (on full uninstall) `~/.dsmn/dsmn-agent-hook.sh`.
+
+- **Per-hook removal inside groups** — Claude/Codex events can share one JSON
+  group with a `matcher` and multiple `hooks` entries (for example dsmn beside
+  `safety.sh`). Uninstall must filter individual `hooks[]` commands, not drop the
+  whole group. Wrong: `groups.filter { !isDsmnHookGroup($0) }`. Right: compactMap
+  each group, filter `group["hooks"]` with `isDsmnHook`, keep the group when
+  non-dsmn hooks remain.
+- **Do not revert Codex `features.hooks`** on uninstall; only edit
+  `~/.codex/hooks.json`.
+- **UI placement** — full uninstall lives under **About dsmn → Remove Agent
+  Hooks…** with a second confirmation alert, not a top-level menu row.
+- **Idempotent** — second `uninstall-hooks` reports `not installed` / `not present`.
 
 ### Hook fallback vs protected
 
@@ -273,8 +296,10 @@ Rules learned from shipping #9:
 ## Agent Workflow
 
 - After the maintainer merges and publishes, `git pull` on `main` and read
-  post-merge fix commits (for example hook-throttle, decision-engine, or menu
-  row behavior) before starting new work.
+  post-merge fix commits before starting new work. For #17, PR #55 shipped
+  uninstall-hooks; commit `94f0d87` fixed mixed hook groups (do not regress).
+- When an issue asks for a “menu action”, prefer a low-traffic surface (About,
+  Setup submenu) unless the action is daily-use — #17 used About, not More menu.
 - Parallel issue branches in separate worktrees are fine; expect merge
   conflicts in `DSMNMenuStore.swift` when multiple menu PRs land together.
 - Prefer shared logic in `DSMNCore` (formatter/inspector) over duplicating CLI
@@ -283,7 +308,8 @@ Rules learned from shipping #9:
   size in `OnboardingWindowPresenter` (currently 720×720).
 - When changing `PowerDecisionEngine` or hook scripts, update `docs/SAFETY.md`
   and `docs/HOOKS.md` in the same PR.
-- Current shipped baseline: **0.1.20**, **82** `swift test` cases on `main`.
+- Current shipped baseline: **0.1.22**, **87** `swift test` cases on `main`
+  (includes #17 uninstall-hooks + mixed-group fix).
 
 ## Safety Notes
 
