@@ -71,7 +71,6 @@ struct DSMNMenuView: View {
                 Label("Stop", systemImage: "stop.circle")
             }
             .keyboardShortcut(".")
-            .disabled(!store.canRunAwakeCommands)
         } header: {
             Text("Control")
         }
@@ -327,18 +326,14 @@ private struct MenuStatusRow: View {
     let prominent: Bool
 
     var body: some View {
-        Button(action: {}) {
-            Label {
-                Text(title)
-                    .font(prominent ? .body.weight(.semibold) : .footnote)
-                    .foregroundStyle(prominent ? .primary : .secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            } icon: {
-                Image(systemName: systemImage)
-                    .symbolRenderingMode(.hierarchical)
-            }
+        Label {
+            Text(title)
+                .font(prominent ? .body.weight(.semibold) : .footnote)
+                .foregroundStyle(prominent ? .primary : .secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        } icon: {
+            Image(systemName: systemImage)
+                .symbolRenderingMode(.hierarchical)
         }
-        .buttonStyle(.plain)
-        .disabled(true)
     }
 }
