@@ -590,6 +590,7 @@
 			buildSettings = {
 				COMBINE_HIDPI_IMAGES = YES;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../../Frameworks";
+				OTHER_CODE_SIGN_FLAGS = "$(inherited) --identifier com.nomdelasociete.dsmn.helper";
 				OTHER_SWIFT_FLAGS = "$(inherited) -parse-as-library";
 				PRODUCT_BUNDLE_IDENTIFIER = com.nomdelasociete.dsmn.helper;
 				PRODUCT_NAME = dsmnd;
@@ -619,6 +620,7 @@
 			buildSettings = {
 				COMBINE_HIDPI_IMAGES = YES;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../../Frameworks";
+				OTHER_CODE_SIGN_FLAGS = "$(inherited) --identifier com.nomdelasociete.dsmn.helper";
 				OTHER_SWIFT_FLAGS = "$(inherited) -parse-as-library";
 				PRODUCT_BUNDLE_IDENTIFIER = com.nomdelasociete.dsmn.helper;
 				PRODUCT_NAME = dsmnd;
@@ -701,6 +703,7 @@
 			buildSettings = {
 				COMBINE_HIDPI_IMAGES = YES;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../../Frameworks";
+				OTHER_CODE_SIGN_FLAGS = "$(inherited) --identifier com.nomdelasociete.dsmn.dsmnctl";
 				OTHER_SWIFT_FLAGS = "$(inherited) -parse-as-library";
 				PRODUCT_BUNDLE_IDENTIFIER = com.nomdelasociete.dsmn.dsmnctl;
 				PRODUCT_NAME = dsmnctl;
@@ -816,6 +819,7 @@
 			buildSettings = {
 				COMBINE_HIDPI_IMAGES = YES;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../../Frameworks";
+				OTHER_CODE_SIGN_FLAGS = "$(inherited) --identifier com.nomdelasociete.dsmn.dsmnctl";
 				OTHER_SWIFT_FLAGS = "$(inherited) -parse-as-library";
 				PRODUCT_BUNDLE_IDENTIFIER = com.nomdelasociete.dsmn.dsmnctl;
 				PRODUCT_NAME = dsmnctl;

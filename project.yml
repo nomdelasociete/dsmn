@@ -29,8 +29,8 @@ targets:
         CFBundleIdentifier: com.nomdelasociete.dsmn.core
         CFBundleName: DSMNCore
         CFBundlePackageType: FMWK
-        CFBundleShortVersionString: "0.1.11"
-        CFBundleVersion: "12"
+        CFBundleShortVersionString: "0.1.12"
+        CFBundleVersion: "13"
         LSMinimumSystemVersion: "13.0"
     settings:
       base:
@@ -72,8 +72,8 @@ targets:
         CFBundleIdentifier: com.nomdelasociete.dsmn
         CFBundleIconFile: dsmn
         CFBundleName: dsmn
-        CFBundleShortVersionString: "0.1.11"
-        CFBundleVersion: "12"
+        CFBundleShortVersionString: "0.1.12"
+        CFBundleVersion: "13"
         LSApplicationCategoryType: public.app-category.utilities
         LSMinimumSystemVersion: "13.0"
         LSUIElement: true
@@ -97,6 +97,7 @@ targets:
       base:
         OTHER_SWIFT_FLAGS: "$(inherited) -parse-as-library"
         LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/../../Frameworks"
+        OTHER_CODE_SIGN_FLAGS: "$(inherited) --identifier com.nomdelasociete.dsmn.helper"
         PRODUCT_BUNDLE_IDENTIFIER: com.nomdelasociete.dsmn.helper
         PRODUCT_NAME: dsmnd
         SKIP_INSTALL: YES
@@ -111,6 +112,7 @@ targets:
       base:
         OTHER_SWIFT_FLAGS: "$(inherited) -parse-as-library"
         LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/../../Frameworks"
+        OTHER_CODE_SIGN_FLAGS: "$(inherited) --identifier com.nomdelasociete.dsmn.dsmnctl"
         PRODUCT_BUNDLE_IDENTIFIER: com.nomdelasociete.dsmn.dsmnctl
         PRODUCT_NAME: dsmnctl
         SKIP_INSTALL: YES
