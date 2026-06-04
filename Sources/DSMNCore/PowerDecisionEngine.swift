@@ -63,15 +63,7 @@ public struct PowerDecisionEngine: Sendable {
             return false
         }
 
-        guard let lidClosed = snapshot.lidClosed else {
-            return true
-        }
-
-        if lidClosed {
-            return true
-        }
-
-        return state.isWithinLidOpenGrace(at: snapshot.now, graceSeconds: policy.lidOpenGraceSeconds)
+        return true
     }
 
     private func safetyBlocks(state: DSMNState, snapshot: SystemSnapshot) -> [String] {
@@ -105,12 +97,6 @@ public struct PowerDecisionEngine: Sendable {
     }
 
     private func inactiveReason(state: DSMNState, agents: [AgentProcess], snapshot: SystemSnapshot) -> String {
-        if state.manualIsActive(at: snapshot.now),
-           snapshot.lidClosed == false,
-           !state.isWithinLidOpenGrace(at: snapshot.now, graceSeconds: policy.lidOpenGraceSeconds) {
-            return "lid_open_grace_elapsed"
-        }
-
         if let manualUntil = state.manualUntil, manualUntil <= snapshot.now {
             return "manual_expired"
         }

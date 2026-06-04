@@ -47,7 +47,7 @@ final class PowerDecisionEngineTests: XCTestCase {
         XCTAssertEqual(decision.reasons, ["manual_timer", "lid_open_grace"])
     }
 
-    func testLidOpenGraceElapsedReleasesSleepPreventionWhileManualTimerRuns() {
+    func testLidOpenGraceElapsedKeepsSleepPreventionWhileManualTimerRuns() {
         let openedAt = Date(timeIntervalSince1970: 1_000)
         let now = openedAt.addingTimeInterval(TimeInterval(policy.lidOpenGraceSeconds + 1))
         var state = DSMNState(manualUntil: now.addingTimeInterval(600))
@@ -60,9 +60,9 @@ final class PowerDecisionEngineTests: XCTestCase {
             snapshot: SystemSnapshot(now: now, lidClosed: false)
         )
 
-        XCTAssertFalse(decision.shouldPreventSleep)
+        XCTAssertTrue(decision.shouldPreventSleep)
         XCTAssertEqual(decision.reasons, ["manual_timer"])
-        XCTAssertEqual(decision.stopReason, "lid_open_grace_elapsed")
+        XCTAssertNil(decision.stopReason)
     }
 
     func testLidOpenTransitionSetsAnchorAndKeepsSleepPrevention() {

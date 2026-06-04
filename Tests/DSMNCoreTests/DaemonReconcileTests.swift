@@ -162,7 +162,7 @@ final class DaemonReconcileTests: XCTestCase {
         XCTAssertEqual(powerManager.requests, [])
     }
 
-    func testReconcileReleasesAfterLidOpenGraceWhileManualTimerStillActive() throws {
+    func testReconcileKeepsSleepPreventionAfterLidOpenGraceWhileManualTimerStillActive() throws {
         let openedAt = Date(timeIntervalSince1970: 1_000)
         let afterGrace = openedAt.addingTimeInterval(301)
         let store = try makeStore()
@@ -187,10 +187,10 @@ final class DaemonReconcileTests: XCTestCase {
 
         let report = try controller.reconcile(powerManager: powerManager, now: afterGrace)
 
-        XCTAssertFalse(report.status.decision.shouldPreventSleep)
-        XCTAssertEqual(report.status.decision.stopReason, "lid_open_grace_elapsed")
-        XCTAssertEqual(powerManager.requests, [false])
-        XCTAssertFalse(report.status.state.ownsSleepDisable)
+        XCTAssertTrue(report.status.decision.shouldPreventSleep)
+        XCTAssertNil(report.status.decision.stopReason)
+        XCTAssertEqual(powerManager.requests, [])
+        XCTAssertTrue(report.status.state.ownsSleepDisable)
     }
 
     func testStopPreservesOwnershipUntilReconcileReleasesPower() throws {
