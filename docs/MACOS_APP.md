@@ -8,7 +8,8 @@ It is intentionally menu-bar-only:
 - no Dock icon;
 - status icon with an optional countdown while a manual lease is active;
 - native crown logo for the menu bar status item;
-- compact Coffee-style actions.
+- compact Coffee-style actions grouped as **Status**, **Control**, **Setup**, and
+  **More** in the menu bar menu.
 
 The menu bar icon changes by state:
 
@@ -23,6 +24,20 @@ next to the status icon.
 The `Launch at Login` menu toggle asks macOS to launch `dsmn.app` when the user
 logs in. It is optional and uses `SMAppService.mainApp`; macOS may ask for
 approval in System Settings > General > Login Items.
+
+## Menu structure
+
+The menu bar menu is grouped into four sections:
+
+| Section | Purpose |
+|---------|---------|
+| **Status** | Primary state line, one secondary detail (power lock, fallback, or last requester), and errors |
+| **Control** | Keep Awake 30m / 90m and Stop (keyboard shortcuts preserved) |
+| **Setup** | Helper, hooks, Doctor, and Repair — shown inline when setup is incomplete; collapsed into **Setup & Troubleshooting** when healthy |
+| **More** | Countdown and login toggles, updates, diagnostics, feedback, refresh, quit |
+
+Trigger activity appears under **More → Diagnostics** while a session is active,
+not in the default status block.
 
 ## First-run setup
 
@@ -43,10 +58,12 @@ system value as `SleepDisabled 1` in `pmset -g live`.
 
 1. Launch the archived `dsmn.app`.
 2. Open the menu bar icon.
-3. If the menu says `Setup: install helper`, click `1. Install Helper`.
-4. If the menu says `Setup: approve Login Items`, click `2. Open Login Items`,
-   enable dsmn in System Settings, then return to the menu and click `Refresh`.
-5. Setup is ready when the menu says `Helper: enabled`.
+3. In the **Setup** section (or **Setup & Troubleshooting** when healthy), click
+   **Install Helper** if the status line says setup is required.
+4. If needed, click **Approve Helper in Login Items**, enable dsmn in System
+   Settings, then **Refresh Status** under **More**.
+5. Install agent hooks from the same setup area. Setup is ready when the helper
+   is enabled and hooks report ready.
 
 When dsmn is idle, `Power lock: off` is expected. It should switch to
 `Power lock: on` only while a manual timer is active.
