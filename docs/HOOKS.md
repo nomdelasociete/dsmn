@@ -13,13 +13,14 @@ XPC.
 dsmn can install the hook automatically:
 
 ```sh
-/Users/jb/Documents/Github/NomDeLaSociete/dsmn/dist/export/dsmn.app/Contents/Library/Helpers/dsmnctl install-hooks
+/Applications/dsmn.app/Contents/Library/Helpers/dsmnctl install-hooks
 ```
 
-Or from the repo:
+Or from a local build:
 
 ```sh
-/Users/jb/Documents/Github/NomDeLaSociete/dsmn/scripts/install-agent-hooks.sh
+dist/export/dsmn.app/Contents/Library/Helpers/dsmnctl install-hooks
+./scripts/install-agent-hooks.sh
 ```
 
 Supported targets:
@@ -37,6 +38,10 @@ The installer writes the executable hook to:
 ```text
 ~/.dsmn/dsmn-agent-hook.sh
 ```
+
+Re-run `dsmnctl install-hooks` after upgrading dsmn so `~/.dsmn/dsmn-agent-hook.sh`
+is regenerated. Older installs may still contain developer-only `dsmnctl` search
+paths that are no longer shipped.
 
 Then it installs:
 
@@ -104,7 +109,7 @@ Manual hook JSON example:
 After a hook fires:
 
 ```sh
-/Users/jb/Documents/Github/NomDeLaSociete/dsmn/dist/export/dsmn.app/Contents/Library/Helpers/dsmnctl doctor
+dsmnctl doctor
 pmset -g live | rg 'SleepDisabled'
 tail -n 20 /tmp/dsmn-agent-hook.log
 ```

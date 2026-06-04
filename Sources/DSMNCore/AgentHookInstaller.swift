@@ -402,8 +402,16 @@ public struct AgentHookInstaller: Sendable {
     }
 
     private func hookScript() -> String {
-        let currentDsmnctlPath = dsmnctlPath ?? CommandLine.arguments.first ?? ""
-        let escapedDsmnctlPath = shellSingleQuoted(currentDsmnctlPath)
+        let installerDsmnctlPath = (dsmnctlPath ?? CommandLine.arguments.first ?? "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        var candidateLines = [
+            "\"/Applications/dsmn.app/Contents/Library/Helpers/dsmnctl\"",
+            "\"$HOME/Applications/dsmn.app/Contents/Library/Helpers/dsmnctl\""
+        ]
+        if !installerDsmnctlPath.isEmpty {
+            candidateLines.append(shellSingleQuoted(installerDsmnctlPath))
+        }
+        let candidatesBlock = candidateLines.map { "    \($0)" }.joined(separator: "\n")
 
         return """
         #!/usr/bin/env bash
@@ -449,11 +457,7 @@ public struct AgentHookInstaller: Sendable {
           fi
 
           local candidates=(
-            "/Applications/dsmn.app/Contents/Library/Helpers/dsmnctl"
-            "$HOME/Applications/dsmn.app/Contents/Library/Helpers/dsmnctl"
-            \(escapedDsmnctlPath)
-            "$HOME/Documents/Github/NomDeLaSociete/dsmn/dist/export/dsmn.app/Contents/Library/Helpers/dsmnctl"
-            "$HOME/Documents/Github/NomDeLaSociete/dsmn/.build/debug/dsmnctl"
+        \(candidatesBlock)
           )
 
           local candidate version best best_version

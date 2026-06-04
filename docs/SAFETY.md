@@ -23,6 +23,17 @@ for an explicit choice when dsmn is active: `Stop & Quit` releases the current
 timer before closing, while `Quit, Keep Running` leaves the helper and hooks in
 their current state.
 
+## Activation model
+
+Sleep prevention is driven by a **manual timer** (`manualUntil`), not by
+detected agent processes. Running Claude, Codex, Grok Build, or Pi alone does
+not keep the Mac awake.
+
+Agent hooks call `dsmnctl manual --extend-only` on session and tool events. Each
+call renews the current lease up to the configured maximum; renewals are not
+additive and never shorten a longer timer already in effect. When tool activity
+stops, the timer expires and the helper releases the power lock.
+
 ## Release conditions
 
 The helper must release sleep prevention when any hard stop applies:
@@ -31,7 +42,7 @@ The helper must release sleep prevention when any hard stop applies:
 - no manual timer is active;
 - battery is at or below the configured threshold while not on AC power;
 - no default network route is available for the configured grace period;
-- the lid has been reopened for the configured grace period;
+- the lid has been open (not closed) for the configured grace period;
 - helper starts and finds stale ownership state from a previous crash;
 - user runs stop or repair.
 
@@ -40,7 +51,6 @@ The helper must release sleep prevention when any hard stop applies:
 Initial defaults:
 
 - battery stop threshold: 20%;
-- no-agent grace: 5 minutes;
 - lid-open grace: 5 minutes;
 - no-route grace: 15 minutes;
 - maximum manual duration: 8 hours.

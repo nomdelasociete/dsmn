@@ -100,7 +100,7 @@ struct DSMNOnboardingView: View {
                 Text("Don't Stop Me Now!")
                     .font(.system(size: 32, weight: .semibold, design: .rounded))
 
-                Text("Keep Claude, Codex, Grok, and Pi working while your Mac is closed or moving with you.")
+                Text("Agent hooks extend a manual sleep timer so closed-lid sessions with Claude, Codex, Grok, and Pi keep going.")
                     .font(.system(size: 15))
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)

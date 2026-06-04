@@ -17,6 +17,11 @@ manualActive = manualUntil > now
 effectiveActive = manualActive && safetyOK
 ```
 
+Agent processes are detected for display and hook attribution only. They do not
+participate in `shouldPreventSleep`. Hooks extend a bounded manual lease via
+`dsmnctl manual --extend-only`; when activity stops, the timer expires and the
+helper releases `pmset disablesleep`.
+
 ## CLI
 
 `dsmnctl` is the stable automation contract used by Raycast, scripts, and manual
