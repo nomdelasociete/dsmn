@@ -42,12 +42,16 @@ helper owns the actual power-management operation.
 
 ## Supported Agents
 
-`dsmnctl install-hooks` supports:
+`dsmnctl install-hooks` and `dsmnctl uninstall-hooks` support:
 
 - Claude Code
 - Codex
 - Grok Build
 - Pi
+
+Full uninstall (`all` or no target) also removes `~/.dsmn/dsmn-agent-hook.sh`.
+The menu exposes full uninstall from **About dsmn → Remove Agent Hooks…** (not a
+top-level menu item).
 
 All installed hooks call the shared script:
 

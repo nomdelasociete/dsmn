@@ -139,6 +139,136 @@ final class AgentHookInstallerTests: XCTestCase {
         )
     }
 
+    func testUninstallRemovesDsmnHooksAndSharedScript() throws {
+        let home = temporaryHome()
+        defer {
+            try? FileManager.default.removeItem(at: home)
+        }
+
+        let installer = AgentHookInstaller(homeDirectory: home, dsmnctlPath: "/Applications/dsmn.app/Contents/Library/Helpers/dsmnctl")
+        _ = try installer.install()
+
+        let reports = try installer.uninstall()
+        XCTAssertTrue(reports.contains { $0.target == "hook-script" && $0.changed })
+        XCTAssertFalse(FileManager.default.fileExists(atPath: home.appendingPathComponent(".dsmn/dsmn-agent-hook.sh").path))
+
+        let claude = try readJSON(home.appendingPathComponent(".claude/settings.json"))
+        XCTAssertTrue(hookCommands(in: claude).filter { $0.contains("dsmn-agent-hook.sh") }.isEmpty)
+
+        let codex = try readJSON(home.appendingPathComponent(".codex/hooks.json"))
+        XCTAssertTrue(hookCommands(in: codex).filter { $0.contains("dsmn-agent-hook.sh") }.isEmpty)
+
+        XCTAssertFalse(FileManager.default.fileExists(atPath: home.appendingPathComponent(".grok/hooks/dsmn.json").path))
+        XCTAssertFalse(FileManager.default.fileExists(atPath: home.appendingPathComponent(".pi/agent/extensions/dsmn.ts").path))
+    }
+
+    func testUninstallPreservesUnrelatedClaudeHooks() throws {
+        let home = temporaryHome()
+        defer {
+            try? FileManager.default.removeItem(at: home)
+        }
+
+        try FileManager.default.createDirectory(
+            at: home.appendingPathComponent(".claude", isDirectory: true),
+            withIntermediateDirectories: true
+        )
+        try """
+        {
+          "hooks": {
+            "PreToolUse": [
+              {
+                "matcher": "Bash",
+                "hooks": [
+                  { "type": "command", "command": "/Users/jb/.claude/hooks/safety.sh" }
+                ]
+              }
+            ]
+          }
+        }
+        """.write(
+            to: home.appendingPathComponent(".claude/settings.json"),
+            atomically: true,
+            encoding: .utf8
+        )
+
+        let installer = AgentHookInstaller(homeDirectory: home, dsmnctlPath: "/tmp/dsmnctl")
+        _ = try installer.install(targets: [.claude])
+        _ = try installer.uninstall(targets: [.claude])
+
+        let claude = try readJSON(home.appendingPathComponent(".claude/settings.json"))
+        XCTAssertTrue(hookCommands(in: claude).contains("/Users/jb/.claude/hooks/safety.sh"))
+        XCTAssertTrue(hookCommands(in: claude).filter { $0.contains("dsmn-agent-hook.sh") }.isEmpty)
+    }
+
+    func testUninstallPreservesUnrelatedHooksInsideMixedGroup() throws {
+        let home = temporaryHome()
+        defer {
+            try? FileManager.default.removeItem(at: home)
+        }
+
+        try FileManager.default.createDirectory(
+            at: home.appendingPathComponent(".claude", isDirectory: true),
+            withIntermediateDirectories: true
+        )
+        try """
+        {
+          "hooks": {
+            "PostToolUse": [
+              {
+                "matcher": "Bash",
+                "hooks": [
+                  { "type": "command", "command": "/Users/jb/.claude/hooks/safety.sh" },
+                  { "type": "command", "command": "DSMN_HOOK_AGENT='claude' DSMN_HOOK_EVENT='PostToolUse' '\(home.path)/.dsmn/dsmn-agent-hook.sh'" }
+                ]
+              }
+            ]
+          }
+        }
+        """.write(
+            to: home.appendingPathComponent(".claude/settings.json"),
+            atomically: true,
+            encoding: .utf8
+        )
+
+        let installer = AgentHookInstaller(homeDirectory: home, dsmnctlPath: "/tmp/dsmnctl")
+        let reports = try installer.uninstall(targets: [.claude])
+
+        XCTAssertEqual(reports.first { $0.target == "claude" }?.message, "removed")
+        let claude = try readJSON(home.appendingPathComponent(".claude/settings.json"))
+        XCTAssertTrue(hookCommands(in: claude).contains("/Users/jb/.claude/hooks/safety.sh"))
+        XCTAssertTrue(hookCommands(in: claude).filter { $0.contains("dsmn-agent-hook.sh") }.isEmpty)
+    }
+
+    func testUninstallIsIdempotent() throws {
+        let home = temporaryHome()
+        defer {
+            try? FileManager.default.removeItem(at: home)
+        }
+
+        let installer = AgentHookInstaller(homeDirectory: home, dsmnctlPath: "/tmp/dsmnctl")
+        _ = try installer.install(targets: [.claude, .codex, .grok, .pi])
+        _ = try installer.uninstall()
+        let secondReports = try installer.uninstall()
+
+        XCTAssertTrue(secondReports.filter { $0.target != "hook-script" }.allSatisfy { !$0.changed })
+        XCTAssertEqual(secondReports.first { $0.target == "hook-script" }?.message, "not present")
+    }
+
+    func testPartialUninstallKeepsSharedHookScript() throws {
+        let home = temporaryHome()
+        defer {
+            try? FileManager.default.removeItem(at: home)
+        }
+
+        let installer = AgentHookInstaller(homeDirectory: home, dsmnctlPath: "/tmp/dsmnctl")
+        _ = try installer.install()
+        _ = try installer.uninstall(targets: [.claude])
+
+        XCTAssertTrue(FileManager.default.fileExists(atPath: home.appendingPathComponent(".dsmn/dsmn-agent-hook.sh").path))
+        XCTAssertTrue(hookCommands(in: try readJSON(home.appendingPathComponent(".codex/hooks.json")))
+            .contains { $0.contains("dsmn-agent-hook.sh") })
+    }
+
     func testHookPrefersInstalledAppBeforeInstallerPath() throws {
         let home = temporaryHome()
         defer {

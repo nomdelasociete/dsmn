@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		00FE674C813817F2AD92688E /* AboutPanelPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05F227E11F3C8BC6AD1BECA4 /* AboutPanelPresenter.swift */; };
+		040E413A3BE4492B00694CEB /* HookUninstallResultPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB3D013F84E79A098A35E60B /* HookUninstallResultPresenter.swift */; };
 		0552AC01999A4BA4032DCCD5 /* DSMNApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C92E378A107B31D8A2594DF8 /* DSMNApp.swift */; };
 		0643E25D3C36B6DF1A393C9B /* dsmnctl in Embed Dependencies */ = {isa = PBXBuildFile; fileRef = F0EF5AEFD1754A2A344509EC /* dsmnctl */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		07021235DBF2A577E657BF8B /* AgentDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D67112750F54179C1E0BEEC /* AgentDetector.swift */; };
@@ -175,6 +176,7 @@
 		C5BBDCFF55A2F8F35800A50E /* HelperServiceClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperServiceClient.swift; sourceTree = "<group>"; };
 		C92E378A107B31D8A2594DF8 /* DSMNApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DSMNApp.swift; sourceTree = "<group>"; };
 		CC8C8661F0C29336DF4C864E /* StateStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StateStore.swift; sourceTree = "<group>"; };
+		DB3D013F84E79A098A35E60B /* HookUninstallResultPresenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HookUninstallResultPresenter.swift; sourceTree = "<group>"; };
 		DC102235C1EE46A73C04E17C /* AgentHookLogInspector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentHookLogInspector.swift; sourceTree = "<group>"; };
 		E03AF3CD060A3DFA891C3B89 /* FeedbackService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedbackService.swift; sourceTree = "<group>"; };
 		E0D529786998707F7F4A7C78 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
@@ -256,6 +258,7 @@
 				E03AF3CD060A3DFA891C3B89 /* FeedbackService.swift */,
 				B2C80055A7FD5F82CDA2B5E5 /* FeedbackWindowPresenter.swift */,
 				C5BBDCFF55A2F8F35800A50E /* HelperServiceClient.swift */,
+				DB3D013F84E79A098A35E60B /* HookUninstallResultPresenter.swift */,
 				AAA3593C1FB4896356B24159 /* LaunchAtLoginService.swift */,
 				4962B06F89AA1B677EF19DB8 /* OnboardingWindowPresenter.swift */,
 				FA72214C6A7E84F3ED3C83E0 /* RepairResultPresenter.swift */,
@@ -577,6 +580,7 @@
 				59D7E28176C8799F1656420E /* FeedbackService.swift in Sources */,
 				74003DC81175EC8FEB62C795 /* FeedbackWindowPresenter.swift in Sources */,
 				D22B79587D387496D7F5FBA3 /* HelperServiceClient.swift in Sources */,
+				040E413A3BE4492B00694CEB /* HookUninstallResultPresenter.swift in Sources */,
 				37E33089D66F11DBCC9C4B85 /* LaunchAtLoginService.swift in Sources */,
 				396CD92F47D2F27A25FABE2C /* MenuBarMenuPresentation.swift in Sources */,
 				62B192A4636DA4E37DF4DB39 /* OnboardingWindowPresenter.swift in Sources */,

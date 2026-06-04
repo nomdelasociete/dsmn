@@ -683,6 +683,47 @@ final class DSMNMenuStore: ObservableObject {
         }
     }
 
+    func uninstallAgentHooks() {
+        Task {
+            isRefreshing = true
+            defer {
+                isRefreshing = false
+            }
+
+            do {
+                let reports = try await Task.detached {
+                    try AgentHookInstaller().uninstall()
+                }.value
+                let removedCount = reports.filter(\.changed).count
+                hookSetupStatus = await inspectHookSetupStatus()
+                if removedCount == 0 {
+                    errorMessage = nil
+                    HookUninstallResultPresenter.show(
+                        title: "Hooks Already Removed",
+                        detail: "No dsmn hook entries were found for Claude, Codex, Grok, or Pi."
+                    )
+                } else {
+                    errorMessage = nil
+                    let lines = reports
+                        .filter(\.changed)
+                        .map { "\($0.target): \($0.message)" }
+                        .joined(separator: "\n")
+                    HookUninstallResultPresenter.show(
+                        title: "Agent Hooks Removed",
+                        detail: lines
+                    )
+                }
+            } catch {
+                errorMessage = error.localizedDescription
+                HookUninstallResultPresenter.show(
+                    title: "Hook Removal Failed",
+                    detail: error.localizedDescription,
+                    isError: true
+                )
+            }
+        }
+    }
+
     private func readStatus(controller: DSMNController) async throws -> StatusReport {
         do {
             let helperReport = try await helper.status()
