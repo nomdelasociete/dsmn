@@ -38,19 +38,40 @@ public struct PowerDecisionEngine: Sendable {
         }
 
         var reasons: [String] = []
+        let manualActive = state.manualIsActive(at: snapshot.now)
 
-        if state.manualIsActive(at: snapshot.now) {
+        if manualActive {
             reasons.append("manual_timer")
         }
 
-        let shouldPreventSleep = state.manualIsActive(at: snapshot.now)
+        if manualActive, state.isWithinLidOpenGrace(at: snapshot.now, graceSeconds: policy.lidOpenGraceSeconds) {
+            reasons.append("lid_open_grace")
+        }
+
+        let shouldPreventSleep = manualActive && shouldPreventSleepForManual(state: state, snapshot: snapshot)
 
         return PowerDecision(
             shouldPreventSleep: shouldPreventSleep,
             reasons: reasons,
             safetyBlocks: [],
-            stopReason: shouldPreventSleep ? nil : inactiveReason(state: state, agents: agents, at: snapshot.now)
+            stopReason: shouldPreventSleep ? nil : inactiveReason(state: state, agents: agents, snapshot: snapshot)
         )
+    }
+
+    private func shouldPreventSleepForManual(state: DSMNState, snapshot: SystemSnapshot) -> Bool {
+        guard state.manualIsActive(at: snapshot.now) else {
+            return false
+        }
+
+        guard let lidClosed = snapshot.lidClosed else {
+            return true
+        }
+
+        if lidClosed {
+            return true
+        }
+
+        return state.isWithinLidOpenGrace(at: snapshot.now, graceSeconds: policy.lidOpenGraceSeconds)
     }
 
     private func safetyBlocks(state: DSMNState, snapshot: SystemSnapshot) -> [String] {
@@ -83,8 +104,14 @@ public struct PowerDecisionEngine: Sendable {
         return elapsed >= TimeInterval(policy.noRouteGraceSeconds)
     }
 
-    private func inactiveReason(state: DSMNState, agents: [AgentProcess], at date: Date) -> String {
-        if let manualUntil = state.manualUntil, manualUntil <= date {
+    private func inactiveReason(state: DSMNState, agents: [AgentProcess], snapshot: SystemSnapshot) -> String {
+        if state.manualIsActive(at: snapshot.now),
+           snapshot.lidClosed == false,
+           !state.isWithinLidOpenGrace(at: snapshot.now, graceSeconds: policy.lidOpenGraceSeconds) {
+            return "lid_open_grace_elapsed"
+        }
+
+        if let manualUntil = state.manualUntil, manualUntil <= snapshot.now {
             return "manual_expired"
         }
 
