@@ -56,6 +56,31 @@ pmset -a disablesleep 0
 The command belongs to the helper boundary and must be exposed through a controlled
 helper request rather than run by Raycast directly.
 
+## XPC client authentication
+
+The privileged helper Mach service `com.nomdelasociete.dsmn.helper` accepts XPC
+connections only from code-signed clients that match a designated requirement:
+
+- Apple Development / Developer ID team `JSFMAD28GS`
+- bundle identifier `com.nomdelasociete.dsmn` (menu bar app) or
+  `com.nomdelasociete.dsmn.dsmnctl` (embedded CLI)
+
+Validation uses the connecting process audit token and `SecCode` (same approach as
+Sparkle privileged helpers). Unsigned clients, wrong-team binaries, and unrelated
+apps are rejected before any helper method runs. Rejections are logged to helper
+stderr and do not stop the listener.
+
+### Threat model
+
+Without authentication, any local process could call `enableManual`, `stop`, or
+`reconcile` on the helper and toggle `pmset disablesleep`. That would let
+untrusted software keep a Mac awake or fight dsmn ownership state. Requiring a
+matching signature ties control to shipped dsmn binaries from the expected team.
+
+This does not protect against a malicious process running with the user's
+credentials inside a compromised signed app; it stops drive-by access from random
+CLI tools, debug builds, or repackaged unsigned copies.
+
 ## Development guard
 
 The one-shot development command only executes `pmset` when launched with:
