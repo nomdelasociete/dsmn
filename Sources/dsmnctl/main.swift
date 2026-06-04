@@ -232,7 +232,7 @@ struct DSMNCTL {
             return
         }
 
-        print("Status: \(report.decision.shouldPreventSleep ? "active" : "inactive")")
+        print("Status: \(statusLabel(for: report))")
         print("Power: \(report.snapshot.powerSource.rawValue)")
 
         if let batteryPercent = report.snapshot.batteryPercent {
@@ -326,7 +326,8 @@ struct DSMNCTL {
     private static func printDoctor(_ report: StatusReport, source: StatusSource, liveSleepDisabled: Bool?) {
         print("dsmn doctor")
         print("Status source: \(source == .helper ? "helper" : "local fallback")")
-        print("Status: \(report.decision.shouldPreventSleep ? "active" : "inactive")")
+        print("Status: \(statusLabel(for: report))")
+        print("Timer: \(timerLabel(for: report))")
         print("Power lock: \(report.state.ownsSleepDisable ? "on" : "off")")
         print("macOS SleepDisabled: \(formatOptionalFlag(liveSleepDisabled))")
         if let requester = report.state.lastRequester {
@@ -359,9 +360,31 @@ struct DSMNCTL {
             print("Warning: dsmn state says locked, but macOS SleepDisabled is off.")
         } else if report.state.ownsSleepDisable {
             print("Ready: dsmn owns the macOS power lock.")
+        } else if manualTimerIsActive(report) {
+            print("Ready: timer active; power lock is off until dsmn needs to prevent sleep.")
         } else {
             print("Ready: helper works; enable a manual timer or run an agent hook to test.")
         }
+    }
+
+    private static func statusLabel(for report: StatusReport) -> String {
+        report.decision.shouldPreventSleep || manualTimerIsActive(report) ? "active" : "inactive"
+    }
+
+    private static func timerLabel(for report: StatusReport) -> String {
+        guard let remaining = report.manualRemainingSeconds, remaining > 0 else {
+            return "off"
+        }
+
+        return "\(formatDuration(seconds: remaining)) remaining"
+    }
+
+    private static func manualTimerIsActive(_ report: StatusReport) -> Bool {
+        guard let remaining = report.manualRemainingSeconds else {
+            return false
+        }
+
+        return remaining > 0
     }
 
     private static func formatOptionalFlag(_ value: Bool?) -> String {

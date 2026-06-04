@@ -594,7 +594,9 @@ public struct AgentHookInstaller: Sendable {
           exit 0
         fi
 
-        if grep -q "macOS SleepDisabled: on" <<<"$doctor"; then
+        if grep -q "^Status: active" <<<"$doctor"; then
+          log_event "dsmn active minutes=$MINUTES requester=$REQUESTER_NAME context=$REQUESTER_CONTEXT event=$REQUESTER_EVENT"
+        elif grep -q "macOS SleepDisabled: on" <<<"$doctor"; then
           log_event "dsmn active minutes=$MINUTES requester=$REQUESTER_NAME context=$REQUESTER_CONTEXT event=$REQUESTER_EVENT"
         else
           log_event "dsmn helper reachable but sleep lock is off"
