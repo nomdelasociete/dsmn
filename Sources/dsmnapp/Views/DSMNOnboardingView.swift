@@ -149,8 +149,19 @@ struct DSMNOnboardingView: View {
                 store.updateHelper()
             }
         } else if store.helperNeedsUpdate {
-            Button("Update Helper") {
-                store.updateHelper()
+            VStack(alignment: .trailing, spacing: 6) {
+                Button(store.helperUpdateActionTitle) {
+                    store.updateHelper()
+                }
+
+                if let retryMessage = store.helperUpdateRetryMessage {
+                    Text(retryMessage)
+                        .font(.caption)
+                        .foregroundStyle(.orange)
+                        .multilineTextAlignment(.trailing)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: 190, alignment: .trailing)
+                }
             }
         } else if store.helperNeedsApproval {
             Button("Open Login Items") {

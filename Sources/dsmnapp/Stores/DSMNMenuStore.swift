@@ -52,6 +52,7 @@ final class DSMNMenuStore: ObservableObject {
         lastStartedAt: nil,
         fallbackSeconds: AgentHookLogInspector.defaultFallbackSeconds
     )
+    @Published private(set) var helperUpdateRetryMessage: String?
 
     private let controller: DSMNController?
     private let helper = HelperServiceClient()
@@ -398,6 +399,10 @@ final class DSMNMenuStore: ObservableObject {
         return "dsmn was updated and the helper is still running the previous build.\(buildDetail) Existing timers can keep running; update the helper when convenient so the privileged code matches the app."
     }
 
+    var helperUpdateActionTitle: String {
+        helperUpdateRetryMessage == nil ? "Update Helper" : "Try Again"
+    }
+
     var helperNeedsRepair: Bool {
         helperStatus == .enabled && helperXPCUnavailable
     }
@@ -475,6 +480,7 @@ final class DSMNMenuStore: ObservableObject {
             hookFallbackStatus = AgentHookLogInspector.recentFallbackStatus()
             report = try await readStatus(controller: controller)
             await repairHelperAfterXPCFailureIfNeeded()
+            clearHelperUpdateRetryIfResolved()
             errorMessage = helperXPCUnavailable ? "Helper unavailable; repair helper" : nil
         } catch {
             errorMessage = error.localizedDescription
@@ -575,6 +581,7 @@ final class DSMNMenuStore: ObservableObject {
                 helperStatus = try helper.register()
                 helperRuntimeInfo = await helper.runtimeInfo()
                 OnboardingPreferences.deferredHelperUpdateBuild = nil
+                helperUpdateRetryMessage = nil
                 hasAttemptedAutomaticHelperRepair = false
                 errorMessage = helperStatus == .requiresApproval ? "Approve helper in System Settings" : nil
             } catch {
@@ -596,13 +603,21 @@ final class DSMNMenuStore: ObservableObject {
                 helperStatus = try helper.updateRegistration()
                 helperRuntimeInfo = await helper.runtimeInfo()
                 OnboardingPreferences.deferredHelperUpdateBuild = nil
+                helperUpdateRetryMessage = nil
                 helperXPCUnavailable = false
                 errorMessage = helperStatus == .requiresApproval ? "Approve helper in System Settings" : nil
                 await refresh()
             } catch {
-                errorMessage = error.localizedDescription
                 helperStatus = helper.registrationStatus
                 helperRuntimeInfo = await helper.runtimeInfo()
+
+                if shouldOfferHelperUpdateRetry(for: error) {
+                    helperUpdateRetryMessage = "macOS may need a second confirmation after refreshing the helper registration. Click Try Again to finish."
+                    errorMessage = nil
+                } else {
+                    helperUpdateRetryMessage = nil
+                    errorMessage = error.localizedDescription
+                }
             }
         }
     }
@@ -618,6 +633,7 @@ final class DSMNMenuStore: ObservableObject {
                 helperStatus = try helper.unregister()
                 helperRuntimeInfo = await helper.runtimeInfo()
                 OnboardingPreferences.deferredHelperUpdateBuild = nil
+                helperUpdateRetryMessage = nil
                 helperXPCUnavailable = false
                 hasAttemptedAutomaticHelperRepair = false
                 errorMessage = nil
@@ -640,7 +656,31 @@ final class DSMNMenuStore: ObservableObject {
         }
 
         OnboardingPreferences.deferredHelperUpdateBuild = currentBuildNumber
+        helperUpdateRetryMessage = nil
         objectWillChange.send()
+    }
+
+    private func shouldOfferHelperUpdateRetry(for error: Error) -> Bool {
+        guard helperStatus == .enabled, helperNeedsUpdate else {
+            return false
+        }
+
+        let description = [
+            error.localizedDescription,
+            String(reflecting: error)
+        ].joined(separator: " ").localizedLowercase
+
+        return description.contains("not permitted")
+            || description.contains("notpermitted")
+            || description.contains("not authorized")
+            || description.contains("permission")
+            || description.contains("not allowed")
+    }
+
+    private func clearHelperUpdateRetryIfResolved() {
+        if !helperNeedsUpdate || helperNeedsRepair || helperNeedsApproval {
+            helperUpdateRetryMessage = nil
+        }
     }
 
     func setLaunchAtLogin(_ isEnabled: Bool) {
