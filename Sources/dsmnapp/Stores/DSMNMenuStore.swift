@@ -256,6 +256,29 @@ final class DSMNMenuStore: ObservableObject {
         helperStatus == .enabled
     }
 
+    var canRunDoctor: Bool {
+        controller != nil
+    }
+
+    var canRunHelperRepair: Bool {
+        helperStatus == .enabled
+    }
+
+    var repairUnavailableExplanation: String? {
+        guard !canRunHelperRepair else {
+            return nil
+        }
+
+        switch helperStatus {
+        case .notRegistered, .notFound:
+            return "Install the helper to repair power lock and helper state."
+        case .requiresApproval:
+            return "Approve the helper in Login Items before running repair."
+        case .enabled:
+            return nil
+        }
+    }
+
     private var hookFallbackNeedsAttention: Bool {
         guard hookFallbackStatus.isActive else {
             return false
@@ -527,6 +550,107 @@ final class DSMNMenuStore: ObservableObject {
 
     func openLoginItemsSettings() {
         launchAtLogin.openSettings()
+    }
+
+    func runDoctor() {
+        Task {
+            isRefreshing = true
+            defer {
+                isRefreshing = false
+            }
+
+            do {
+                let report = try await doctorReportText()
+                DoctorWindowPresenter.show(report: report)
+                errorMessage = nil
+            } catch {
+                errorMessage = error.localizedDescription
+            }
+        }
+    }
+
+    func runRepair() {
+        guard canRunHelperRepair else {
+            if let repairUnavailableExplanation {
+                RepairResultPresenter.show(
+                    result: "",
+                    error: repairUnavailableExplanation
+                )
+            }
+            return
+        }
+
+        Task {
+            isRefreshing = true
+            defer {
+                isRefreshing = false
+            }
+
+            do {
+                let report = try await helper.repair()
+                helperXPCUnavailable = false
+                self.report = report
+                let result = DoctorReportFormatter.formatRepairResult(report, source: .helper)
+                RepairResultPresenter.show(result: result)
+                errorMessage = nil
+                await refresh()
+            } catch {
+                helperXPCUnavailable = helperStatus == .enabled
+                RepairResultPresenter.show(result: "", error: error.localizedDescription)
+                errorMessage = error.localizedDescription
+            }
+        }
+    }
+
+    private func doctorReportText() async throws -> String {
+        guard let controller else {
+            if let setupError {
+                throw setupError
+            }
+
+            throw DSMNError.stateDirectoryUnavailable
+        }
+
+        let liveSleepDisabled = try? await Task.detached(priority: .utility) {
+            try SleepDiagnosticsInspector().report().sleepDisabled
+        }.value
+        let hookFallback = AgentHookLogInspector.recentFallbackStatus()
+        hookFallbackStatus = hookFallback
+
+        if helperStatus == .enabled {
+            do {
+                let report = try await helper.status()
+                helperXPCUnavailable = false
+                return DoctorReportFormatter.format(
+                    report: report,
+                    source: .helper,
+                    liveSleepDisabled: liveSleepDisabled,
+                    hookFallback: hookFallback
+                )
+            } catch {
+                helperXPCUnavailable = true
+                let report = try await Task.detached {
+                    try controller.status()
+                }.value
+                return DoctorReportFormatter.format(
+                    report: report,
+                    source: .local,
+                    liveSleepDisabled: liveSleepDisabled,
+                    hookFallback: hookFallback
+                )
+            }
+        }
+
+        let report = try await Task.detached {
+            try controller.status()
+        }.value
+
+        return DoctorReportFormatter.format(
+            report: report,
+            source: .local,
+            liveSleepDisabled: liveSleepDisabled,
+            hookFallback: hookFallback
+        )
     }
 
     func installAgentHooks() {

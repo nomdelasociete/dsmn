@@ -26,6 +26,7 @@
 		4666E8007090B6F18D21E4D6 /* com.nomdelasociete.dsmn.helper.plist in CopyFiles */ = {isa = PBXBuildFile; fileRef = 1428E24E9C88059C6735E168 /* com.nomdelasociete.dsmn.helper.plist */; };
 		48B342822DB4A703A252BE4C /* DSMNMenuStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F2C7905739A9F21409A0728 /* DSMNMenuStore.swift */; };
 		497137023785CE2B1A43EC52 /* CheckForUpdatesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 119D786BB6E6C5D87A9EB778 /* CheckForUpdatesView.swift */; };
+		50060D4334FAE30D324F457A /* DoctorReportFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 962760546B752325FB91A60B /* DoctorReportFormatter.swift */; };
 		590A079B1B84AF4C19FFB0AF /* SleepDiagnosticsInspector.swift in Sources */ = {isa = PBXBuildFile; fileRef = E31259AF4C8DAEEDBADD9EDD /* SleepDiagnosticsInspector.swift */; };
 		59D7E28176C8799F1656420E /* FeedbackService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E03AF3CD060A3DFA891C3B89 /* FeedbackService.swift */; };
 		6119B41483147AF7FA74C71D /* DSMNCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 74B444C620310ADFA67DB8E3 /* DSMNCore.framework */; };
@@ -33,14 +34,17 @@
 		6F0918E8F5D6C670806C0BC1 /* SystemSnapshotProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = F670FC14F66FBA7A602B5CBE /* SystemSnapshotProvider.swift */; };
 		726EF89C354B1FAA841B9DC6 /* DSMNMenuView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 849E36A9D8CE4CD95098D34D /* DSMNMenuView.swift */; };
 		74003DC81175EC8FEB62C795 /* FeedbackWindowPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C80055A7FD5F82CDA2B5E5 /* FeedbackWindowPresenter.swift */; };
+		747BACEB7F74CCE4475116DE /* RepairResultPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA72214C6A7E84F3ED3C83E0 /* RepairResultPresenter.swift */; };
 		7AB68B7EEC2FFDBB33183F64 /* dsmnd in Embed Dependencies */ = {isa = PBXBuildFile; fileRef = 4FF12FB4F2E9D0CA91282B07 /* dsmnd */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		7D5CAFC6A7CAE4F80B25C8A0 /* WhyAwakeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8310C6F9E6BB445D3331F01 /* WhyAwakeView.swift */; };
 		809705EFBD76D07779E7138F /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7B4A2E7E5EA04A0BF90449F /* Models.swift */; };
 		81C315970D886B7C9522A1B5 /* AgentHookLogInspector.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC102235C1EE46A73C04E17C /* AgentHookLogInspector.swift */; };
 		8BB43E1563BD73705526097D /* PowerDecisionEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4ED81C70EF47353A88BF55D1 /* PowerDecisionEngine.swift */; };
 		901BC43E9E0364F95FE9F074 /* DSMNCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 74B444C620310ADFA67DB8E3 /* DSMNCore.framework */; };
+		B0886F9E3B4E90D1FE1ED08B /* DoctorWindowPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = F90947A8DA8E6F80381E11E7 /* DoctorWindowPresenter.swift */; };
 		B3DFFD72854DAF3E6FE29A2B /* PowerManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 905431EEC13EC448A5EB8382 /* PowerManager.swift */; };
 		BA4E80D2B6B0BBFDEEA0B2FB /* HelperXPC.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61FE22C17B810CA959C3CACA /* HelperXPC.swift */; };
+		D08E1EFCB2A514AF84DD5960 /* DSMNDoctorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4467B6CF349F4A78C8320B52 /* DSMNDoctorView.swift */; };
 		D22B79587D387496D7F5FBA3 /* HelperServiceClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5BBDCFF55A2F8F35800A50E /* HelperServiceClient.swift */; };
 		D366B9E2BC191D283E594B97 /* DSMND.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C89A4114361C6F9FACA4919 /* DSMND.swift */; };
 		D5AAB60F45FEDADAAA13104B /* AgentHookInstaller.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22FC037E46E8EBB70D7AB405 /* AgentHookInstaller.swift */; };
@@ -147,6 +151,7 @@
 		24C77EE9388701AB19E70A0C /* MenuBarCountdownFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarCountdownFormatter.swift; sourceTree = "<group>"; };
 		3357CC5A02DEAA80CF0E7714 /* MenuBarIconState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarIconState.swift; sourceTree = "<group>"; };
 		3619C42C42B624EEF07BA6AC /* StatusReport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusReport.swift; sourceTree = "<group>"; };
+		4467B6CF349F4A78C8320B52 /* DSMNDoctorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DSMNDoctorView.swift; sourceTree = "<group>"; };
 		4962B06F89AA1B677EF19DB8 /* OnboardingWindowPresenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingWindowPresenter.swift; sourceTree = "<group>"; };
 		4D67112750F54179C1E0BEEC /* AgentDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentDetector.swift; sourceTree = "<group>"; };
 		4ED81C70EF47353A88BF55D1 /* PowerDecisionEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerDecisionEngine.swift; sourceTree = "<group>"; };
@@ -158,6 +163,7 @@
 		88F8B60751F29892A00E5270 /* dsmn.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = dsmn.icns; sourceTree = "<group>"; };
 		8FA7A4EADB04DB2BFFEF1241 /* DSMNFeedbackView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DSMNFeedbackView.swift; sourceTree = "<group>"; };
 		905431EEC13EC448A5EB8382 /* PowerManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerManager.swift; sourceTree = "<group>"; };
+		962760546B752325FB91A60B /* DoctorReportFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DoctorReportFormatter.swift; sourceTree = "<group>"; };
 		9C89A4114361C6F9FACA4919 /* DSMND.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DSMND.swift; sourceTree = "<group>"; };
 		A7489AD4B0CDAEC9E6870B93 /* XPCClientAuthentication.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XPCClientAuthentication.swift; sourceTree = "<group>"; };
 		AAA3593C1FB4896356B24159 /* LaunchAtLoginService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchAtLoginService.swift; sourceTree = "<group>"; };
@@ -177,6 +183,8 @@
 		F7B4A2E7E5EA04A0BF90449F /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		F8310C6F9E6BB445D3331F01 /* WhyAwakeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WhyAwakeView.swift; sourceTree = "<group>"; };
 		F8AFE3A8A3B77004062353CF /* SoftwareUpdateController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SoftwareUpdateController.swift; sourceTree = "<group>"; };
+		F90947A8DA8E6F80381E11E7 /* DoctorWindowPresenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DoctorWindowPresenter.swift; sourceTree = "<group>"; };
+		FA72214C6A7E84F3ED3C83E0 /* RepairResultPresenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepairResultPresenter.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -233,11 +241,13 @@
 			isa = PBXGroup;
 			children = (
 				05F227E11F3C8BC6AD1BECA4 /* AboutPanelPresenter.swift */,
+				F90947A8DA8E6F80381E11E7 /* DoctorWindowPresenter.swift */,
 				E03AF3CD060A3DFA891C3B89 /* FeedbackService.swift */,
 				B2C80055A7FD5F82CDA2B5E5 /* FeedbackWindowPresenter.swift */,
 				C5BBDCFF55A2F8F35800A50E /* HelperServiceClient.swift */,
 				AAA3593C1FB4896356B24159 /* LaunchAtLoginService.swift */,
 				4962B06F89AA1B677EF19DB8 /* OnboardingWindowPresenter.swift */,
+				FA72214C6A7E84F3ED3C83E0 /* RepairResultPresenter.swift */,
 				F8AFE3A8A3B77004062353CF /* SoftwareUpdateController.swift */,
 			);
 			path = Services;
@@ -297,6 +307,7 @@
 			isa = PBXGroup;
 			children = (
 				119D786BB6E6C5D87A9EB778 /* CheckForUpdatesView.swift */,
+				4467B6CF349F4A78C8320B52 /* DSMNDoctorView.swift */,
 				8FA7A4EADB04DB2BFFEF1241 /* DSMNFeedbackView.swift */,
 				BBED8BCEB1A618ADE50C5249 /* DSMNLogoIcon.swift */,
 				849E36A9D8CE4CD95098D34D /* DSMNMenuView.swift */,
@@ -330,6 +341,7 @@
 				22FC037E46E8EBB70D7AB405 /* AgentHookInstaller.swift */,
 				DC102235C1EE46A73C04E17C /* AgentHookLogInspector.swift */,
 				F6D2A8150F5191D00E4A19F5 /* CommandRunner.swift */,
+				962760546B752325FB91A60B /* DoctorReportFormatter.swift */,
 				61FE22C17B810CA959C3CACA /* HelperXPC.swift */,
 				24C77EE9388701AB19E70A0C /* MenuBarCountdownFormatter.swift */,
 				3357CC5A02DEAA80CF0E7714 /* MenuBarIconState.swift */,
@@ -521,6 +533,7 @@
 				D5AAB60F45FEDADAAA13104B /* AgentHookInstaller.swift in Sources */,
 				81C315970D886B7C9522A1B5 /* AgentHookLogInspector.swift in Sources */,
 				D98AF5874BCF38EA0012AE27 /* CommandRunner.swift in Sources */,
+				50060D4334FAE30D324F457A /* DoctorReportFormatter.swift in Sources */,
 				BA4E80D2B6B0BBFDEEA0B2FB /* HelperXPC.swift in Sources */,
 				394D5CF05FEB9D34FB876D9D /* MenuBarCountdownFormatter.swift in Sources */,
 				3B1B0405B4D29F02793BD9E2 /* MenuBarIconState.swift in Sources */,
@@ -543,16 +556,19 @@
 				00FE674C813817F2AD92688E /* AboutPanelPresenter.swift in Sources */,
 				497137023785CE2B1A43EC52 /* CheckForUpdatesView.swift in Sources */,
 				0552AC01999A4BA4032DCCD5 /* DSMNApp.swift in Sources */,
+				D08E1EFCB2A514AF84DD5960 /* DSMNDoctorView.swift in Sources */,
 				231FA510E94F11D4FB5D29A5 /* DSMNFeedbackView.swift in Sources */,
 				0B89FDFAD900348B587898D2 /* DSMNLogoIcon.swift in Sources */,
 				48B342822DB4A703A252BE4C /* DSMNMenuStore.swift in Sources */,
 				726EF89C354B1FAA841B9DC6 /* DSMNMenuView.swift in Sources */,
 				17EAA3C353FEC29A807F96E5 /* DSMNOnboardingView.swift in Sources */,
+				B0886F9E3B4E90D1FE1ED08B /* DoctorWindowPresenter.swift in Sources */,
 				59D7E28176C8799F1656420E /* FeedbackService.swift in Sources */,
 				74003DC81175EC8FEB62C795 /* FeedbackWindowPresenter.swift in Sources */,
 				D22B79587D387496D7F5FBA3 /* HelperServiceClient.swift in Sources */,
 				37E33089D66F11DBCC9C4B85 /* LaunchAtLoginService.swift in Sources */,
 				62B192A4636DA4E37DF4DB39 /* OnboardingWindowPresenter.swift in Sources */,
+				747BACEB7F74CCE4475116DE /* RepairResultPresenter.swift in Sources */,
 				DD2E79C7CF00AE239050EB97 /* SoftwareUpdateController.swift in Sources */,
 				7D5CAFC6A7CAE4F80B25C8A0 /* WhyAwakeView.swift in Sources */,
 			);

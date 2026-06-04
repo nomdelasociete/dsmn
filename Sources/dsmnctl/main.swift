@@ -41,12 +41,15 @@ struct DSMNCTL {
             try printReport(report, json: json)
         case "doctor":
             let status = try readStatus(helper: helper, controller: controller)
+            let liveSleepDisabled = try? SleepDiagnosticsInspector().report().sleepDisabled
             let hookFallback = AgentHookLogInspector.recentFallbackStatus()
-            printDoctor(
-                status.report,
-                source: status.source,
-                liveSleepDisabled: readLiveSleepDisabled(),
-                hookFallback: hookFallback
+            print(
+                DoctorReportFormatter.format(
+                    report: status.report,
+                    source: status.source == .helper ? .helper : .local,
+                    liveSleepDisabled: liveSleepDisabled,
+                    hookFallback: hookFallback
+                )
             )
         case "install-hooks":
             let targets = try parseHookTargets(arguments: Array(arguments.dropFirst()))
@@ -312,105 +315,9 @@ struct DSMNCTL {
         }
     }
 
-    private static func readLiveSleepDisabled() -> Bool? {
-        guard let output = try? ProcessCommandRunner().run("/usr/bin/pmset", arguments: ["-g", "live"]),
-              output.exitCode == 0
-        else {
-            return nil
-        }
-
-        for line in output.stdout.components(separatedBy: .newlines) {
-            let parts = line.split(whereSeparator: { $0 == " " || $0 == "\t" })
-            if parts.first == "SleepDisabled", let value = parts.dropFirst().first {
-                return value == "1"
-            }
-        }
-
-        return nil
-    }
-
-    private static func printDoctor(
-        _ report: StatusReport,
-        source: StatusSource,
-        liveSleepDisabled: Bool?,
-        hookFallback: AgentHookFallbackStatus
-    ) {
-        print("dsmn doctor")
-        print("Status source: \(source == .helper ? "helper" : "local fallback")")
-        print("Status: \(statusLabel(for: report))")
-        print("Timer: \(timerLabel(for: report))")
-        print("Power lock: \(report.state.ownsSleepDisable ? "on" : "off")")
-        print("Hook fallback: \(hookFallback.isActive ? "active" : "inactive")")
-        print("macOS SleepDisabled: \(formatOptionalFlag(liveSleepDisabled))")
-        if let warning = AgentHookLogInspector.doctorWarning(
-            for: hookFallback,
-            ownsSleepDisable: report.state.ownsSleepDisable
-        ) {
-            print(warning)
-        }
-        if let requester = report.state.lastRequester {
-            print("Last request: \(requester.displayText)")
-            if let event = requester.event {
-                print("Last event: \(event)")
-            }
-        }
-        if report.state.recentRequesters.count > 1 {
-            print("Recent requests:")
-            for requester in report.state.recentRequesters.prefix(6) {
-                if let event = requester.event {
-                    print("- \(requester.displayText) (\(event))")
-                } else {
-                    print("- \(requester.displayText)")
-                }
-            }
-        }
-        print("Agents detected: \(report.agents.count)")
-        for agent in report.agents {
-            print("- \(agent.kind.displayName) pid=\(agent.pid) executable=\(agent.executable)")
-        }
-        print("Decision: \(report.decision.shouldPreventSleep ? "prevent sleep" : "allow sleep")")
-
-        if source == .local {
-            print("Warning: helper unavailable; closed-lid prevention will not work.")
-        } else if report.decision.shouldPreventSleep && !report.state.ownsSleepDisable {
-            print("Warning: dsmn wants to prevent sleep, but the power lock is off.")
-        } else if report.state.ownsSleepDisable && liveSleepDisabled == false {
-            print("Warning: dsmn state says locked, but macOS SleepDisabled is off.")
-        } else if report.state.ownsSleepDisable {
-            print("Ready: dsmn owns the macOS power lock.")
-        } else if manualTimerIsActive(report) {
-            print("Ready: timer active; power lock is off until dsmn needs to prevent sleep.")
-        } else {
-            print("Ready: helper works; enable a manual timer or run an agent hook to test.")
-        }
-    }
-
     private static func statusLabel(for report: StatusReport) -> String {
-        report.decision.shouldPreventSleep || manualTimerIsActive(report) ? "active" : "inactive"
-    }
-
-    private static func timerLabel(for report: StatusReport) -> String {
-        guard let remaining = report.manualRemainingSeconds, remaining > 0 else {
-            return "off"
-        }
-
-        return "\(formatDuration(seconds: remaining)) remaining"
-    }
-
-    private static func manualTimerIsActive(_ report: StatusReport) -> Bool {
-        guard let remaining = report.manualRemainingSeconds else {
-            return false
-        }
-
-        return remaining > 0
-    }
-
-    private static func formatOptionalFlag(_ value: Bool?) -> String {
-        guard let value else {
-            return "unknown"
-        }
-
-        return value ? "on" : "off"
+        let manualActive = (report.manualRemainingSeconds ?? 0) > 0
+        return report.decision.shouldPreventSleep || manualActive ? "active" : "inactive"
     }
 
     private static func formatDuration(seconds: Int) -> String {
