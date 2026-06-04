@@ -27,7 +27,7 @@ public struct PowerDecisionEngine: Sendable {
     }
 
     public func evaluate(state: DSMNState, agents: [AgentProcess], snapshot: SystemSnapshot) -> PowerDecision {
-        let safetyBlocks = safetyBlocks(for: snapshot)
+        let safetyBlocks = safetyBlocks(state: state, snapshot: snapshot)
         if !safetyBlocks.isEmpty {
             return PowerDecision(
                 shouldPreventSleep: false,
@@ -53,7 +53,7 @@ public struct PowerDecisionEngine: Sendable {
         )
     }
 
-    private func safetyBlocks(for snapshot: SystemSnapshot) -> [String] {
+    private func safetyBlocks(state: DSMNState, snapshot: SystemSnapshot) -> [String] {
         var blocks: [String] = []
 
         if snapshot.powerSource == .battery,
@@ -62,11 +62,25 @@ public struct PowerDecisionEngine: Sendable {
             blocks.append("battery_below_threshold")
         }
 
-        if snapshot.defaultRouteAvailable == false {
+        if snapshot.defaultRouteAvailable == false,
+           shouldBlockForNoRoute(state: state, snapshot: snapshot) {
             blocks.append("network_unavailable")
         }
 
         return blocks
+    }
+
+    private func shouldBlockForNoRoute(state: DSMNState, snapshot: SystemSnapshot) -> Bool {
+        guard state.manualIsActive(at: snapshot.now) else {
+            return false
+        }
+
+        guard let since = state.noRouteUnavailableSince else {
+            return false
+        }
+
+        let elapsed = snapshot.now.timeIntervalSince(since)
+        return elapsed >= TimeInterval(policy.noRouteGraceSeconds)
     }
 
     private func inactiveReason(state: DSMNState, agents: [AgentProcess], at date: Date) -> String {

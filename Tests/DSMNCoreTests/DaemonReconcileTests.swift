@@ -88,6 +88,49 @@ final class DaemonReconcileTests: XCTestCase {
         XCTAssertFalse(try store.load().ownsSleepDisable)
     }
 
+    func testReconcilePersistsNoRouteUnavailableSinceDuringGrace() throws {
+        let now = Date(timeIntervalSince1970: 40_000)
+        let store = try makeStore()
+        try store.save(DSMNState(manualUntil: now.addingTimeInterval(60 * 60)))
+
+        let controller = DSMNController(
+            store: store,
+            processListing: StaticProcessListing([]),
+            snapshotProvider: StaticSystemSnapshotProvider(
+                SystemSnapshot(now: now, powerSource: .ac, defaultRouteAvailable: false)
+            )
+        )
+
+        let report = try controller.reconcile(powerManager: RecordingPowerManager(dryRun: true), now: now)
+
+        XCTAssertEqual(try store.load().noRouteUnavailableSince, now)
+        XCTAssertTrue(report.status.decision.shouldPreventSleep)
+        XCTAssertEqual(report.status.noRouteGraceRemainingSeconds, 15 * 60)
+    }
+
+    func testReconcileClearsNoRouteUnavailableSinceWhenRouteReturns() throws {
+        let now = Date(timeIntervalSince1970: 50_000)
+        let store = try makeStore()
+        try store.save(
+            DSMNState(
+                manualUntil: now.addingTimeInterval(60 * 60),
+                noRouteUnavailableSince: now.addingTimeInterval(-120)
+            )
+        )
+
+        let controller = DSMNController(
+            store: store,
+            processListing: StaticProcessListing([]),
+            snapshotProvider: StaticSystemSnapshotProvider(
+                SystemSnapshot(now: now, powerSource: .ac, defaultRouteAvailable: true)
+            )
+        )
+
+        _ = try controller.reconcile(powerManager: RecordingPowerManager(dryRun: true), now: now)
+
+        XCTAssertNil(try store.load().noRouteUnavailableSince)
+    }
+
     func testStopPreservesOwnershipUntilReconcileReleasesPower() throws {
         let now = Date(timeIntervalSince1970: 1_000)
         let store = try makeStore()

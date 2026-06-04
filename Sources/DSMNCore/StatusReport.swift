@@ -7,6 +7,7 @@ public struct StatusReport: Codable, Equatable, Sendable {
     public var agents: [AgentProcess]
     public var decision: PowerDecision
     public var manualRemainingSeconds: Int?
+    public var noRouteGraceRemainingSeconds: Int?
 
     public init(
         generatedAt: Date,
@@ -14,7 +15,8 @@ public struct StatusReport: Codable, Equatable, Sendable {
         snapshot: SystemSnapshot,
         agents: [AgentProcess],
         decision: PowerDecision,
-        manualRemainingSeconds: Int?
+        manualRemainingSeconds: Int?,
+        noRouteGraceRemainingSeconds: Int? = nil
     ) {
         self.generatedAt = generatedAt
         self.state = state
@@ -22,6 +24,7 @@ public struct StatusReport: Codable, Equatable, Sendable {
         self.agents = agents
         self.decision = decision
         self.manualRemainingSeconds = manualRemainingSeconds
+        self.noRouteGraceRemainingSeconds = noRouteGraceRemainingSeconds
     }
 }
 
@@ -127,9 +130,10 @@ public struct DSMNController: Sendable {
         let originalState = try store.load()
         let agents = try detector.detect(using: processListing)
         let snapshot = try snapshotProvider.snapshot(now: now)
-        let decision = decisionEngine.evaluate(state: originalState, agents: agents, snapshot: snapshot)
 
         var nextState = originalState
+        nextState.updateNoRouteTracking(snapshot: snapshot)
+        let decision = decisionEngine.evaluate(state: nextState, agents: agents, snapshot: snapshot)
         var operation: PowerOperationResult?
 
         if let manualUntil = nextState.manualUntil, manualUntil <= now {
@@ -158,13 +162,12 @@ public struct DSMNController: Sendable {
         }
 
         let finalDecision = decisionEngine.evaluate(state: nextState, agents: agents, snapshot: snapshot)
-        let status = StatusReport(
-            generatedAt: now,
+        let status = makeStatusReport(
             state: nextState,
             snapshot: snapshot,
             agents: agents,
             decision: finalDecision,
-            manualRemainingSeconds: nextState.manualRemainingSeconds(at: now)
+            now: now
         )
 
         return DaemonRunReport(
@@ -178,14 +181,36 @@ public struct DSMNController: Sendable {
     private func makeStatus(state: DSMNState, now: Date) throws -> StatusReport {
         let agents = try detector.detect(using: processListing)
         let snapshot = try snapshotProvider.snapshot(now: now)
-        let decision = decisionEngine.evaluate(state: state, agents: agents, snapshot: snapshot)
-        return StatusReport(
+        var trackedState = state
+        trackedState.updateNoRouteTracking(snapshot: snapshot)
+        let decision = decisionEngine.evaluate(state: trackedState, agents: agents, snapshot: snapshot)
+        return makeStatusReport(
+            state: trackedState,
+            snapshot: snapshot,
+            agents: agents,
+            decision: decision,
+            now: now
+        )
+    }
+
+    private func makeStatusReport(
+        state: DSMNState,
+        snapshot: SystemSnapshot,
+        agents: [AgentProcess],
+        decision: PowerDecision,
+        now: Date
+    ) -> StatusReport {
+        StatusReport(
             generatedAt: now,
             state: state,
             snapshot: snapshot,
             agents: agents,
             decision: decision,
-            manualRemainingSeconds: state.manualRemainingSeconds(at: now)
+            manualRemainingSeconds: state.manualRemainingSeconds(at: now),
+            noRouteGraceRemainingSeconds: state.noRouteGraceRemainingSeconds(
+                at: now,
+                graceSeconds: decisionEngine.policy.noRouteGraceSeconds
+            )
         )
     }
 
