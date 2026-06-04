@@ -152,7 +152,7 @@ struct DSMNSetupTroubleshootingView: View {
                 store.updateHelper()
             }
         } else if store.helperNeedsUpdate {
-            Button("Update Helper") {
+            Button(store.helperUpdateActionTitle) {
                 store.updateHelper()
             }
         } else if store.helperNeedsApproval {
@@ -163,6 +163,22 @@ struct DSMNSetupTroubleshootingView: View {
             Button("Install Helper") {
                 store.installHelper()
             }
+        }
+    }
+
+    @ViewBuilder
+    private var helperUpdateActions: some View {
+        HStack(spacing: 8) {
+            Button("Later") {
+                store.deferHelperUpdateReminder()
+                onClose()
+            }
+            .accessibilityIdentifier("setup.helper-update-later")
+
+            Button(store.helperUpdateActionTitle) {
+                store.updateHelper()
+            }
+            .accessibilityIdentifier("setup.helper-update-now")
         }
     }
 
@@ -277,22 +293,23 @@ struct DSMNSetupTroubleshootingView: View {
                     .font(.system(size: 13))
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
+
+                if let retryMessage = store.helperUpdateRetryMessage {
+                    Label {
+                        Text(retryMessage)
+                            .fixedSize(horizontal: false, vertical: true)
+                    } icon: {
+                        Image(systemName: "arrow.clockwise.circle.fill")
+                    }
+                    .font(.caption.weight(.medium))
+                    .foregroundStyle(.orange)
+                    .padding(.top, 2)
+                }
             }
 
             Spacer(minLength: 16)
 
-            HStack(spacing: 8) {
-                Button("Later") {
-                    store.deferHelperUpdateReminder()
-                    onClose()
-                }
-                .accessibilityIdentifier("setup.helper-update-later")
-
-                Button("Update Helper") {
-                    store.updateHelper()
-                }
-                .accessibilityIdentifier("setup.helper-update-now")
-            }
+            helperUpdateActions
         }
         .padding(14)
         .background(.blue.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))

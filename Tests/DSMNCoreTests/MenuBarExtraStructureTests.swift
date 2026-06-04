@@ -24,11 +24,14 @@ final class MenuBarExtraStructureTests: XCTestCase {
 
     func testSetupTroubleshootingWindowContainsOperationalActions() throws {
         let windowSource = try sourceFile(at: "Sources/dsmnapp/Views/DSMNSetupTroubleshootingView.swift")
+        let storeSource = try sourceFile(at: "Sources/dsmnapp/Stores/DSMNMenuStore.swift")
         let presenterSource = try sourceFile(at: "Sources/dsmnapp/Services/SetupTroubleshootingWindowPresenter.swift")
 
         XCTAssertTrue(presenterSource.contains("newWindow.title = \"Setup & Troubleshooting\""))
         XCTAssertTrue(windowSource.contains("Install Helper"))
-        XCTAssertTrue(windowSource.contains("Update Helper"))
+        XCTAssertTrue(storeSource.contains("\"Update Helper\""))
+        XCTAssertTrue(storeSource.contains("\"Try Again\""))
+        XCTAssertTrue(windowSource.contains("helperUpdateRetryMessage"))
         XCTAssertTrue(windowSource.contains("Repair Helper"))
         XCTAssertTrue(windowSource.contains("Helper update available"))
         XCTAssertTrue(windowSource.contains("setup.helper-update-later"))
