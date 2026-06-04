@@ -12,11 +12,7 @@ struct DSMNMenuView: View {
         statusSection
         controlSection
 
-        if store.prefersExpandedSetup {
-            setupExpandedSection
-        } else {
-            setupCompactSection
-        }
+        setupSection
 
         diagnosticsSection
         moreSection
@@ -95,133 +91,19 @@ struct DSMNMenuView: View {
     // MARK: - Setup
 
     @ViewBuilder
-    private var setupExpandedSection: some View {
+    private var setupSection: some View {
         Section {
-            setupActionItems
-        } header: {
-            Text("Setup")
-        }
-    }
-
-    @ViewBuilder
-    private var setupCompactSection: some View {
-        Section {
-            if !store.setupIsComplete {
-                setupStatusItems
-                Divider()
-                setupRequiredActionItems
+            if let setupLine = store.setupLine {
+                MenuStatusRow(title: setupLine, systemImage: "exclamationmark.circle", prominent: false)
             }
 
             Button {
-                OnboardingWindowPresenter.show(store: store)
+                SetupTroubleshootingWindowPresenter.show(store: store)
             } label: {
-                Label("Setup Guide", systemImage: "book")
+                Label("Setup & Troubleshooting...", systemImage: "wrench.and.screwdriver")
             }
         } header: {
             Text("Setup")
-        }
-    }
-
-    @ViewBuilder
-    private var setupRequiredActionItems: some View {
-        if let setupLine = store.setupLine {
-            MenuStatusRow(title: setupLine, systemImage: "exclamationmark.circle", prominent: false)
-        }
-
-        if store.canInstallHelper {
-            Button {
-                store.installHelper()
-            } label: {
-                Label("Install Helper", systemImage: "arrow.down.app")
-            }
-        }
-
-        if store.canUpdateHelper {
-            Button {
-                store.updateHelper()
-            } label: {
-                Label(store.helperUpdateButtonTitle, systemImage: "arrow.triangle.2.circlepath")
-            }
-        }
-
-        if store.helperNeedsApproval {
-            Button {
-                store.openHelperSettings()
-            } label: {
-                Label("Approve Helper in Login Items", systemImage: "person.crop.circle.badge.checkmark")
-            }
-        }
-
-        if store.loginItemNeedsApproval {
-            Button {
-                store.openLoginItemsSettings()
-            } label: {
-                Label("Approve Launch at Login", systemImage: "power")
-            }
-        }
-
-        Button {
-            store.installAgentHooks()
-        } label: {
-            Label(store.hooksActionTitle, systemImage: "link")
-        }
-        .disabled(store.hooksAreBusy)
-    }
-
-    @ViewBuilder
-    private var setupStatusItems: some View {
-        MenuStatusRow(
-            title: store.helperStatusLine,
-            systemImage: store.helperIsReady ? "checkmark.shield.fill" : "shield.slash",
-            prominent: false
-        )
-
-        MenuStatusRow(
-            title: "Hooks: \(store.hooksSummary)",
-            systemImage: store.hooksStatusIconName,
-            prominent: false
-        )
-    }
-
-    @ViewBuilder
-    private var setupActionItems: some View {
-        setupRequiredActionItems
-
-        Button {
-            store.runDoctor()
-        } label: {
-            Label("Run Doctor", systemImage: "stethoscope")
-        }
-        .disabled(!store.canRunDoctor)
-
-        Button {
-            store.runRepair()
-        } label: {
-            Label("Run Repair", systemImage: "bandage")
-        }
-        .disabled(!store.canRunHelperRepair)
-        .help(store.repairUnavailableExplanation ?? "Clear stale state and release the macOS sleep lock.")
-
-        if store.canUnregisterHelper {
-            Button {
-                store.unregisterHelper()
-            } label: {
-                Label("Unregister Helper", systemImage: "trash")
-            }
-        }
-
-        Button {
-            OnboardingWindowPresenter.show(store: store)
-        } label: {
-            Label("Setup Guide", systemImage: "book")
-        }
-
-        if store.canSuppressSetupReminders {
-            Button {
-                store.suppressSetupReminders()
-            } label: {
-                Label("Hide Setup Reminders", systemImage: "bell.slash")
-            }
         }
     }
 

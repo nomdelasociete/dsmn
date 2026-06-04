@@ -40,6 +40,8 @@ This repository currently contains a working signed macOS app stack:
 - menu bar controls for helper registration through `SMAppService`
 - optional launch-at-login registration through `SMAppService.mainApp`
 - first-run onboarding window for helper approval, agent hooks, and launch-at-login
+- dedicated Setup & Troubleshooting window opened from the menu bar, instead of
+  fragile nested menu bar submenus
 - last-request visibility in the menu and CLI, including agent/session context
   when hooks provide it
 - `Why Awake?` diagnostics that separate dsmn's lock from external macOS sleep
