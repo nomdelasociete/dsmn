@@ -122,6 +122,78 @@ final class AgentHookInstallerTests: XCTestCase {
         XCTAssertTrue(secondReports.allSatisfy { !$0.changed })
     }
 
+    func testInspectReportsCurrentHooksAfterInstall() throws {
+        let home = temporaryHome()
+        defer {
+            try? FileManager.default.removeItem(at: home)
+        }
+
+        let installer = AgentHookInstaller(homeDirectory: home, dsmnctlPath: "/tmp/dsmnctl")
+        _ = try installer.install(targets: [.claude, .codex, .grok, .pi])
+
+        let inspection = try installer.inspect()
+
+        XCTAssertTrue(inspection.isCurrent)
+        XCTAssertFalse(inspection.needsUpdate)
+        XCTAssertEqual(inspection.hookScriptStatus, .current)
+        XCTAssertEqual(inspection.currentTargetCount, 4)
+        XCTAssertEqual(inspection.installedTargetCount, 4)
+        XCTAssertEqual(inspection.targets.map(\.status), [.current, .current, .current, .current])
+    }
+
+    func testInspectReportsOutdatedSharedHookScript() throws {
+        let home = temporaryHome()
+        defer {
+            try? FileManager.default.removeItem(at: home)
+        }
+
+        let installer = AgentHookInstaller(homeDirectory: home, dsmnctlPath: "/tmp/dsmnctl")
+        _ = try installer.install(targets: [.claude, .codex, .grok, .pi])
+
+        let hookScriptURL = home.appendingPathComponent(".dsmn/dsmn-agent-hook.sh")
+        try "#!/usr/bin/env bash\n/usr/bin/caffeinate -is -t 600\n".write(
+            to: hookScriptURL,
+            atomically: true,
+            encoding: .utf8
+        )
+        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: hookScriptURL.path)
+
+        let inspection = try installer.inspect()
+
+        XCTAssertFalse(inspection.isCurrent)
+        XCTAssertTrue(inspection.needsUpdate)
+        XCTAssertEqual(inspection.hookScriptStatus, .outdated)
+        XCTAssertNotEqual(inspection.expectedHookScriptFingerprint, inspection.installedHookScriptFingerprint)
+        XCTAssertEqual(inspection.currentTargetCount, 4)
+    }
+
+    func testInspectReportsOutdatedAgentConfig() throws {
+        let home = temporaryHome()
+        defer {
+            try? FileManager.default.removeItem(at: home)
+        }
+
+        let installer = AgentHookInstaller(homeDirectory: home, dsmnctlPath: "/tmp/dsmnctl")
+        _ = try installer.install(targets: [.claude, .codex, .grok, .pi])
+
+        let piPath = home.appendingPathComponent(".pi/agent/extensions/dsmn.ts")
+        try """
+        import { spawn } from "node:child_process";
+        spawn("\(home.path)/.dsmn/dsmn-agent-hook.sh", [], {
+          env: { DSMN_HOOK_AGENT: "pi" }
+        });
+        """.write(to: piPath, atomically: true, encoding: .utf8)
+
+        let inspection = try installer.inspect()
+
+        XCTAssertFalse(inspection.isCurrent)
+        XCTAssertTrue(inspection.needsUpdate)
+        XCTAssertEqual(inspection.hookScriptStatus, .current)
+        XCTAssertEqual(inspection.targets.first { $0.target == .pi }?.status, .outdated)
+        XCTAssertEqual(inspection.currentTargetCount, 3)
+        XCTAssertEqual(inspection.installedTargetCount, 4)
+    }
+
     func testHookOmitsEmptyInstallerPathFromCandidates() throws {
         let home = temporaryHome()
         defer {
