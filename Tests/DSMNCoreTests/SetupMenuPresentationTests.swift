@@ -46,6 +46,25 @@ final class SetupMenuPresentationTests: XCTestCase {
         XCTAssertTrue(SetupMenuPresentation.prefersExpandedSetup(from: signals))
     }
 
+    func testHooksUpdateAvailableBlocksSetupCompletion() {
+        let signals = SetupMenuSignals(
+            helperIsReady: true,
+            helperNeedsRepair: false,
+            helperNeedsUpdate: false,
+            helperNeedsApproval: false,
+            helperNeedsInstall: false,
+            hooksAreReady: false,
+            hooksNeedUpdate: true
+        )
+
+        XCTAssertFalse(signals.isSetupComplete)
+        XCTAssertEqual(SetupMenuPresentation.setupLine(from: signals), "Hooks update available")
+        XCTAssertEqual(
+            SetupMenuPresentation.setupIncompleteStatusTitle(from: signals, wizardDismissed: true),
+            "Setup incomplete"
+        )
+    }
+
     func testHelperUpdateIsAdvisoryWhenHooksReady() {
         let signals = SetupMenuSignals(
             helperIsReady: false,

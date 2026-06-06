@@ -6,6 +6,19 @@ public enum AgentHookTarget: String, CaseIterable, Codable, Hashable, Sendable {
     case grok
     case pi
 
+    public var displayName: String {
+        switch self {
+        case .claude:
+            "Claude Code"
+        case .codex:
+            "Codex"
+        case .grok:
+            "Grok Build"
+        case .pi:
+            "Pi"
+        }
+    }
+
     public static func parse(_ value: String) throws -> AgentHookTarget {
         guard let target = AgentHookTarget(rawValue: value) else {
             throw DSMNError.invalidCommand("hook target \(value)")
@@ -26,6 +39,92 @@ public struct AgentHookInstallReport: Codable, Equatable, Sendable {
         self.path = path
         self.changed = changed
         self.message = message
+    }
+}
+
+public enum AgentHookComponentStatus: String, Codable, Equatable, Sendable {
+    case missing
+    case notExecutable
+    case current
+    case outdated
+
+    public var isCurrent: Bool {
+        self == .current
+    }
+
+    public var isInstalled: Bool {
+        self == .current || self == .outdated
+    }
+
+    public var needsUpdate: Bool {
+        self == .outdated
+    }
+
+    public var displayName: String {
+        switch self {
+        case .missing:
+            "missing"
+        case .notExecutable:
+            "not executable"
+        case .current:
+            "current"
+        case .outdated:
+            "outdated"
+        }
+    }
+}
+
+public struct AgentHookTargetInspection: Codable, Equatable, Sendable {
+    public var target: AgentHookTarget
+    public var path: String
+    public var status: AgentHookComponentStatus
+
+    public init(target: AgentHookTarget, path: String, status: AgentHookComponentStatus) {
+        self.target = target
+        self.path = path
+        self.status = status
+    }
+}
+
+public struct AgentHookSetupInspection: Codable, Equatable, Sendable {
+    public var hookScriptPath: String
+    public var hookScriptStatus: AgentHookComponentStatus
+    public var expectedHookScriptFingerprint: String
+    public var installedHookScriptFingerprint: String?
+    public var targets: [AgentHookTargetInspection]
+
+    public init(
+        hookScriptPath: String,
+        hookScriptStatus: AgentHookComponentStatus,
+        expectedHookScriptFingerprint: String,
+        installedHookScriptFingerprint: String?,
+        targets: [AgentHookTargetInspection]
+    ) {
+        self.hookScriptPath = hookScriptPath
+        self.hookScriptStatus = hookScriptStatus
+        self.expectedHookScriptFingerprint = expectedHookScriptFingerprint
+        self.installedHookScriptFingerprint = installedHookScriptFingerprint
+        self.targets = targets
+    }
+
+    public var isCurrent: Bool {
+        hookScriptStatus.isCurrent && targets.allSatisfy { $0.status.isCurrent }
+    }
+
+    public var needsUpdate: Bool {
+        hookScriptStatus.needsUpdate || targets.contains { $0.status.needsUpdate }
+    }
+
+    public var installedTargetCount: Int {
+        targets.filter { $0.status.isInstalled }.count
+    }
+
+    public var currentTargetCount: Int {
+        targets.filter { $0.status.isCurrent }.count
+    }
+
+    public var targetCount: Int {
+        targets.count
     }
 }
 
@@ -89,6 +188,32 @@ public struct AgentHookInstaller: Sendable {
         }
 
         return reports
+    }
+
+    public func inspect(targets: [AgentHookTarget] = AgentHookTarget.allCases) throws -> AgentHookSetupInspection {
+        let expectedHookScript = hookScript()
+        let installedHookScript = try? String(contentsOf: hookScriptPath, encoding: .utf8)
+        let hookScriptStatus: AgentHookComponentStatus
+
+        if let installedHookScript {
+            if !FileManager.default.isExecutableFile(atPath: hookScriptPath.path) {
+                hookScriptStatus = .notExecutable
+            } else if installedHookScript == expectedHookScript {
+                hookScriptStatus = .current
+            } else {
+                hookScriptStatus = .outdated
+            }
+        } else {
+            hookScriptStatus = .missing
+        }
+
+        return AgentHookSetupInspection(
+            hookScriptPath: hookScriptPath.path,
+            hookScriptStatus: hookScriptStatus,
+            expectedHookScriptFingerprint: fingerprint(expectedHookScript),
+            installedHookScriptFingerprint: installedHookScript.map(fingerprint),
+            targets: try targets.map(inspectTarget)
+        )
     }
 
     private func installHookScript() throws {
@@ -307,6 +432,71 @@ public struct AgentHookInstaller: Sendable {
             changed: true,
             message: "removed"
         )
+    }
+
+    private func inspectTarget(_ target: AgentHookTarget) throws -> AgentHookTargetInspection {
+        let path = hookConfigPath(for: target)
+
+        guard FileManager.default.fileExists(atPath: path.path) else {
+            return AgentHookTargetInspection(target: target, path: path.path, status: .missing)
+        }
+
+        switch target {
+        case .claude, .codex, .grok:
+            let root = try readJSONObject(path)
+            if hasCurrentHookConfiguration(in: root, target: target) {
+                return AgentHookTargetInspection(target: target, path: path.path, status: .current)
+            }
+
+            if hookCommands(in: root).contains(where: { $0.contains("dsmn-agent-hook.sh") }) {
+                return AgentHookTargetInspection(target: target, path: path.path, status: .outdated)
+            }
+
+            return AgentHookTargetInspection(target: target, path: path.path, status: .missing)
+        case .pi:
+            let contents = try String(contentsOf: path, encoding: .utf8)
+            if contents == piExtension() {
+                return AgentHookTargetInspection(target: target, path: path.path, status: .current)
+            }
+
+            if contents.contains("dsmn-agent-hook.sh") && contents.contains("DSMN_HOOK_AGENT") {
+                return AgentHookTargetInspection(target: target, path: path.path, status: .outdated)
+            }
+
+            return AgentHookTargetInspection(target: target, path: path.path, status: .missing)
+        }
+    }
+
+    private func hookConfigPath(for target: AgentHookTarget) -> URL {
+        switch target {
+        case .claude:
+            homeDirectory.appendingPathComponent(".claude/settings.json")
+        case .codex:
+            homeDirectory.appendingPathComponent(".codex/hooks.json")
+        case .grok:
+            homeDirectory
+                .appendingPathComponent(".grok", isDirectory: true)
+                .appendingPathComponent("hooks", isDirectory: true)
+                .appendingPathComponent("dsmn.json")
+        case .pi:
+            homeDirectory
+                .appendingPathComponent(".pi", isDirectory: true)
+                .appendingPathComponent("agent", isDirectory: true)
+                .appendingPathComponent("extensions", isDirectory: true)
+                .appendingPathComponent("dsmn.ts")
+        }
+    }
+
+    private func hasCurrentHookConfiguration(in root: [String: Any], target: AgentHookTarget) -> Bool {
+        guard let hooks = root["hooks"] as? [String: Any] else {
+            return false
+        }
+
+        return Self.hookEventNames.allSatisfy { eventName in
+            let groups = hooks[eventName] as? [[String: Any]] ?? []
+            let expected = hookGroup(target: target, eventName: eventName)
+            return groups.contains { jsonEquals($0, expected) }
+        }
     }
 
     private func installHook(into root: inout [String: Any], target: AgentHookTarget) throws -> Bool {
@@ -885,5 +1075,15 @@ public struct AgentHookInstaller: Sendable {
         }
 
         return String(array.dropFirst().dropLast())
+    }
+
+    private func fingerprint(_ contents: String) -> String {
+        let basis: UInt64 = 0xcbf29ce484222325
+        let prime: UInt64 = 0x100000001b3
+        let hash = contents.utf8.reduce(basis) { partial, byte in
+            (partial ^ UInt64(byte)) &* prime
+        }
+
+        return String(format: "%016llx", hash)
     }
 }

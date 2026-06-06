@@ -11,6 +11,7 @@ public struct SetupMenuSignals: Equatable, Sendable {
     public var hooksPartialTotal: Int?
     public var hooksFailed: Bool
     public var hooksNeedInstall: Bool
+    public var hooksNeedUpdate: Bool
     public var remindersSuppressed: Bool
     public var powerLockPending: Bool
 
@@ -25,6 +26,7 @@ public struct SetupMenuSignals: Equatable, Sendable {
         hooksPartialTotal: Int? = nil,
         hooksFailed: Bool = false,
         hooksNeedInstall: Bool = false,
+        hooksNeedUpdate: Bool = false,
         remindersSuppressed: Bool = false,
         powerLockPending: Bool = false
     ) {
@@ -38,12 +40,13 @@ public struct SetupMenuSignals: Equatable, Sendable {
         self.hooksPartialTotal = hooksPartialTotal
         self.hooksFailed = hooksFailed
         self.hooksNeedInstall = hooksNeedInstall
+        self.hooksNeedUpdate = hooksNeedUpdate
         self.remindersSuppressed = remindersSuppressed
         self.powerLockPending = powerLockPending
     }
 
     public var isSetupComplete: Bool {
-        helperIsOperational && hooksAreReady
+        helperIsOperational && hooksAreReady && !hooksNeedUpdate
     }
 
     public var isSetupIncomplete: Bool {
@@ -82,6 +85,10 @@ public enum SetupMenuPresentation: Sendable {
 
         if signals.powerLockPending {
             return "Power lock: pending"
+        }
+
+        if signals.hooksNeedUpdate {
+            return "Hooks update available"
         }
 
         if !signals.hooksAreReady {

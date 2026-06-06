@@ -59,6 +59,34 @@ final class DoctorReportFormatterTests: XCTestCase {
         XCTAssertTrue(text.contains("Ready: dsmn owns the macOS power lock."))
     }
 
+    func testFormatIncludesHookInspectionFingerprints() throws {
+        let report = sampleReport(ownsSleepDisable: true, agentCount: 0)
+        let hookInspection = AgentHookSetupInspection(
+            hookScriptPath: "/Users/jb/.dsmn/dsmn-agent-hook.sh",
+            hookScriptStatus: .outdated,
+            expectedHookScriptFingerprint: "expected123",
+            installedHookScriptFingerprint: "installed456",
+            targets: [
+                AgentHookTargetInspection(target: .claude, path: "/Users/jb/.claude/settings.json", status: .current),
+                AgentHookTargetInspection(target: .codex, path: "/Users/jb/.codex/hooks.json", status: .outdated)
+            ]
+        )
+
+        let text = DoctorReportFormatter.format(
+            report: report,
+            source: .helper,
+            liveSleepDisabled: true,
+            hookInspection: hookInspection
+        )
+
+        XCTAssertTrue(text.contains("Hook script: outdated"))
+        XCTAssertTrue(text.contains("Hook script expected fingerprint: expected123"))
+        XCTAssertTrue(text.contains("Hook script installed fingerprint: installed456"))
+        XCTAssertTrue(text.contains("Hook targets: 1/2 current"))
+        XCTAssertTrue(text.contains("- Claude Code: current (/Users/jb/.claude/settings.json)"))
+        XCTAssertTrue(text.contains("- Codex: outdated (/Users/jb/.codex/hooks.json)"))
+    }
+
     func testFormatRepairResultSummarizesStatus() throws {
         let report = sampleReport(ownsSleepDisable: false, agentCount: 0)
         let text = DoctorReportFormatter.formatRepairResult(report, source: .helper)

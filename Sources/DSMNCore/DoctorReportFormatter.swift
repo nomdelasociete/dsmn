@@ -19,7 +19,8 @@ public struct DoctorReportFormatter: Sendable {
         report: StatusReport,
         source: DoctorStatusSource,
         liveSleepDisabled: Bool?,
-        hookFallback: AgentHookFallbackStatus? = nil
+        hookFallback: AgentHookFallbackStatus? = nil,
+        hookInspection: AgentHookSetupInspection? = nil
     ) -> String {
         var lines: [String] = []
         lines.append("dsmn doctor")
@@ -38,6 +39,10 @@ public struct DoctorReportFormatter: Sendable {
             )
         }) {
             lines.append(hookFallbackWarning)
+        }
+
+        if let hookInspection {
+            lines.append(contentsOf: formatHookInspection(hookInspection))
         }
 
         if let requester = report.state.lastRequester {
@@ -160,5 +165,23 @@ public struct DoctorReportFormatter: Sendable {
         }
 
         return "Ready: helper works; enable a manual timer or run an agent hook to test."
+    }
+
+    private static func formatHookInspection(_ inspection: AgentHookSetupInspection) -> [String] {
+        var lines: [String] = []
+        lines.append("Hook script: \(inspection.hookScriptStatus.displayName)")
+        lines.append("Hook script path: \(inspection.hookScriptPath)")
+        lines.append("Hook script expected fingerprint: \(inspection.expectedHookScriptFingerprint)")
+
+        if let installedFingerprint = inspection.installedHookScriptFingerprint {
+            lines.append("Hook script installed fingerprint: \(installedFingerprint)")
+        }
+
+        lines.append("Hook targets: \(inspection.currentTargetCount)/\(inspection.targetCount) current")
+        for target in inspection.targets {
+            lines.append("- \(target.target.displayName): \(target.status.displayName) (\(target.path))")
+        }
+
+        return lines
     }
 }
