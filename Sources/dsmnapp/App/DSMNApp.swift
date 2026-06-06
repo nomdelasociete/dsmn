@@ -34,9 +34,7 @@ struct DSMNApp: App {
                     try? await Task.sleep(for: .milliseconds(600))
                     await store.refresh()
 
-                    if shouldShowE2ESetupWindow {
-                        SetupTroubleshootingWindowPresenter.show(store: store)
-                    } else if store.shouldPresentHelperUpdateReminder {
+                    if store.shouldPresentHelperUpdateReminder {
                         SetupTroubleshootingWindowPresenter.show(store: store)
                     } else {
                         OnboardingWindowPresenter.showIfNeeded(store: store)
@@ -75,12 +73,4 @@ private struct DSMNMenuBarLabel: View {
     private var icon: some View {
         DSMNMenuBarIcon(state: store.menuBarIconState)
     }
-}
-
-private var shouldShowE2ESetupWindow: Bool {
-    #if DEBUG
-    ProcessInfo.processInfo.environment["DSMN_E2E_SHOW_SETUP"] == "1"
-    #else
-    false
-    #endif
 }

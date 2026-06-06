@@ -5,9 +5,12 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DERIVED_DATA_PATH="${DERIVED_DATA_PATH:-"$ROOT_DIR/DerivedData"}"
 APP_PATH="$DERIVED_DATA_PATH/Build/Products/Debug/dsmn.app"
 DEFAULTS_DOMAIN="com.nomdelasociete.dsmn"
-DEFAULTS_KEY="onboardingWizardDismissed"
-DEFAULTS_EXISTED=0
-DEFAULTS_VALUE=""
+WIZARD_DISMISSED_KEY="onboardingWizardDismissed"
+DEFERRED_HELPER_UPDATE_KEY="deferredHelperUpdateBuild"
+WIZARD_DISMISSED_EXISTED=0
+WIZARD_DISMISSED_VALUE=""
+DEFERRED_HELPER_UPDATE_EXISTED=0
+DEFERRED_HELPER_UPDATE_VALUE=""
 WAS_RUNNING=0
 APP_PID=""
 
@@ -15,30 +18,51 @@ if pgrep -x dsmn >/dev/null 2>&1; then
   WAS_RUNNING=1
 fi
 
-if DEFAULTS_VALUE="$(defaults read "$DEFAULTS_DOMAIN" "$DEFAULTS_KEY" 2>/dev/null)"; then
-  DEFAULTS_EXISTED=1
+if WIZARD_DISMISSED_VALUE="$(defaults read "$DEFAULTS_DOMAIN" "$WIZARD_DISMISSED_KEY" 2>/dev/null)"; then
+  WIZARD_DISMISSED_EXISTED=1
 fi
 
-restore_defaults() {
-  if [ "$DEFAULTS_EXISTED" = "1" ]; then
-    case "$DEFAULTS_VALUE" in
+if DEFERRED_HELPER_UPDATE_VALUE="$(defaults read "$DEFAULTS_DOMAIN" "$DEFERRED_HELPER_UPDATE_KEY" 2>/dev/null)"; then
+  DEFERRED_HELPER_UPDATE_EXISTED=1
+fi
+
+restore_bool_default() {
+  local key="$1"
+  local existed="$2"
+  local value="$3"
+
+  if [ "$existed" = "1" ]; then
+    case "$value" in
       1|true|TRUE)
-        defaults write "$DEFAULTS_DOMAIN" "$DEFAULTS_KEY" -bool true >/dev/null
+        defaults write "$DEFAULTS_DOMAIN" "$key" -bool true >/dev/null
         ;;
       0|false|FALSE)
-        defaults write "$DEFAULTS_DOMAIN" "$DEFAULTS_KEY" -bool false >/dev/null
+        defaults write "$DEFAULTS_DOMAIN" "$key" -bool false >/dev/null
         ;;
       *)
-        defaults write "$DEFAULTS_DOMAIN" "$DEFAULTS_KEY" "$DEFAULTS_VALUE" >/dev/null
+        defaults write "$DEFAULTS_DOMAIN" "$key" "$value" >/dev/null
         ;;
     esac
   else
-    defaults delete "$DEFAULTS_DOMAIN" "$DEFAULTS_KEY" >/dev/null 2>&1 || true
+    defaults delete "$DEFAULTS_DOMAIN" "$key" >/dev/null 2>&1 || true
+  fi
+}
+
+restore_int_default() {
+  local key="$1"
+  local existed="$2"
+  local value="$3"
+
+  if [ "$existed" = "1" ]; then
+    defaults write "$DEFAULTS_DOMAIN" "$key" -int "$value" >/dev/null
+  else
+    defaults delete "$DEFAULTS_DOMAIN" "$key" >/dev/null 2>&1 || true
   fi
 }
 
 cleanup() {
-  restore_defaults
+  restore_bool_default "$WIZARD_DISMISSED_KEY" "$WIZARD_DISMISSED_EXISTED" "$WIZARD_DISMISSED_VALUE"
+  restore_int_default "$DEFERRED_HELPER_UPDATE_KEY" "$DEFERRED_HELPER_UPDATE_EXISTED" "$DEFERRED_HELPER_UPDATE_VALUE"
   if [ -n "$APP_PID" ]; then
     osascript -e 'tell application id "com.nomdelasociete.dsmn" to quit' >/dev/null 2>&1 || true
     for _ in {1..20}; do
@@ -70,9 +94,11 @@ xcodebuild \
   -derivedDataPath "$DERIVED_DATA_PATH" \
   build
 
-defaults write "$DEFAULTS_DOMAIN" "$DEFAULTS_KEY" -bool true
+current_build="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$APP_PATH/Contents/Info.plist")"
+defaults write "$DEFAULTS_DOMAIN" "$WIZARD_DISMISSED_KEY" -bool true
+defaults write "$DEFAULTS_DOMAIN" "$DEFERRED_HELPER_UPDATE_KEY" -int "$current_build"
 killall dsmn >/dev/null 2>&1 || true
-DSMN_E2E_SHOW_SETUP=1 "$APP_PATH/Contents/MacOS/dsmn" >/dev/null 2>&1 &
+"$APP_PATH/Contents/MacOS/dsmn" >/dev/null 2>&1 &
 APP_PID="$!"
 
 osascript <<'APPLESCRIPT'
@@ -165,6 +191,12 @@ tell application "System Events"
 
             error "Could not find the Setup & Troubleshooting menu item. Visible items:" & linefeed & menuSummary
         end if
+
+        if exists window "Setup & Troubleshooting" then
+            error "Setup & Troubleshooting window opened before the menu item was clicked"
+        end if
+
+        click menu item "Setup & Troubleshooting..." of menu 1 of statusMenuItem
 
         repeat 60 times
             if exists window "Setup & Troubleshooting" then exit repeat
