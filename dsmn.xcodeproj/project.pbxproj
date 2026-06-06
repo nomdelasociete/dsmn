@@ -45,6 +45,7 @@
 		81C315970D886B7C9522A1B5 /* AgentHookLogInspector.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC102235C1EE46A73C04E17C /* AgentHookLogInspector.swift */; };
 		8BB43E1563BD73705526097D /* PowerDecisionEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4ED81C70EF47353A88BF55D1 /* PowerDecisionEngine.swift */; };
 		901BC43E9E0364F95FE9F074 /* DSMNCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 74B444C620310ADFA67DB8E3 /* DSMNCore.framework */; };
+		960E906581CD04E8BF3D0638 /* AgentHookSetupPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58E9E9A50557171FBF677FEA /* AgentHookSetupPresentation.swift */; };
 		B0886F9E3B4E90D1FE1ED08B /* DoctorWindowPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = F90947A8DA8E6F80381E11E7 /* DoctorWindowPresenter.swift */; };
 		B3DFFD72854DAF3E6FE29A2B /* PowerManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 905431EEC13EC448A5EB8382 /* PowerManager.swift */; };
 		BA4E80D2B6B0BBFDEEA0B2FB /* HelperXPC.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61FE22C17B810CA959C3CACA /* HelperXPC.swift */; };
@@ -104,10 +105,10 @@
 		54B36EE5329AD3B55A7E76C2 /* Embed Dependencies */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
-			dstPath = Contents/Library/LaunchDaemons;
+			dstPath = Contents/Library/Helpers;
 			dstSubfolderSpec = 1;
 			files = (
-				7AB68B7EEC2FFDBB33183F64 /* dsmnd in Embed Dependencies */,
+				0643E25D3C36B6DF1A393C9B /* dsmnctl in Embed Dependencies */,
 			);
 			name = "Embed Dependencies";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -136,10 +137,10 @@
 		9E6E5D8A4D39E0AEF8C45CD0 /* Embed Dependencies */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
-			dstPath = Contents/Library/Helpers;
+			dstPath = Contents/Library/LaunchDaemons;
 			dstSubfolderSpec = 1;
 			files = (
-				0643E25D3C36B6DF1A393C9B /* dsmnctl in Embed Dependencies */,
+				7AB68B7EEC2FFDBB33183F64 /* dsmnd in Embed Dependencies */,
 			);
 			name = "Embed Dependencies";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -164,6 +165,7 @@
 		4D67112750F54179C1E0BEEC /* AgentDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentDetector.swift; sourceTree = "<group>"; };
 		4ED81C70EF47353A88BF55D1 /* PowerDecisionEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerDecisionEngine.swift; sourceTree = "<group>"; };
 		4FF12FB4F2E9D0CA91282B07 /* dsmnd */ = {isa = PBXFileReference; includeInIndex = 0; path = dsmnd; sourceTree = BUILT_PRODUCTS_DIR; };
+		58E9E9A50557171FBF677FEA /* AgentHookSetupPresentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentHookSetupPresentation.swift; sourceTree = "<group>"; };
 		5DA64BBB8035E795523E90FD /* TriggerActivitySummary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TriggerActivitySummary.swift; sourceTree = "<group>"; };
 		61FE22C17B810CA959C3CACA /* HelperXPC.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperXPC.swift; sourceTree = "<group>"; };
 		74B444C620310ADFA67DB8E3 /* DSMNCore.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = DSMNCore.framework; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -365,6 +367,7 @@
 				4D67112750F54179C1E0BEEC /* AgentDetector.swift */,
 				22FC037E46E8EBB70D7AB405 /* AgentHookInstaller.swift */,
 				DC102235C1EE46A73C04E17C /* AgentHookLogInspector.swift */,
+				58E9E9A50557171FBF677FEA /* AgentHookSetupPresentation.swift */,
 				F6D2A8150F5191D00E4A19F5 /* CommandRunner.swift */,
 				962760546B752325FB91A60B /* DoctorReportFormatter.swift */,
 				61FE22C17B810CA959C3CACA /* HelperXPC.swift */,
@@ -558,6 +561,7 @@
 				07021235DBF2A577E657BF8B /* AgentDetector.swift in Sources */,
 				D5AAB60F45FEDADAAA13104B /* AgentHookInstaller.swift in Sources */,
 				81C315970D886B7C9522A1B5 /* AgentHookLogInspector.swift in Sources */,
+				960E906581CD04E8BF3D0638 /* AgentHookSetupPresentation.swift in Sources */,
 				D98AF5874BCF38EA0012AE27 /* CommandRunner.swift in Sources */,
 				50060D4334FAE30D324F457A /* DoctorReportFormatter.swift in Sources */,
 				BA4E80D2B6B0BBFDEEA0B2FB /* HelperXPC.swift in Sources */,

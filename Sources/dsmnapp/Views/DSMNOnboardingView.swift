@@ -1,4 +1,5 @@
 import AppKit
+import DSMNCore
 import SwiftUI
 
 struct DSMNOnboardingView: View {
@@ -35,6 +36,10 @@ struct DSMNOnboardingView: View {
                                 store.installAgentHooks()
                             }
                             .disabled(store.hooksAreBusy)
+                        }
+
+                        if !store.hookActionResultRows.isEmpty {
+                            OnboardingHookActionResultList(rows: store.hookActionResultRows)
                         }
 
                         OnboardingStepRow(
@@ -298,6 +303,63 @@ private struct OnboardingStepRow<Actions: View>: View {
         .overlay {
             RoundedRectangle(cornerRadius: 14)
                 .stroke(.quaternary, lineWidth: 1)
+        }
+    }
+}
+
+private struct OnboardingHookActionResultList: View {
+    var rows: [AgentHookActionResultRow]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 7) {
+            ForEach(rows) { row in
+                HStack(spacing: 8) {
+                    Image(systemName: systemImage(for: row.state))
+                        .font(.system(size: 12, weight: .semibold))
+                        .symbolRenderingMode(.hierarchical)
+                        .foregroundStyle(foregroundStyle(for: row.state))
+                        .frame(width: 16, height: 16)
+
+                    Text(row.targetDisplayName)
+                        .font(.caption.weight(.semibold))
+
+                    Text(row.message)
+                        .font(.caption)
+                        .foregroundStyle(row.state == .failed ? .red : .secondary)
+                        .lineLimit(1)
+
+                    Spacer(minLength: 0)
+                }
+            }
+        }
+        .padding(.horizontal, 18)
+        .padding(.vertical, 10)
+        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .overlay {
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(.quaternary, lineWidth: 1)
+        }
+    }
+
+    private func systemImage(for state: AgentHookActionResultState) -> String {
+        switch state {
+        case .updated:
+            "arrow.triangle.2.circlepath.circle.fill"
+        case .unchanged:
+            "checkmark.circle.fill"
+        case .failed:
+            "exclamationmark.triangle.fill"
+        }
+    }
+
+    private func foregroundStyle(for state: AgentHookActionResultState) -> AnyShapeStyle {
+        switch state {
+        case .updated:
+            AnyShapeStyle(.blue)
+        case .unchanged:
+            AnyShapeStyle(.green)
+        case .failed:
+            AnyShapeStyle(.red)
         }
     }
 }

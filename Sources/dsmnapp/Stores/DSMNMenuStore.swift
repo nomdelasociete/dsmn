@@ -1,52 +1,6 @@
 import DSMNCore
 import Foundation
 
-enum AgentHooksSetupStatus: Equatable, Sendable {
-    case checking
-    case installing
-    case ready(String)
-    case outdated(String)
-    case partial(Int, Int)
-    case failed(String)
-
-    var displayName: String {
-        switch self {
-        case .checking:
-            "Checking hooks"
-        case .installing:
-            "Installing hooks"
-        case let .ready(message):
-            message
-        case let .outdated(message):
-            message
-        case let .partial(installedCount, total):
-            "\(installedCount)/\(total) hook targets installed"
-        case let .failed(message):
-            message
-        }
-    }
-
-    var isReady: Bool {
-        if case .ready = self {
-            return true
-        }
-
-        return false
-    }
-
-    var isBusy: Bool {
-        self == .checking || self == .installing
-    }
-
-    var needsUpdate: Bool {
-        if case .outdated = self {
-            return true
-        }
-
-        return false
-    }
-}
-
 @MainActor
 final class DSMNMenuStore: ObservableObject {
     @Published private(set) var report: StatusReport?
@@ -57,6 +11,7 @@ final class DSMNMenuStore: ObservableObject {
     @Published private(set) var helperXPCUnavailable = false
     @Published private(set) var launchAtLoginStatus: LaunchAtLoginStatus = .notRegistered
     @Published private(set) var hookSetupStatus: AgentHooksSetupStatus = .checking
+    @Published private(set) var hookActionResultRows: [AgentHookActionResultRow] = []
     @Published private(set) var hookFallbackStatus = AgentHookFallbackStatus(
         isActive: false,
         logPath: AgentHookLogInspector.defaultLogPath,
@@ -260,18 +215,7 @@ final class DSMNMenuStore: ObservableObject {
     }
 
     var hooksActionTitle: String {
-        switch hookSetupStatus {
-        case .checking:
-            "Checking..."
-        case .installing:
-            "Installing..."
-        case .ready:
-            "Reinstall"
-        case .outdated:
-            "Update Hooks"
-        case .partial, .failed:
-            "Install Hooks"
-        }
+        AgentHookSetupPresentation.actionTitle(for: hookSetupStatus)
     }
 
     var hooksStatusIconName: String {
@@ -495,7 +439,7 @@ final class DSMNMenuStore: ObservableObject {
             helperStatus = helper.registrationStatus
             helperRuntimeInfo = await helper.runtimeInfo()
             launchAtLoginStatus = launchAtLogin.status
-            if hookSetupStatus != .installing {
+            if !hookSetupStatus.isInstalling {
                 hookSetupStatus = await inspectHookSetupStatus()
             }
             hookFallbackStatus = AgentHookLogInspector.recentFallbackStatus()
@@ -834,32 +778,38 @@ final class DSMNMenuStore: ObservableObject {
     }
 
     func installAgentHooks() {
+        guard let action = AgentHookSetupPresentation.action(for: hookSetupStatus) else {
+            return
+        }
+
         Task {
             isRefreshing = true
-            hookSetupStatus = .installing
+            hookSetupStatus = AgentHookSetupPresentation.startedStatus(for: action)
+            hookActionResultRows = []
             defer {
                 isRefreshing = false
             }
 
-            do {
-                let dsmnctlPath = bundledDsmnctlPath()
-                let reports = try await Task.detached {
-                    try AgentHookInstaller(dsmnctlPath: dsmnctlPath).install()
-                }.value
-                let changedCount = reports.filter(\.changed).count
-                let inspectedStatus = await inspectHookSetupStatus()
-                if inspectedStatus.isReady {
-                    hookSetupStatus = changedCount == 0
-                        ? .ready("Hooks already installed")
-                        : .ready("Hooks installed for Claude, Codex, Grok, and Pi")
-                } else {
-                    hookSetupStatus = inspectedStatus
-                }
+            let dsmnctlPath = bundledDsmnctlPath()
+            let reports = await Task.detached(priority: .utility) {
+                AgentHookInstaller(dsmnctlPath: dsmnctlPath).installReportingFailures()
+            }.value
+            let resultRows = AgentHookSetupPresentation.resultRows(for: action, reports: reports)
+            hookActionResultRows = resultRows
+
+            if resultRows.contains(where: { $0.state == .failed }) {
+                hookSetupStatus = AgentHookSetupPresentation.completedStatus(for: action, reports: reports)
                 errorMessage = nil
-            } catch {
-                errorMessage = error.localizedDescription
-                hookSetupStatus = .failed("Hook install failed")
+                return
             }
+
+            let inspectedStatus = await inspectHookSetupStatus()
+            if inspectedStatus.isReady {
+                hookSetupStatus = AgentHookSetupPresentation.completedStatus(for: action, reports: reports)
+            } else {
+                hookSetupStatus = inspectedStatus
+            }
+            errorMessage = nil
         }
     }
 
