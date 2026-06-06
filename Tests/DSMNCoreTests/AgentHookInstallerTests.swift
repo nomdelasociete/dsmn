@@ -290,6 +290,26 @@ final class AgentHookInstallerTests: XCTestCase {
         XCTAssertLessThan(homeApplicationsRange.lowerBound, installerPathRange.lowerBound)
     }
 
+    func testHookRecordsThrottleStampOnlyAfterConfirmedActiveLock() throws {
+        let home = temporaryHome()
+        defer {
+            try? FileManager.default.removeItem(at: home)
+        }
+
+        let installer = AgentHookInstaller(homeDirectory: home, dsmnctlPath: "/tmp/dev/dsmnctl")
+        _ = try installer.install(targets: [.codex])
+
+        let hookScript = try String(contentsOf: home.appendingPathComponent(".dsmn/dsmn-agent-hook.sh"), encoding: .utf8)
+        let doctorRange = try XCTUnwrap(hookScript.range(of: #"doctor="$("$ctl" doctor 2>&1 || true)""#))
+        let localFallbackRange = try XCTUnwrap(hookScript.range(of: #"Status source: local fallback"#))
+        let sleepDisabledRange = try XCTUnwrap(hookScript.range(of: #"macOS SleepDisabled: on"#))
+        let stampRange = try XCTUnwrap(hookScript.range(of: "record_extend_stamp", options: [], range: sleepDisabledRange.upperBound..<hookScript.endIndex))
+
+        XCTAssertLessThan(doctorRange.lowerBound, localFallbackRange.lowerBound)
+        XCTAssertLessThan(localFallbackRange.lowerBound, stampRange.lowerBound)
+        XCTAssertLessThan(sleepDisabledRange.lowerBound, stampRange.lowerBound)
+    }
+
     private func temporaryHome() -> URL {
         URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
             .appendingPathComponent("dsmn-hooks-\(UUID().uuidString)", isDirectory: true)

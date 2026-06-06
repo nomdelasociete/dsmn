@@ -16,6 +16,7 @@ public struct AgentHookFallbackStatus: Equatable, Sendable {
 
 public enum AgentHookLogInspector {
     public static let fallbackStartedMarker = "fallback caffeinate started"
+    public static let activeMarker = "dsmn active"
     public static let defaultLogPath = "/tmp/dsmn-agent-hook.log"
     public static let defaultFallbackSeconds = 600
     public static let timestampFormat = "yyyy-MM-dd HH:mm:ss"
@@ -51,6 +52,15 @@ public enum AgentHookLogInspector {
                 logPath: logPath,
                 lastStartedAt: nil,
                 fallbackSeconds: defaultFallbackSeconds
+            )
+        }
+
+        if let activeAt = latestActiveEvent(in: logContents), activeAt >= event.startedAt {
+            return AgentHookFallbackStatus(
+                isActive: false,
+                logPath: logPath,
+                lastStartedAt: event.startedAt,
+                fallbackSeconds: event.fallbackSeconds
             )
         }
 
@@ -91,6 +101,24 @@ public enum AgentHookLogInspector {
             }
 
             latest = (startedAt, parseFallbackSeconds(from: text))
+        }
+
+        return latest
+    }
+
+    static func latestActiveEvent(in logContents: String) -> Date? {
+        let formatter = timestampFormatter()
+        var latest: Date?
+
+        for line in logContents.split(whereSeparator: \.isNewline) {
+            let text = String(line)
+            guard text.contains(activeMarker),
+                  let activeAt = parseTimestamp(from: text, formatter: formatter)
+            else {
+                continue
+            }
+
+            latest = activeAt
         }
 
         return latest
