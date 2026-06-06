@@ -851,8 +851,6 @@ public struct AgentHookInstaller: Sendable {
           exit 0
         fi
 
-        record_extend_stamp
-
         doctor="$("$ctl" doctor 2>&1 || true)"
 
         if grep -q "Status source: local fallback" <<<"$doctor"; then
@@ -862,8 +860,10 @@ public struct AgentHookInstaller: Sendable {
         fi
 
         if grep -q "^Status: active" <<<"$doctor"; then
+          record_extend_stamp
           log_event "dsmn active minutes=$MINUTES requester=$REQUESTER_NAME context=$REQUESTER_CONTEXT event=$REQUESTER_EVENT"
         elif grep -q "macOS SleepDisabled: on" <<<"$doctor"; then
+          record_extend_stamp
           log_event "dsmn active minutes=$MINUTES requester=$REQUESTER_NAME context=$REQUESTER_CONTEXT event=$REQUESTER_EVENT"
         else
           log_event "dsmn helper reachable but sleep lock is off"

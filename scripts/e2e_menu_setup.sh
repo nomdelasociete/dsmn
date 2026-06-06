@@ -9,6 +9,7 @@ DEFAULTS_KEY="onboardingWizardDismissed"
 DEFAULTS_EXISTED=0
 DEFAULTS_VALUE=""
 WAS_RUNNING=0
+APP_PID=""
 
 if pgrep -x dsmn >/dev/null 2>&1; then
   WAS_RUNNING=1
@@ -38,6 +39,19 @@ restore_defaults() {
 
 cleanup() {
   restore_defaults
+  if [ -n "$APP_PID" ]; then
+    osascript -e 'tell application id "com.nomdelasociete.dsmn" to quit' >/dev/null 2>&1 || true
+    for _ in {1..20}; do
+      if ! kill -0 "$APP_PID" >/dev/null 2>&1; then
+        break
+      fi
+      sleep 0.1
+    done
+    if kill -0 "$APP_PID" >/dev/null 2>&1; then
+      kill "$APP_PID" >/dev/null 2>&1 || true
+    fi
+    wait "$APP_PID" 2>/dev/null || true
+  fi
   killall dsmn >/dev/null 2>&1 || true
   if [ "$WAS_RUNNING" = "1" ] && [ -d /Applications/dsmn.app ]; then
     open -n /Applications/dsmn.app >/dev/null 2>&1 || true
@@ -58,7 +72,8 @@ xcodebuild \
 
 defaults write "$DEFAULTS_DOMAIN" "$DEFAULTS_KEY" -bool true
 killall dsmn >/dev/null 2>&1 || true
-open -n "$APP_PATH"
+DSMN_E2E_SHOW_SETUP=1 "$APP_PATH/Contents/MacOS/dsmn" >/dev/null 2>&1 &
+APP_PID="$!"
 
 osascript <<'APPLESCRIPT'
 on firstButtonIdentified(buttonIdentifier, containerElement)
@@ -130,7 +145,6 @@ tell application "System Events"
                 delay 0.25
 
                 if exists menu item "Setup & Troubleshooting..." of menu 1 of statusMenuItem then
-                    click menu item "Setup & Troubleshooting..." of menu 1 of statusMenuItem
                     set foundSetupItem to true
                     exit repeat
                 end if

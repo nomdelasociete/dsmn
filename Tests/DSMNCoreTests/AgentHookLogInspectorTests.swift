@@ -46,6 +46,21 @@ final class AgentHookLogInspectorTests: XCTestCase {
         XCTAssertEqual(status.lastStartedAt, recent)
     }
 
+    func testLaterDsmnActiveEventClearsFallbackWarning() {
+        let now = Date(timeIntervalSince1970: 1_700_000_000)
+        let fallback = now.addingTimeInterval(-240)
+        let active = now.addingTimeInterval(-60)
+        let log = """
+        \(timestamp(fallback)) fallback caffeinate started seconds=600
+        \(timestamp(active)) dsmn active minutes=20 requester=Codex
+        """
+
+        let status = AgentHookLogInspector.recentFallbackStatus(logContents: log, now: now)
+
+        XCTAssertFalse(status.isActive)
+        XCTAssertEqual(status.lastStartedAt, fallback)
+    }
+
     func testInactiveWhenLogHasNoFallbackMarker() {
         let status = AgentHookLogInspector.recentFallbackStatus(
             logContents: "2026-06-04 10:00:00 dsmn active minutes=20 requester=Codex\n",
