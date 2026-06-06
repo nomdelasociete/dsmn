@@ -167,6 +167,31 @@ final class AgentHookInstallerTests: XCTestCase {
         XCTAssertEqual(inspection.currentTargetCount, 4)
     }
 
+    func testInstallReportingFailuresMarksTargetsChangedWhenSharedHookScriptUpdates() throws {
+        let home = temporaryHome()
+        defer {
+            try? FileManager.default.removeItem(at: home)
+        }
+
+        let installer = AgentHookInstaller(homeDirectory: home, dsmnctlPath: "/tmp/dsmnctl")
+        _ = try installer.install(targets: [.claude, .codex, .grok, .pi])
+
+        let hookScriptURL = home.appendingPathComponent(".dsmn/dsmn-agent-hook.sh")
+        try "#!/usr/bin/env bash\n/usr/bin/caffeinate -is -t 600\n".write(
+            to: hookScriptURL,
+            atomically: true,
+            encoding: .utf8
+        )
+        try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: hookScriptURL.path)
+
+        let reports = installer.installReportingFailures(targets: [.claude, .codex, .grok, .pi])
+
+        XCTAssertTrue(reports.allSatisfy(\.succeeded))
+        XCTAssertTrue(reports.allSatisfy(\.changed))
+        XCTAssertTrue(reports.allSatisfy { $0.message == "shared hook script updated" })
+        XCTAssertTrue(try installer.inspect().isCurrent)
+    }
+
     func testInspectReportsOutdatedAgentConfig() throws {
         let home = temporaryHome()
         defer {
@@ -192,6 +217,70 @@ final class AgentHookInstallerTests: XCTestCase {
         XCTAssertEqual(inspection.targets.first { $0.target == .pi }?.status, .outdated)
         XCTAssertEqual(inspection.currentTargetCount, 3)
         XCTAssertEqual(inspection.installedTargetCount, 4)
+    }
+
+    func testInstallUpdatesDsmnHooksInsideMixedGroupWithoutDroppingUnrelatedHooks() throws {
+        let home = temporaryHome()
+        defer {
+            try? FileManager.default.removeItem(at: home)
+        }
+
+        try FileManager.default.createDirectory(
+            at: home.appendingPathComponent(".claude", isDirectory: true),
+            withIntermediateDirectories: true
+        )
+        try """
+        {
+          "hooks": {
+            "PostToolUse": [
+              {
+                "matcher": "Bash",
+                "hooks": [
+                  { "type": "command", "command": "/Users/jb/.claude/hooks/safety.sh" },
+                  { "type": "command", "command": "DSMN_HOOK_AGENT='claude' DSMN_HOOK_EVENT='PostToolUse' '\(home.path)/.dsmn/dsmn-agent-hook.sh'" }
+                ]
+              }
+            ]
+          }
+        }
+        """.write(
+            to: home.appendingPathComponent(".claude/settings.json"),
+            atomically: true,
+            encoding: .utf8
+        )
+
+        let installer = AgentHookInstaller(homeDirectory: home, dsmnctlPath: "/tmp/dsmnctl")
+        let reports = try installer.install(targets: [.claude])
+
+        XCTAssertEqual(reports.first?.message, "installed")
+        let claude = try readJSON(home.appendingPathComponent(".claude/settings.json"))
+        let commands = hookCommands(in: claude)
+        XCTAssertTrue(commands.contains("/Users/jb/.claude/hooks/safety.sh"))
+        XCTAssertEqual(commands.filter { $0.contains("dsmn-agent-hook.sh") }.count, 4)
+    }
+
+    func testInstallReportingFailuresKeepsTargetLevelFailureDetails() throws {
+        let home = temporaryHome()
+        defer {
+            try? FileManager.default.removeItem(at: home)
+        }
+
+        try FileManager.default.createDirectory(at: home, withIntermediateDirectories: true)
+        try "not a directory".write(
+            to: home.appendingPathComponent(".claude"),
+            atomically: true,
+            encoding: .utf8
+        )
+
+        let installer = AgentHookInstaller(homeDirectory: home, dsmnctlPath: "/tmp/dsmnctl")
+        let reports = installer.installReportingFailures(targets: [.claude, .codex])
+
+        let claude = try XCTUnwrap(reports.first { $0.target == "claude" })
+        let codex = try XCTUnwrap(reports.first { $0.target == "codex" })
+        XCTAssertFalse(claude.succeeded)
+        XCTAssertEqual(claude.message, "failed")
+        XCTAssertNotNil(claude.error)
+        XCTAssertTrue(codex.succeeded)
     }
 
     func testHookOmitsEmptyInstallerPathFromCandidates() throws {

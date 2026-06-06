@@ -33,12 +33,24 @@ public struct AgentHookInstallReport: Codable, Equatable, Sendable {
     public var path: String
     public var changed: Bool
     public var message: String
+    public var error: String?
 
-    public init(target: String, path: String, changed: Bool, message: String) {
+    public init(
+        target: String,
+        path: String,
+        changed: Bool,
+        message: String,
+        error: String? = nil
+    ) {
         self.target = target
         self.path = path
         self.changed = changed
         self.message = message
+        self.error = error
+    }
+
+    public var succeeded: Bool {
+        error == nil
     }
 }
 
@@ -153,19 +165,71 @@ public struct AgentHookInstaller: Sendable {
     }
 
     public func install(targets: [AgentHookTarget] = AgentHookTarget.allCases) throws -> [AgentHookInstallReport] {
-        try installHookScript()
+        let hookScriptChanged = try installHookScript()
 
         return try targets.map { target in
-            switch target {
-            case .claude:
-                return try installClaudeHook()
-            case .codex:
-                return try installCodexHook()
-            case .grok:
-                return try installGrokHook()
-            case .pi:
-                return try installPiHook()
+            var report = try installTarget(target)
+            applyHookScriptChange(hookScriptChanged, to: &report)
+            return report
+        }
+    }
+
+    public func installReportingFailures(
+        targets: [AgentHookTarget] = AgentHookTarget.allCases
+    ) -> [AgentHookInstallReport] {
+        let hookScriptChanged: Bool
+        do {
+            hookScriptChanged = try installHookScript()
+        } catch {
+            return targets.map { target in
+                AgentHookInstallReport(
+                    target: target.rawValue,
+                    path: hookScriptPath.path,
+                    changed: false,
+                    message: "failed",
+                    error: "shared hook script: \(error.localizedDescription)"
+                )
             }
+        }
+
+        return targets.map { target in
+            do {
+                var report = try installTarget(target)
+                applyHookScriptChange(hookScriptChanged, to: &report)
+                return report
+            } catch {
+                return AgentHookInstallReport(
+                    target: target.rawValue,
+                    path: hookConfigPath(for: target).path,
+                    changed: false,
+                    message: "failed",
+                    error: error.localizedDescription
+                )
+            }
+        }
+    }
+
+    private func applyHookScriptChange(_ hookScriptChanged: Bool, to report: inout AgentHookInstallReport) {
+        guard hookScriptChanged, report.succeeded else {
+            return
+        }
+
+        report.changed = true
+        if report.message == "already installed" {
+            report.message = "shared hook script updated"
+        }
+    }
+
+    private func installTarget(_ target: AgentHookTarget) throws -> AgentHookInstallReport {
+        switch target {
+        case .claude:
+            return try installClaudeHook()
+        case .codex:
+            return try installCodexHook()
+        case .grok:
+            return try installGrokHook()
+        case .pi:
+            return try installPiHook()
         }
     }
 
@@ -216,11 +280,22 @@ public struct AgentHookInstaller: Sendable {
         )
     }
 
-    private func installHookScript() throws {
+    @discardableResult
+    private func installHookScript() throws -> Bool {
         let directory = hookScriptPath.deletingLastPathComponent()
+        let payload = hookScript()
+        let current = try? String(contentsOf: hookScriptPath, encoding: .utf8)
+        let changed = current != payload
+            || !FileManager.default.isExecutableFile(atPath: hookScriptPath.path)
+
+        guard changed else {
+            return false
+        }
+
         try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-        try hookScript().write(to: hookScriptPath, atomically: true, encoding: .utf8)
+        try payload.write(to: hookScriptPath, atomically: true, encoding: .utf8)
         try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: hookScriptPath.path)
+        return true
     }
 
     private func installClaudeHook() throws -> AgentHookInstallReport {
@@ -507,12 +582,17 @@ public struct AgentHookInstaller: Sendable {
             var groups = hooks[eventName] as? [[String: Any]] ?? []
             let newGroup = hookGroup(target: target, eventName: eventName)
 
-            let originalCount = groups.count
-            groups = groups.filter { group in
-                jsonEquals(group, newGroup) || !containsLegacyAwakeHook(group)
-            }
-            if groups.count != originalCount {
-                changed = true
+            groups = groups.compactMap { group in
+                guard !jsonEquals(group, newGroup) else {
+                    return group
+                }
+
+                let result = removeLegacyAwakeHooks(from: group, target: target)
+                if result.changed {
+                    changed = true
+                }
+
+                return result.group
             }
 
             if !groups.contains(where: { jsonEquals($0, newGroup) }) {
@@ -525,6 +605,49 @@ public struct AgentHookInstaller: Sendable {
 
         root["hooks"] = hooks
         return changed
+    }
+
+    private func removeLegacyAwakeHooks(
+        from group: [String: Any],
+        target: AgentHookTarget
+    ) -> (group: [String: Any]?, changed: Bool) {
+        guard let groupHooks = group["hooks"] as? [[String: Any]] else {
+            return (group, false)
+        }
+
+        let hasMatcher = (group["matcher"] as? String)?.isEmpty == false
+        if !hasMatcher,
+           groupHooks.count == 1,
+           let command = groupHooks.first?["command"] as? String,
+           command.contains("caffeinate") {
+            return (nil, true)
+        }
+
+        let filteredHooks = groupHooks.filter { hook in
+            !isLegacyAwakeHook(hook, target: target)
+        }
+
+        guard filteredHooks.count != groupHooks.count else {
+            return (group, false)
+        }
+
+        guard !filteredHooks.isEmpty else {
+            return (nil, true)
+        }
+
+        var updatedGroup = group
+        updatedGroup["hooks"] = filteredHooks
+        return (updatedGroup, true)
+    }
+
+    private func isLegacyAwakeHook(_ hook: [String: Any], target: AgentHookTarget) -> Bool {
+        guard let command = hook["command"] as? String else {
+            return false
+        }
+
+        return command.contains("dsmn-agent-hook.sh")
+            || command.contains("claude-hook.sh")
+            || isDsmnHook(hook, target: target)
     }
 
     private func uninstallHook(from root: inout [String: Any], target: AgentHookTarget) throws -> Bool {
@@ -675,23 +798,6 @@ public struct AgentHookInstaller: Sendable {
         }
 
         """
-    }
-
-    private func containsLegacyAwakeHook(_ group: [String: Any]) -> Bool {
-        guard let hooks = group["hooks"] as? [[String: Any]] else {
-            return false
-        }
-
-        let hasMatcher = (group["matcher"] as? String)?.isEmpty == false
-        return hooks.contains { hook in
-            guard let command = hook["command"] as? String else {
-                return false
-            }
-
-            return command.contains("dsmn-agent-hook.sh")
-                || command.contains("claude-hook.sh")
-                || (command.contains("caffeinate") && !hasMatcher && hooks.count == 1)
-        }
     }
 
     private func readJSONObject(_ path: URL) throws -> [String: Any] {
