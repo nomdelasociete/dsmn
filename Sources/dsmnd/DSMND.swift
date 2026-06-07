@@ -16,7 +16,11 @@ struct DSMND {
             let controller = DSMNController(store: store)
             let dryRun = ProcessInfo.processInfo.environment["DSMN_APPLY_PMSET"] != "1"
             let powerManager = PMSetPowerManager(dryRun: dryRun)
-            let report = try controller.reconcile(powerManager: powerManager)
+            let liveSleepDisabled = try? SleepDiagnosticsInspector().report().sleepDisabled
+            let report = try controller.reconcile(
+                powerManager: powerManager,
+                liveSleepDisabled: liveSleepDisabled
+            )
 
             let encoder = JSONEncoder()
             encoder.dateEncodingStrategy = .iso8601

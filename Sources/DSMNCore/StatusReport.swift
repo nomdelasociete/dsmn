@@ -132,11 +132,15 @@ public struct DSMNController: Sendable {
         return try makeStatus(state: state, now: now)
     }
 
-    public func repair(powerManager: any PowerManaging, now: Date = Date()) throws -> DaemonRunReport {
+    public func repair(
+        powerManager: any PowerManaging,
+        liveSleepDisabled: Bool? = nil,
+        now: Date = Date()
+    ) throws -> DaemonRunReport {
         let originalState = try store.load()
         var forcedRelease: PowerOperationResult?
 
-        if originalState.ownsSleepDisable {
+        if originalState.ownsSleepDisable || liveSleepDisabled == true {
             forcedRelease = try powerManager.setSleepDisabled(false)
         }
 
@@ -155,21 +159,26 @@ public struct DSMNController: Sendable {
         return report
     }
 
-    public func reconcile(powerManager: any PowerManaging, now: Date = Date()) throws -> DaemonRunReport {
+    public func reconcile(
+        powerManager: any PowerManaging,
+        liveSleepDisabled: Bool? = nil,
+        now: Date = Date()
+    ) throws -> DaemonRunReport {
         let originalState = try store.load()
         let agents = try detector.detect(using: processListing)
         let snapshot = try snapshotProvider.snapshot(now: now)
         var evaluatedState = originalState
         evaluatedState.syncSnapshotTracking(with: snapshot)
+
+        if let manualUntil = evaluatedState.manualUntil, manualUntil <= now {
+            evaluatedState.manualUntil = nil
+            evaluatedState.lastStopReason = "manual_expired"
+        }
+
         let decision = decisionEngine.evaluate(state: evaluatedState, agents: agents, snapshot: snapshot)
 
         var nextState = evaluatedState
         var operation: PowerOperationResult?
-
-        if let manualUntil = nextState.manualUntil, manualUntil <= now {
-            nextState.manualUntil = nil
-            nextState.lastStopReason = "manual_expired"
-        }
 
         if decision.shouldPreventSleep && !originalState.ownsSleepDisable {
             operation = try powerManager.setSleepDisabled(true)
@@ -178,11 +187,17 @@ public struct DSMNController: Sendable {
                 nextState.lastActivationReason = decision.reasons.joined(separator: ",")
                 nextState.lastStopReason = nil
             }
-        } else if !decision.shouldPreventSleep && originalState.ownsSleepDisable {
+        } else if shouldReleaseSleepDisable(
+            decision: decision,
+            originalState: originalState,
+            liveSleepDisabled: liveSleepDisabled
+        ) {
             operation = try powerManager.setSleepDisabled(false)
             if operationSucceeded(operation) {
                 nextState.ownsSleepDisable = false
-                nextState.lastStopReason = decision.stopReason
+                nextState.lastStopReason = nextState.lastStopReason == "manual_expired"
+                    ? "manual_expired"
+                    : decision.stopReason
             }
         }
 
@@ -250,6 +265,31 @@ public struct DSMNController: Sendable {
         }
 
         return !operation.dryRun && operation.exitCode == 0
+    }
+
+    private func shouldReleaseSleepDisable(
+        decision: PowerDecision,
+        originalState: DSMNState,
+        liveSleepDisabled: Bool?
+    ) -> Bool {
+        guard !decision.shouldPreventSleep else {
+            return false
+        }
+
+        if originalState.ownsSleepDisable {
+            return true
+        }
+
+        return liveSleepDisabled == true && hasDsmnPowerHistory(originalState)
+    }
+
+    private func hasDsmnPowerHistory(_ state: DSMNState) -> Bool {
+        state.manualUntil != nil
+            || state.lastActivationReason != nil
+            || state.lastRequester != nil
+            || !state.recentRequesters.isEmpty
+            || !state.triggerHistory.isEmpty
+            || !state.triggerActivityBuckets.isEmpty
     }
 }
 

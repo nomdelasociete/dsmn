@@ -88,6 +88,82 @@ final class DaemonReconcileTests: XCTestCase {
         XCTAssertFalse(try store.load().ownsSleepDisable)
     }
 
+    func testReconcileReleasesLiveSleepDisabledWhenOwnershipStateWasLost() throws {
+        let now = Date(timeIntervalSince1970: 1_000)
+        let store = try makeStore()
+        try store.save(DSMNState(lastActivationReason: "manual_lease"))
+
+        let powerManager = RecordingPowerManager(dryRun: false)
+        let controller = DSMNController(
+            store: store,
+            processListing: StaticProcessListing([]),
+            snapshotProvider: StaticSystemSnapshotProvider(SystemSnapshot(now: now, powerSource: .ac))
+        )
+
+        let report = try controller.reconcile(
+            powerManager: powerManager,
+            liveSleepDisabled: true,
+            now: now
+        )
+
+        XCTAssertEqual(powerManager.requests, [false])
+        XCTAssertEqual(report.operation?.requestedSleepDisabled, false)
+        XCTAssertFalse(report.status.state.ownsSleepDisable)
+        XCTAssertFalse(report.status.decision.shouldPreventSleep)
+        XCTAssertEqual(report.status.state.lastStopReason, "not_armed")
+    }
+
+    func testReconcileDoesNotReleaseLiveSleepDisabledWithoutDsmnPowerHistory() throws {
+        let now = Date(timeIntervalSince1970: 1_000)
+        let store = try makeStore()
+        try store.save(DSMNState())
+
+        let powerManager = RecordingPowerManager(dryRun: false)
+        let controller = DSMNController(
+            store: store,
+            processListing: StaticProcessListing([]),
+            snapshotProvider: StaticSystemSnapshotProvider(SystemSnapshot(now: now, powerSource: .ac))
+        )
+
+        let report = try controller.reconcile(
+            powerManager: powerManager,
+            liveSleepDisabled: true,
+            now: now
+        )
+
+        XCTAssertTrue(powerManager.requests.isEmpty)
+        XCTAssertNil(report.operation)
+        XCTAssertFalse(report.status.state.ownsSleepDisable)
+        XCTAssertFalse(report.status.decision.shouldPreventSleep)
+    }
+
+    func testReconcileReleasesExpiredManualTimerImmediately() throws {
+        let now = Date(timeIntervalSince1970: 1_000)
+        let store = try makeStore()
+        try store.save(
+            DSMNState(
+                manualUntil: now.addingTimeInterval(-1),
+                ownsSleepDisable: true
+            )
+        )
+
+        let powerManager = RecordingPowerManager(dryRun: false)
+        let controller = DSMNController(
+            store: store,
+            processListing: StaticProcessListing([]),
+            snapshotProvider: StaticSystemSnapshotProvider(SystemSnapshot(now: now, powerSource: .ac))
+        )
+
+        let report = try controller.reconcile(powerManager: powerManager, now: now)
+
+        XCTAssertEqual(powerManager.requests, [false])
+        XCTAssertEqual(report.operation?.requestedSleepDisabled, false)
+        XCTAssertFalse(report.status.state.ownsSleepDisable)
+        XCTAssertNil(report.status.state.manualUntil)
+        XCTAssertFalse(report.status.decision.shouldPreventSleep)
+        XCTAssertEqual(report.status.state.lastStopReason, "manual_expired")
+    }
+
     func testReconcilePersistsNoRouteUnavailableSinceDuringGrace() throws {
         let now = Date(timeIntervalSince1970: 40_000)
         let store = try makeStore()
