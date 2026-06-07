@@ -36,6 +36,7 @@ struct DSMNApp: App {
 
                     if store.shouldPresentHelperUpdateReminder {
                         SetupTroubleshootingWindowPresenter.show(store: store)
+                        store.deferHelperUpdateReminder()
                     } else {
                         OnboardingWindowPresenter.showIfNeeded(store: store)
                     }

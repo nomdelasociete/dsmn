@@ -55,7 +55,16 @@ final class MenuBarExtraStructureTests: XCTestCase {
 
         XCTAssertTrue(appSource.contains("store.shouldPresentHelperUpdateReminder"))
         XCTAssertTrue(appSource.contains("SetupTroubleshootingWindowPresenter.show(store: store)"))
+        XCTAssertTrue(appSource.contains("store.deferHelperUpdateReminder()"))
         XCTAssertTrue(appSource.contains("OnboardingWindowPresenter.showIfNeeded(store: store)"))
+    }
+
+    func testHelperUpdateDoesNotMakeReadyHelperIncomplete() throws {
+        let storeSource = try sourceFile(at: "Sources/dsmnapp/Stores/DSMNMenuStore.swift")
+
+        XCTAssertTrue(storeSource.contains("helperStatus == .enabled && !helperNeedsRepair"))
+        XCTAssertFalse(storeSource.contains("helperNeedsAttention"))
+        XCTAssertFalse(storeSource.contains("return \"update available\""))
     }
 
     private func sourceFile(at relativePath: String) throws -> String {

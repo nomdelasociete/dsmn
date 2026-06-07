@@ -199,7 +199,7 @@ final class DSMNMenuStore: ObservableObject {
     }
 
     var helperIsReady: Bool {
-        helperStatus == .enabled && !helperNeedsAttention
+        helperStatus == .enabled && !helperNeedsRepair
     }
 
     var hooksAreReady: Bool {
@@ -372,17 +372,9 @@ final class DSMNMenuStore: ObservableObject {
         helperStatus == .enabled && helperXPCUnavailable
     }
 
-    private var helperNeedsAttention: Bool {
-        helperNeedsUpdate || helperNeedsRepair
-    }
-
     var helperStatusDisplayName: String {
         if helperNeedsRepair {
             return "repair required"
-        }
-
-        if helperNeedsUpdate {
-            return "update available"
         }
 
         return helperStatus.displayName
