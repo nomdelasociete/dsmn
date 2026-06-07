@@ -61,6 +61,60 @@ final class AgentHookLogInspectorTests: XCTestCase {
         XCTAssertEqual(status.lastStartedAt, fallback)
     }
 
+    func testLaterFallbackResolvedEventClearsFallbackWarning() {
+        let now = Date(timeIntervalSince1970: 1_700_000_000)
+        let fallback = now.addingTimeInterval(-240)
+        let resolved = now.addingTimeInterval(-60)
+        let log = """
+        \(timestamp(fallback)) fallback caffeinate started seconds=600
+        \(timestamp(resolved)) fallback resolved reason=setup_ready
+        """
+
+        let status = AgentHookLogInspector.recentFallbackStatus(logContents: log, now: now)
+
+        XCTAssertFalse(status.isActive)
+        XCTAssertEqual(status.lastStartedAt, fallback)
+    }
+
+    func testFallbackResolvedBeforeFallbackDoesNotClearLatestFallback() {
+        let now = Date(timeIntervalSince1970: 1_700_000_000)
+        let resolved = now.addingTimeInterval(-300)
+        let fallback = now.addingTimeInterval(-60)
+        let log = """
+        \(timestamp(resolved)) fallback resolved reason=repair
+        \(timestamp(fallback)) fallback caffeinate started seconds=600
+        """
+
+        let status = AgentHookLogInspector.recentFallbackStatus(logContents: log, now: now)
+
+        XCTAssertTrue(status.isActive)
+        XCTAssertEqual(status.lastStartedAt, fallback)
+    }
+
+    func testRecoveryPolicyAdoptsRemainingFallbackWindow() {
+        let now = Date(timeIntervalSince1970: 1_700_000_000)
+        let status = AgentHookFallbackStatus(
+            isActive: true,
+            logPath: "/tmp/dsmn-agent-hook.log",
+            lastStartedAt: now.addingTimeInterval(-181),
+            fallbackSeconds: 600
+        )
+
+        XCTAssertEqual(HookFallbackRecoveryPolicy.remainingMinutes(for: status, now: now), 7)
+    }
+
+    func testRecoveryPolicyIgnoresInactiveFallback() {
+        let now = Date(timeIntervalSince1970: 1_700_000_000)
+        let status = AgentHookFallbackStatus(
+            isActive: false,
+            logPath: "/tmp/dsmn-agent-hook.log",
+            lastStartedAt: now.addingTimeInterval(-60),
+            fallbackSeconds: 600
+        )
+
+        XCTAssertNil(HookFallbackRecoveryPolicy.remainingMinutes(for: status, now: now))
+    }
+
     func testInactiveWhenLogHasNoFallbackMarker() {
         let status = AgentHookLogInspector.recentFallbackStatus(
             logContents: "2026-06-04 10:00:00 dsmn active minutes=20 requester=Codex\n",

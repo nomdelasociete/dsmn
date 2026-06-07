@@ -16,6 +16,7 @@ public struct AgentHookFallbackStatus: Equatable, Sendable {
 
 public enum AgentHookLogInspector {
     public static let fallbackStartedMarker = "fallback caffeinate started"
+    public static let fallbackResolvedMarker = "fallback resolved"
     public static let activeMarker = "dsmn active"
     public static let defaultLogPath = "/tmp/dsmn-agent-hook.log"
     public static let defaultFallbackSeconds = 600
@@ -55,7 +56,7 @@ public enum AgentHookLogInspector {
             )
         }
 
-        if let activeAt = latestActiveEvent(in: logContents), activeAt >= event.startedAt {
+        if let resolvedAt = latestResolvedEvent(in: logContents), resolvedAt >= event.startedAt {
             return AgentHookFallbackStatus(
                 isActive: false,
                 logPath: logPath,
@@ -73,6 +74,38 @@ public enum AgentHookLogInspector {
             lastStartedAt: event.startedAt,
             fallbackSeconds: event.fallbackSeconds
         )
+    }
+
+    public static func markFallbackResolved(
+        logPath: String? = nil,
+        reason: String,
+        now: Date = Date(),
+        environment: [String: String] = ProcessInfo.processInfo.environment,
+        fileManager: FileManager = .default
+    ) {
+        let resolvedPath = logPath ?? Self.logPath(environment: environment)
+        let line = "\(timestampString(for: now)) \(fallbackResolvedMarker) reason=\(sanitize(reason))\n"
+
+        do {
+            let url = URL(fileURLWithPath: resolvedPath)
+            let directory = url.deletingLastPathComponent()
+            try fileManager.createDirectory(at: directory, withIntermediateDirectories: true)
+
+            guard let data = line.data(using: .utf8) else {
+                return
+            }
+
+            if fileManager.fileExists(atPath: resolvedPath) {
+                let handle = try FileHandle(forWritingTo: url)
+                try handle.seekToEnd()
+                handle.write(data)
+                try? handle.close()
+            } else {
+                try data.write(to: url, options: .atomic)
+            }
+        } catch {
+            return
+        }
     }
 
     public static func doctorWarning(
@@ -107,12 +140,32 @@ public enum AgentHookLogInspector {
     }
 
     static func latestActiveEvent(in logContents: String) -> Date? {
+        latestEvent(in: logContents, containing: activeMarker)
+    }
+
+    static func latestResolvedEvent(in logContents: String) -> Date? {
+        let activeAt = latestActiveEvent(in: logContents)
+        let fallbackResolvedAt = latestEvent(in: logContents, containing: fallbackResolvedMarker)
+
+        switch (activeAt, fallbackResolvedAt) {
+        case let (.some(activeAt), .some(fallbackResolvedAt)):
+            return max(activeAt, fallbackResolvedAt)
+        case let (.some(activeAt), .none):
+            return activeAt
+        case let (.none, .some(fallbackResolvedAt)):
+            return fallbackResolvedAt
+        case (.none, .none):
+            return nil
+        }
+    }
+
+    private static func latestEvent(in logContents: String, containing marker: String) -> Date? {
         let formatter = timestampFormatter()
         var latest: Date?
 
         for line in logContents.split(whereSeparator: \.isNewline) {
             let text = String(line)
-            guard text.contains(activeMarker),
+            guard text.contains(marker),
                   let activeAt = parseTimestamp(from: text, formatter: formatter)
             else {
                 continue
@@ -149,5 +202,38 @@ public enum AgentHookLogInspector {
         formatter.timeZone = TimeZone.current
         formatter.dateFormat = timestampFormat
         return formatter
+    }
+
+    private static func timestampString(for date: Date) -> String {
+        timestampFormatter().string(from: date)
+    }
+
+    private static func sanitize(_ value: String) -> String {
+        value
+            .replacingOccurrences(of: "\n", with: " ")
+            .replacingOccurrences(of: "\r", with: " ")
+            .replacingOccurrences(of: "\t", with: " ")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .prefix(80)
+            .description
+    }
+}
+
+public enum HookFallbackRecoveryPolicy {
+    public static func remainingMinutes(
+        for status: AgentHookFallbackStatus,
+        now: Date = Date()
+    ) -> Int? {
+        guard status.isActive, let lastStartedAt = status.lastStartedAt else {
+            return nil
+        }
+
+        let expiresAt = lastStartedAt.addingTimeInterval(TimeInterval(status.fallbackSeconds))
+        let remainingSeconds = expiresAt.timeIntervalSince(now)
+        guard remainingSeconds > 0 else {
+            return nil
+        }
+
+        return max(1, Int(ceil(remainingSeconds / 60)))
     }
 }
