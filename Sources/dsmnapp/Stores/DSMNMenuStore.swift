@@ -443,6 +443,7 @@ final class DSMNMenuStore: ObservableObject {
             hookFallbackStatus = AgentHookLogInspector.recentFallbackStatus()
             report = try await readStatus(controller: controller)
             await repairHelperAfterXPCFailureIfNeeded()
+            await recoverActiveHookFallbackAfterSetupIfNeeded(reason: "setup_ready")
             clearHelperUpdateRetryIfResolved()
             errorMessage = helperXPCUnavailable ? "Helper unavailable; repair helper" : nil
         } catch {
@@ -547,6 +548,9 @@ final class DSMNMenuStore: ObservableObject {
                 helperUpdateRetryMessage = nil
                 hasAttemptedAutomaticHelperRepair = false
                 errorMessage = helperStatus == .requiresApproval ? "Approve helper in System Settings" : nil
+                if helperStatus == .enabled {
+                    await refresh()
+                }
             } catch {
                 errorMessage = error.localizedDescription
                 helperStatus = helper.registrationStatus
@@ -570,6 +574,7 @@ final class DSMNMenuStore: ObservableObject {
                 helperXPCUnavailable = false
                 errorMessage = helperStatus == .requiresApproval ? "Approve helper in System Settings" : nil
                 await refresh()
+                await recoverActiveHookFallbackAfterSetupIfNeeded(reason: "helper_update")
             } catch {
                 helperStatus = helper.registrationStatus
                 helperRuntimeInfo = await helper.runtimeInfo()
@@ -707,6 +712,8 @@ final class DSMNMenuStore: ObservableObject {
                 self.report = report
                 let result = DoctorReportFormatter.formatRepairResult(report, source: .helper)
                 RepairResultPresenter.show(result: result)
+                AgentHookLogInspector.markFallbackResolved(reason: "repair")
+                hookFallbackStatus = AgentHookLogInspector.recentFallbackStatus()
                 errorMessage = nil
                 await refresh()
             } catch {
@@ -807,6 +814,7 @@ final class DSMNMenuStore: ObservableObject {
             } else {
                 hookSetupStatus = inspectedStatus
             }
+            await recoverActiveHookFallbackAfterSetupIfNeeded(reason: "hooks_ready")
             errorMessage = nil
         }
     }
@@ -888,8 +896,35 @@ final class DSMNMenuStore: ObservableObject {
 
             report = try await helper.status()
             helperXPCUnavailable = false
+            await recoverActiveHookFallbackAfterSetupIfNeeded(reason: "helper_auto_repair")
         } catch {
             helperXPCUnavailable = true
+        }
+    }
+
+    private func recoverActiveHookFallbackAfterSetupIfNeeded(reason: String) async {
+        guard hookFallbackNeedsAttention,
+              setupMenuSignals.isSetupComplete,
+              helperStatus == .enabled,
+              !helperXPCUnavailable,
+              let minutes = HookFallbackRecoveryPolicy.remainingMinutes(for: hookFallbackStatus)
+        else {
+            return
+        }
+
+        do {
+            let requester = ActivationRequester(
+                name: "dsmn",
+                context: "recovered hook fallback",
+                event: reason
+            )
+            report = try await helper.enableManual(minutes: minutes, requester: requester)
+            helperXPCUnavailable = false
+            AgentHookLogInspector.markFallbackResolved(reason: reason)
+            hookFallbackStatus = AgentHookLogInspector.recentFallbackStatus()
+        } catch {
+            helperXPCUnavailable = helperStatus == .enabled
+            errorMessage = error.localizedDescription
         }
     }
 
