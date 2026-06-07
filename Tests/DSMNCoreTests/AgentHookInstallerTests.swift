@@ -451,7 +451,7 @@ final class AgentHookInstallerTests: XCTestCase {
         XCTAssertLessThan(homeApplicationsRange.lowerBound, installerPathRange.lowerBound)
     }
 
-    func testHookRecordsThrottleStampOnlyAfterConfirmedActiveLock() throws {
+    func testHookRecordsThrottleStampForFallbackOrConfirmedActiveLock() throws {
         let home = temporaryHome()
         defer {
             try? FileManager.default.removeItem(at: home)
@@ -461,11 +461,21 @@ final class AgentHookInstallerTests: XCTestCase {
         _ = try installer.install(targets: [.codex])
 
         let hookScript = try String(contentsOf: home.appendingPathComponent(".dsmn/dsmn-agent-hook.sh"), encoding: .utf8)
+        let fallbackRange = try XCTUnwrap(hookScript.range(of: "fallback_caffeinate()"))
+        let fallbackEndRange = try XCTUnwrap(hookScript.range(of: "requester_name()", range: fallbackRange.upperBound..<hookScript.endIndex))
+        let fallbackBody = hookScript[fallbackRange.lowerBound..<fallbackEndRange.lowerBound]
+        XCTAssertTrue(fallbackBody.contains("record_extend_stamp"))
+
+        let requesterRange = try XCTUnwrap(hookScript.range(of: #"REQUESTER_NAME="$(requester_name)""#))
+        let skipRange = try XCTUnwrap(hookScript.range(of: "if should_skip_extend"))
+        let resolveRange = try XCTUnwrap(hookScript.range(of: #"ctl="$(resolve_dsmnctl || true)""#))
         let doctorRange = try XCTUnwrap(hookScript.range(of: #"doctor="$("$ctl" doctor 2>&1 || true)""#))
         let localFallbackRange = try XCTUnwrap(hookScript.range(of: #"Status source: local fallback"#))
         let sleepDisabledRange = try XCTUnwrap(hookScript.range(of: #"macOS SleepDisabled: on"#))
         let stampRange = try XCTUnwrap(hookScript.range(of: "record_extend_stamp", options: [], range: sleepDisabledRange.upperBound..<hookScript.endIndex))
 
+        XCTAssertLessThan(requesterRange.lowerBound, skipRange.lowerBound)
+        XCTAssertLessThan(skipRange.lowerBound, resolveRange.lowerBound)
         XCTAssertLessThan(doctorRange.lowerBound, localFallbackRange.lowerBound)
         XCTAssertLessThan(localFallbackRange.lowerBound, stampRange.lowerBound)
         XCTAssertLessThan(sleepDisabledRange.lowerBound, stampRange.lowerBound)

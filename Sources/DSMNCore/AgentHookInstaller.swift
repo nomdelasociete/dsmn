@@ -1014,6 +1014,8 @@ public struct AgentHookInstaller: Sendable {
         }
 
         fallback_caffeinate() {
+          record_extend_stamp
+
           if ! command -v caffeinate >/dev/null 2>&1; then
             log_event "fallback unavailable: caffeinate not found"
             return 0
@@ -1121,19 +1123,19 @@ public struct AgentHookInstaller: Sendable {
           date +%s >"$STAMP_PATH" 2>/dev/null || true
         }
 
-        ctl="$(resolve_dsmnctl || true)"
-        if [[ -z "$ctl" ]]; then
-          log_event "dsmnctl not found"
-          fallback_caffeinate
-          exit 0
-        fi
-
         REQUESTER_NAME="$(requester_name)"
         REQUESTER_CONTEXT="$(hook_context)"
         REQUESTER_EVENT="$(hook_event)"
 
         if should_skip_extend; then
           log_event "dsmn extend throttled seconds=$MIN_INTERVAL_SECONDS requester=$REQUESTER_NAME event=$REQUESTER_EVENT"
+          exit 0
+        fi
+
+        ctl="$(resolve_dsmnctl || true)"
+        if [[ -z "$ctl" ]]; then
+          log_event "dsmnctl not found"
+          fallback_caffeinate
           exit 0
         fi
 
