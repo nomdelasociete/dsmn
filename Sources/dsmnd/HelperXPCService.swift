@@ -44,26 +44,38 @@ final class DSMNHelperXPCService: NSObject, DSMNHelperXPCProtocol {
                 ActivationRequester(name: $0, context: requesterContext, event: requesterEvent)
             }
             _ = try controller.enableManual(minutes: minutes, extendOnly: extendOnly, requester: requester)
-            return .success(run: try controller.reconcile(powerManager: powerManager))
+            return .success(run: try controller.reconcile(
+                powerManager: powerManager,
+                liveSleepDisabled: liveSleepDisabled()
+            ))
         })
     }
 
     func stop(withReply reply: @escaping (String) -> Void) {
         reply(encode {
             _ = try controller.stop()
-            return .success(run: try controller.reconcile(powerManager: powerManager))
+            return .success(run: try controller.reconcile(
+                powerManager: powerManager,
+                liveSleepDisabled: liveSleepDisabled()
+            ))
         })
     }
 
     func reconcile(withReply reply: @escaping (String) -> Void) {
         reply(encode {
-            .success(run: try controller.reconcile(powerManager: powerManager))
+            .success(run: try controller.reconcile(
+                powerManager: powerManager,
+                liveSleepDisabled: liveSleepDisabled()
+            ))
         })
     }
 
     func repair(withReply reply: @escaping (String) -> Void) {
         reply(encode {
-            .success(run: try controller.repair(powerManager: powerManager))
+            return .success(run: try controller.repair(
+                powerManager: powerManager,
+                liveSleepDisabled: liveSleepDisabled()
+            ))
         })
     }
 
@@ -84,10 +96,17 @@ final class DSMNHelperXPCService: NSObject, DSMNHelperXPCProtocol {
 
     private func reconcileSilently() {
         do {
-            _ = try controller.reconcile(powerManager: powerManager)
+            _ = try controller.reconcile(
+                powerManager: powerManager,
+                liveSleepDisabled: liveSleepDisabled()
+            )
         } catch {
             fputs("dsmnd: reconcile failed: \(error.localizedDescription)\n", stderr)
         }
+    }
+
+    private func liveSleepDisabled() -> Bool? {
+        try? SleepDiagnosticsInspector().report().sleepDisabled
     }
 
     private func encode(_ operation: () throws -> DSMNHelperCommandResponse) -> String {

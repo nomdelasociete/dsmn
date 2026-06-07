@@ -69,6 +69,30 @@ final class RepairTests: XCTestCase {
         XCTAssertEqual(report.status.state.lastStopReason, "repair")
     }
 
+    func testRepairReleasesLiveSleepDisabledEvenWhenStateLostOwnership() throws {
+        let now = Date(timeIntervalSince1970: 1_000)
+        let store = try makeStore()
+        try store.save(DSMNState())
+
+        let powerManager = RecordingPowerManager(dryRun: false)
+        let controller = DSMNController(
+            store: store,
+            processListing: StaticProcessListing([]),
+            snapshotProvider: StaticSystemSnapshotProvider(SystemSnapshot(now: now, powerSource: .ac))
+        )
+
+        let report = try controller.repair(
+            powerManager: powerManager,
+            liveSleepDisabled: true,
+            now: now
+        )
+
+        XCTAssertEqual(powerManager.requests, [false])
+        XCTAssertEqual(report.operation?.requestedSleepDisabled, false)
+        XCTAssertFalse(report.status.state.ownsSleepDisable)
+        XCTAssertEqual(report.status.state.lastStopReason, "repair")
+    }
+
     private func makeStore() throws -> StateStore {
         let directory = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
             .appendingPathComponent("dsmn-\(UUID().uuidString)", isDirectory: true)
