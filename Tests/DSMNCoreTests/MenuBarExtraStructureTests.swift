@@ -55,12 +55,23 @@ final class MenuBarExtraStructureTests: XCTestCase {
         let storeSource = try sourceFile(at: "Sources/dsmnapp/Stores/DSMNMenuStore.swift")
 
         XCTAssertTrue(appSource.contains("store.shouldPresentHelperUpdateReminder"))
-        XCTAssertTrue(appSource.contains("store.shouldPresentSetupAttentionReminder"))
+        XCTAssertTrue(appSource.contains("store.setupAttentionReminderSignature"))
         XCTAssertTrue(appSource.contains("SetupTroubleshootingWindowPresenter.show(store: store)"))
         XCTAssertTrue(appSource.contains("store.deferHelperUpdateReminder()"))
         XCTAssertTrue(appSource.contains("OnboardingWindowPresenter.showIfNeeded(store: store)"))
         XCTAssertTrue(storeSource.contains("var shouldPresentSetupAttentionReminder"))
+        XCTAssertTrue(storeSource.contains("var setupAttentionReminderSignature"))
         XCTAssertTrue(storeSource.contains("setupMenuSignals.isSetupIncomplete"))
+    }
+
+    func testAppSurfacesSetupAttentionWhileAlreadyRunning() throws {
+        let appSource = try sourceFile(at: "Sources/dsmnapp/App/DSMNApp.swift")
+        let storeSource = try sourceFile(at: "Sources/dsmnapp/Stores/DSMNMenuStore.swift")
+
+        XCTAssertTrue(appSource.contains(".onReceive(menuBarTimer)"))
+        XCTAssertTrue(appSource.contains("presentSetupAttentionIfNeeded()"))
+        XCTAssertTrue(appSource.contains("presentedSetupAttentionSignature"))
+        XCTAssertTrue(storeSource.contains("!hookSetupStatus.isBusy"))
     }
 
     func testHelperUpdateDoesNotMakeReadyHelperIncomplete() throws {

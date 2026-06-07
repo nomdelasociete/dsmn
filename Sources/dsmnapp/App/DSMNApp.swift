@@ -14,6 +14,7 @@ struct DSMNApp: App {
     @StateObject private var store = DSMNMenuStore()
     @AppStorage("showMenuBarCountdown") private var showMenuBarCountdown = true
     @State private var menuBarDate = Date()
+    @State private var presentedSetupAttentionSignature: String?
     private let softwareUpdateController = SoftwareUpdateController()
 
     private let menuBarTimer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
@@ -28,6 +29,7 @@ struct DSMNApp: App {
             DSMNMenuBarLabel(store: store, showCountdown: showMenuBarCountdown, date: menuBarDate)
                 .onReceive(menuBarTimer) { date in
                     menuBarDate = date
+                    presentSetupAttentionIfNeeded()
                 }
                 .task {
                     store.startRefreshLoop()
@@ -37,8 +39,8 @@ struct DSMNApp: App {
                     if store.shouldPresentHelperUpdateReminder {
                         SetupTroubleshootingWindowPresenter.show(store: store)
                         store.deferHelperUpdateReminder()
-                    } else if store.shouldPresentSetupAttentionReminder {
-                        SetupTroubleshootingWindowPresenter.show(store: store)
+                    } else if store.setupAttentionReminderSignature != nil {
+                        presentSetupAttentionIfNeeded()
                     } else {
                         OnboardingWindowPresenter.showIfNeeded(store: store)
                     }
@@ -50,6 +52,20 @@ struct DSMNApp: App {
             WhyAwakeView(store: store)
         }
         .defaultSize(width: 580, height: 560)
+    }
+
+    private func presentSetupAttentionIfNeeded() {
+        guard let signature = store.setupAttentionReminderSignature else {
+            presentedSetupAttentionSignature = nil
+            return
+        }
+
+        guard signature != presentedSetupAttentionSignature else {
+            return
+        }
+
+        presentedSetupAttentionSignature = signature
+        SetupTroubleshootingWindowPresenter.show(store: store)
     }
 }
 

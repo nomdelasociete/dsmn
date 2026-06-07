@@ -355,6 +355,20 @@ final class DSMNMenuStore: ObservableObject {
         onboardingWizardDismissed
             && !setupRemindersSuppressed
             && setupMenuSignals.isSetupIncomplete
+            && !hookSetupStatus.isBusy
+    }
+
+    var setupAttentionReminderSignature: String? {
+        guard shouldPresentSetupAttentionReminder else {
+            return nil
+        }
+
+        return [
+            helperStatusDisplayName,
+            setupLine ?? "setup-incomplete",
+            hooksSummary,
+            errorMessage ?? "no-error"
+        ].joined(separator: "|")
     }
 
     var helperUpdateDetail: String {
