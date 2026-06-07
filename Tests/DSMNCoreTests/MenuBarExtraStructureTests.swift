@@ -52,11 +52,15 @@ final class MenuBarExtraStructureTests: XCTestCase {
 
     func testAppLaunchSurfacesVoluntaryHelperUpdateReminder() throws {
         let appSource = try sourceFile(at: "Sources/dsmnapp/App/DSMNApp.swift")
+        let storeSource = try sourceFile(at: "Sources/dsmnapp/Stores/DSMNMenuStore.swift")
 
         XCTAssertTrue(appSource.contains("store.shouldPresentHelperUpdateReminder"))
+        XCTAssertTrue(appSource.contains("store.shouldPresentSetupAttentionReminder"))
         XCTAssertTrue(appSource.contains("SetupTroubleshootingWindowPresenter.show(store: store)"))
         XCTAssertTrue(appSource.contains("store.deferHelperUpdateReminder()"))
         XCTAssertTrue(appSource.contains("OnboardingWindowPresenter.showIfNeeded(store: store)"))
+        XCTAssertTrue(storeSource.contains("var shouldPresentSetupAttentionReminder"))
+        XCTAssertTrue(storeSource.contains("setupMenuSignals.isSetupIncomplete"))
     }
 
     func testHelperUpdateDoesNotMakeReadyHelperIncomplete() throws {

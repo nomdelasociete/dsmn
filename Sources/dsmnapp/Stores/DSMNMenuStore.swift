@@ -351,6 +351,12 @@ final class DSMNMenuStore: ObservableObject {
             && !helperNeedsRepair
     }
 
+    var shouldPresentSetupAttentionReminder: Bool {
+        onboardingWizardDismissed
+            && !setupRemindersSuppressed
+            && setupMenuSignals.isSetupIncomplete
+    }
+
     var helperUpdateDetail: String {
         let buildDetail: String
 
