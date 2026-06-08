@@ -7,7 +7,7 @@
 		<string>com.nomdelasociete.dsmn</string>
 	</array>
 	<key>BundleProgram</key>
-	<string>Contents/Library/LaunchDaemons/dsmnd</string>
+	<string>Contents/Library/LaunchServices/dsmnd</string>
 	<key>Label</key>
 	<string>com.nomdelasociete.dsmn.helper</string>
 	<key>MachServices</key>
@@ -17,7 +17,7 @@
 	</dict>
 	<key>ProgramArguments</key>
 	<array>
-		<string>dsmnd</string>
+		<string>Contents/Library/LaunchServices/dsmnd</string>
 		<string>serve</string>
 	</array>
 	<key>RunAtLoad</key>

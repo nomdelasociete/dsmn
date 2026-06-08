@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 APP_PATH="${1:-$ROOT_DIR/DerivedData/Build/Products/Debug/dsmn.app}"
-HELPER_PATH="$APP_PATH/Contents/Library/LaunchDaemons/dsmnd"
+HELPER_PATH="$APP_PATH/Contents/Library/LaunchServices/dsmnd"
 CTL_PATH="$APP_PATH/Contents/Library/Helpers/dsmnctl"
 PLIST_PATH="$APP_PATH/Contents/Library/LaunchDaemons/com.nomdelasociete.dsmn.helper.plist"
 INFO_PLIST="$APP_PATH/Contents/Info.plist"
@@ -28,6 +28,12 @@ if [[ ! -f "$PLIST_PATH" ]]; then
   exit 2
 fi
 
+legacy_helper_path="$APP_PATH/Contents/Library/LaunchDaemons/dsmnd"
+if [[ -e "$legacy_helper_path" ]]; then
+  echo "helper executable must not be copied beside the LaunchDaemon plist: $legacy_helper_path" >&2
+  exit 2
+fi
+
 if [[ ! -f "$INFO_PLIST" ]]; then
   echo "Info.plist missing: $INFO_PLIST" >&2
   exit 2
@@ -44,6 +50,12 @@ DSMN_STATE_DIR="$VERIFY_STATE_DIR" DSMN_APPLY_PMSET=0 "$HELPER_PATH" daemon-once
 
 plutil -lint "$PLIST_PATH"
 plutil -p "$PLIST_PATH"
+
+bundle_program="$(plutil -extract BundleProgram raw -o - "$PLIST_PATH")"
+if [[ "$bundle_program" != "Contents/Library/LaunchServices/dsmnd" ]]; then
+  echo "unexpected BundleProgram in LaunchDaemon plist: $bundle_program" >&2
+  exit 2
+fi
 
 if [[ "${DSMN_REQUIRE_SPARKLE:-0}" == "1" ]]; then
   feed_url="$(plutil -extract SUFeedURL raw -o - "$INFO_PLIST" 2>/dev/null || true)"
