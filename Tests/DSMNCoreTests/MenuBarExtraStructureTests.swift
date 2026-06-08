@@ -82,6 +82,23 @@ final class MenuBarExtraStructureTests: XCTestCase {
         XCTAssertFalse(storeSource.contains("return \"update available\""))
     }
 
+    func testHelperRecoveryDoesNotReregisterAutomatically() throws {
+        let storeSource = try sourceFile(at: "Sources/dsmnapp/Stores/DSMNMenuStore.swift")
+        let updateHelperRange = try XCTUnwrap(storeSource.range(of: "func updateHelper()"))
+        let explicitHelperUpdateSource = String(storeSource[updateHelperRange.lowerBound...])
+
+        XCTAssertTrue(storeSource.contains("retryHelperXPCConnectionIfNeeded()"))
+        XCTAssertTrue(storeSource.contains("helperXPCUnavailableIsPersistent"))
+        XCTAssertFalse(storeSource.contains("repairHelperAfterXPCFailureIfNeeded"))
+        XCTAssertFalse(storeSource.contains("helper_auto_repair"))
+        XCTAssertFalse(storeSource.contains("hasAttemptedAutomaticHelperRepair"))
+        XCTAssertEqual(
+            storeSource.components(separatedBy: "helper.updateRegistration()").count - 1,
+            explicitHelperUpdateSource.components(separatedBy: "helper.updateRegistration()").count - 1,
+            "Helper unregister/register must stay behind the explicit Update Helper action, not refresh or wake recovery."
+        )
+    }
+
     private func sourceFile(at relativePath: String) throws -> String {
         let repositoryRoot = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()

@@ -25,7 +25,8 @@ final class DSMNMenuStore: ObservableObject {
     private let launchAtLogin = LaunchAtLoginService()
     private let setupError: Error?
     private var refreshLoopTask: Task<Void, Never>?
-    private var hasAttemptedAutomaticHelperRepair = false
+    private var helperXPCUnavailableSince: Date?
+    private let helperRepairAttentionDelay: TimeInterval = 45
 
     init() {
         OnboardingPreferences.migrateLegacyKeysIfNeeded()
@@ -389,7 +390,7 @@ final class DSMNMenuStore: ObservableObject {
     }
 
     var helperNeedsRepair: Bool {
-        helperStatus == .enabled && helperXPCUnavailable
+        helperStatus == .enabled && helperXPCUnavailableIsPersistent
     }
 
     var helperStatusDisplayName: String {
@@ -456,10 +457,10 @@ final class DSMNMenuStore: ObservableObject {
             }
             hookFallbackStatus = AgentHookLogInspector.recentFallbackStatus()
             report = try await readStatus(controller: controller)
-            await repairHelperAfterXPCFailureIfNeeded()
+            await retryHelperXPCConnectionIfNeeded()
             await recoverActiveHookFallbackAfterSetupIfNeeded(reason: "setup_ready")
             clearHelperUpdateRetryIfResolved()
-            errorMessage = helperXPCUnavailable ? "Helper unavailable; repair helper" : nil
+            errorMessage = helperNeedsRepair ? "Helper unavailable; repair helper" : nil
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -560,7 +561,6 @@ final class DSMNMenuStore: ObservableObject {
                 helperRuntimeInfo = await helper.runtimeInfo()
                 OnboardingPreferences.deferredHelperUpdateBuild = nil
                 helperUpdateRetryMessage = nil
-                hasAttemptedAutomaticHelperRepair = false
                 errorMessage = helperStatus == .requiresApproval ? "Approve helper in System Settings" : nil
                 if helperStatus == .enabled {
                     await refresh()
@@ -580,12 +580,11 @@ final class DSMNMenuStore: ObservableObject {
             }
 
             do {
-                hasAttemptedAutomaticHelperRepair = false
                 helperStatus = try helper.updateRegistration()
                 helperRuntimeInfo = await helper.runtimeInfo()
                 OnboardingPreferences.deferredHelperUpdateBuild = nil
                 helperUpdateRetryMessage = nil
-                helperXPCUnavailable = false
+                markHelperXPCAvailable()
                 errorMessage = helperStatus == .requiresApproval ? "Approve helper in System Settings" : nil
                 await refresh()
                 await recoverActiveHookFallbackAfterSetupIfNeeded(reason: "helper_update")
@@ -616,8 +615,7 @@ final class DSMNMenuStore: ObservableObject {
                 helperRuntimeInfo = await helper.runtimeInfo()
                 OnboardingPreferences.deferredHelperUpdateBuild = nil
                 helperUpdateRetryMessage = nil
-                helperXPCUnavailable = false
-                hasAttemptedAutomaticHelperRepair = false
+                markHelperXPCAvailable()
                 errorMessage = nil
                 await refresh()
             } catch {
@@ -878,13 +876,17 @@ final class DSMNMenuStore: ObservableObject {
         do {
             let helperReport = try await helper.status()
             helperStatus = .enabled
-            helperXPCUnavailable = false
+            markHelperXPCAvailable()
             return helperReport
         } catch {
             // SMAppService can report an ambiguous status when a different copy
             // of dsmn registered the helper. If XPC is unavailable too, fall
             // back to local status so the menu still opens.
-            helperXPCUnavailable = helperStatus == .enabled
+            if helperStatus == .enabled {
+                markHelperXPCUnavailable()
+            } else {
+                markHelperXPCAvailable()
+            }
         }
 
         return try await Task.detached {
@@ -892,28 +894,42 @@ final class DSMNMenuStore: ObservableObject {
         }.value
     }
 
-    private func repairHelperAfterXPCFailureIfNeeded() async {
-        guard helperNeedsRepair, !hasAttemptedAutomaticHelperRepair else {
+    private func retryHelperXPCConnectionIfNeeded() async {
+        guard helperStatus == .enabled, helperXPCUnavailable else {
             return
         }
 
-        hasAttemptedAutomaticHelperRepair = true
+        do {
+            try await Task.sleep(for: .milliseconds(750))
+        } catch {
+            return
+        }
 
         do {
-            helperStatus = try helper.updateRegistration()
-            helperRuntimeInfo = await helper.runtimeInfo()
-
-            guard helperStatus == .enabled else {
-                helperXPCUnavailable = false
-                return
-            }
-
             report = try await helper.status()
-            helperXPCUnavailable = false
-            await recoverActiveHookFallbackAfterSetupIfNeeded(reason: "helper_auto_repair")
+            markHelperXPCAvailable()
+            await recoverActiveHookFallbackAfterSetupIfNeeded(reason: "helper_xpc_recovered")
         } catch {
-            helperXPCUnavailable = true
+            markHelperXPCUnavailable()
         }
+    }
+
+    private var helperXPCUnavailableIsPersistent: Bool {
+        guard helperXPCUnavailable, let helperXPCUnavailableSince else {
+            return false
+        }
+
+        return Date().timeIntervalSince(helperXPCUnavailableSince) >= helperRepairAttentionDelay
+    }
+
+    private func markHelperXPCAvailable() {
+        helperXPCUnavailable = false
+        helperXPCUnavailableSince = nil
+    }
+
+    private func markHelperXPCUnavailable() {
+        helperXPCUnavailable = true
+        helperXPCUnavailableSince = helperXPCUnavailableSince ?? Date()
     }
 
     private func recoverActiveHookFallbackAfterSetupIfNeeded(reason: String) async {
