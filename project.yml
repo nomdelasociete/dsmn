@@ -29,8 +29,8 @@ targets:
         CFBundleIdentifier: com.nomdelasociete.dsmn.core
         CFBundleName: DSMNCore
         CFBundlePackageType: FMWK
-        CFBundleShortVersionString: "0.1.35"
-        CFBundleVersion: "36"
+        CFBundleShortVersionString: "0.1.36"
+        CFBundleVersion: "37"
         LSMinimumSystemVersion: "13.0"
     settings:
       base:
@@ -72,8 +72,8 @@ targets:
         CFBundleIdentifier: com.nomdelasociete.dsmn
         CFBundleIconFile: dsmn
         CFBundleName: dsmn
-        CFBundleShortVersionString: "0.1.35"
-        CFBundleVersion: "36"
+        CFBundleShortVersionString: "0.1.36"
+        CFBundleVersion: "37"
         LSApplicationCategoryType: public.app-category.utilities
         LSMinimumSystemVersion: "13.0"
         LSUIElement: true
