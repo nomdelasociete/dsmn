@@ -57,7 +57,7 @@ targets:
         codeSign: true
         copy:
           destination: wrapper
-          subpath: Contents/Library/LaunchDaemons
+          subpath: Contents/Library/LaunchServices
       - target: dsmnctl
         embed: true
         link: false

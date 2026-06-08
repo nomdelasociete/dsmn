@@ -17,7 +17,7 @@ if [[ ! -d "$APP_PATH" ]]; then
 fi
 
 codesign --verify --deep --strict --verbose=2 "$APP_PATH"
-codesign --verify --strict --verbose=2 "$APP_PATH/Contents/Library/LaunchDaemons/dsmnd"
+codesign --verify --strict --verbose=2 "$APP_PATH/Contents/Library/LaunchServices/dsmnd"
 
 rm -f "$ZIP_PATH"
 /usr/bin/ditto -c -k --keepParent --sequesterRsrc --rsrc "$APP_PATH" "$ZIP_PATH"

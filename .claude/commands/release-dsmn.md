@@ -41,7 +41,7 @@ Follow this runbook exactly:
 
    If `xcodegen` changes `dsmn.xcodeproj/project.pbxproj`, inspect the diff.
    The known harmless churn is the generated embed-phase swap between
-   `Contents/Library/Helpers` and `Contents/Library/LaunchDaemons`. Restore that
+   `Contents/Library/Helpers` and `Contents/Library/LaunchServices`. Restore that
    generated churn before committing. Stop for review on any other project-file
    change.
 
@@ -107,7 +107,9 @@ Follow this runbook exactly:
    /usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$app/Contents/Info.plist"
    codesign -v --deep --strict "$app"
    codesign -dv "$app/Contents/Library/Helpers/dsmnctl" 2>&1 | grep -E 'Identifier|TeamIdentifier'
-   codesign -dv "$app/Contents/Library/LaunchDaemons/dsmnd" 2>&1 | grep -E 'Identifier|TeamIdentifier'
+   codesign -dv "$app/Contents/Library/LaunchServices/dsmnd" 2>&1 | grep -E 'Identifier|TeamIdentifier'
+   test ! -e "$app/Contents/Library/LaunchDaemons/dsmnd"
+   plutil -extract BundleProgram raw -o - "$app/Contents/Library/LaunchDaemons/com.nomdelasociete.dsmn.helper.plist"
    spctl -a -vv --type execute "$app"
    rm -rf "$workdir"
    ```
