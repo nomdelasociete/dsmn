@@ -12,6 +12,7 @@ struct DSMNFeedbackView: View {
     @State private var email = ""
     @State private var includeDiagnostics = false
     @State private var isSubmitting = false
+    @State private var didSubmit = false
     @State private var resultMessage: String?
     @State private var resultIsError = false
 
@@ -20,6 +21,18 @@ struct DSMNFeedbackView: View {
     }
 
     var body: some View {
+        Group {
+            if didSubmit {
+                successContent
+            } else {
+                formContent
+            }
+        }
+        .padding(24)
+        .frame(width: 520, height: 500)
+    }
+
+    private var formContent: some View {
         VStack(alignment: .leading, spacing: 18) {
             header
 
@@ -75,8 +88,44 @@ struct DSMNFeedbackView: View {
 
             footer
         }
-        .padding(24)
-        .frame(width: 520, height: 500)
+    }
+
+    private var successContent: some View {
+        VStack(spacing: 18) {
+            Spacer()
+
+            ZStack {
+                Circle()
+                    .fill(.green.opacity(0.16))
+                    .frame(width: 74, height: 74)
+
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.system(size: 42, weight: .semibold))
+                    .foregroundStyle(.green)
+            }
+
+            VStack(spacing: 6) {
+                Text("Feedback Sent")
+                    .font(.title2.weight(.semibold))
+
+                Text("Thanks. It has been saved and the window will close automatically.")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            Spacer()
+
+            HStack {
+                Spacer()
+
+                Button("Done") {
+                    onClose()
+                }
+                .keyboardShortcut(.defaultAction)
+            }
+        }
     }
 
     private var header: some View {
@@ -152,8 +201,10 @@ struct DSMNFeedbackView: View {
                 try await service.submit(submission)
                 await MainActor.run {
                     isSubmitting = false
+                    resultMessage = nil
                     resultIsError = false
-                    resultMessage = "Feedback sent."
+                    didSubmit = true
+                    closeAfterSuccessDelay()
                 }
             } catch {
                 await MainActor.run {
@@ -162,6 +213,13 @@ struct DSMNFeedbackView: View {
                     resultMessage = error.localizedDescription
                 }
             }
+        }
+    }
+
+    private func closeAfterSuccessDelay() {
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(1_200))
+            onClose()
         }
     }
 
