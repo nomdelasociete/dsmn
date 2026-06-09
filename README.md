@@ -44,6 +44,8 @@ This repository currently contains a working signed macOS app stack:
   fragile nested menu bar submenus
 - last-request visibility in the menu and CLI, including agent/session context
   when hooks provide it
+- process diagnostics for local agent apps including Claude Code, Codex, Grok
+  Build, Pi, and Perplexity Desktop
 - `Why Awake?` diagnostics that separate dsmn's lock from external macOS sleep
   assertions owned by apps such as Codex, Claude, or browsers
 - native feedback window that submits to the first-party `dsmn.app` backend,

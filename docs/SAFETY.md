@@ -26,8 +26,8 @@ their current state.
 ## Activation model
 
 Sleep prevention is driven by a **manual timer** (`manualUntil`), not by
-detected agent processes. Running Claude, Codex, Grok Build, or Pi alone does
-not keep the Mac awake.
+detected agent processes. Running Claude, Codex, Grok Build, Pi, or Perplexity
+Desktop alone does not keep the Mac awake.
 
 Agent hooks call `dsmnctl manual --extend-only` on session and tool events. Each
 call renews the current lease up to the configured maximum; renewals are not

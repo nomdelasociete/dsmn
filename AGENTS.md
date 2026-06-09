@@ -55,6 +55,10 @@ helper owns the actual power-management operation.
 - Grok Build
 - Pi
 
+`AgentDetector` also recognizes Perplexity Desktop for diagnostics. Perplexity
+is not a hook target and must not start or extend a timer merely because
+`Perplexity.app` or its `perplexityd` helper is running.
+
 Full uninstall (`all` or no target) also removes `~/.dsmn/dsmn-agent-hook.sh`.
 The menu exposes full uninstall from **About dsmn → Remove Agent Hooks…** (not a
 top-level menu item).
@@ -360,6 +364,6 @@ Rules learned from shipping #9:
   event but throttles `dsmnctl manual` to at most once per minimum interval.
 - Hooks record the last requester, for example `Codex - dsmn - session abc12345`
   when the hook payload exposes session context.
-- Long-lived agent processes alone do not keep the Mac awake; dsmn only stays
-  active while a manual timer is still valid.
+- Long-lived agent processes alone, including Perplexity Desktop, do not keep
+  the Mac awake; dsmn only stays active while a manual timer is still valid.
 - dsmn does not intentionally keep the display awake.

@@ -91,6 +91,10 @@ public struct AgentDetector: Sendable {
             return .pi
         }
 
+        if matchesPerplexityDesktop(executableName: executableName, executable: executable, command: command) {
+            return .perplexityDesktop
+        }
+
         return nil
     }
 
@@ -131,6 +135,12 @@ public struct AgentDetector: Sendable {
             || command.hasSuffix("/bin/pi")
             || command.contains("/bin/pi ")
             || command.contains("@earendil-works/pi-coding-agent")
+    }
+
+    private func matchesPerplexityDesktop(executableName _: String, executable: String, command: String) -> Bool {
+        let appExecutablePath = "/perplexity.app/contents/macos/perplexity"
+        return executable.contains(appExecutablePath)
+            || command.contains(appExecutablePath)
     }
 
     private func isShellWrapper(_ process: RunningProcess) -> Bool {

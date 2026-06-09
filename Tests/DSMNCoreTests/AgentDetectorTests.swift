@@ -75,6 +75,34 @@ final class AgentDetectorTests: XCTestCase {
         XCTAssertEqual(detector.detect(in: processes).map(\.kind), [.pi])
     }
 
+    func testDetectsPerplexityDesktopApp() {
+        let detector = AgentDetector()
+        let processes = [
+            RunningProcess(
+                pid: 108,
+                ppid: 1,
+                executable: "/Applications/Pe",
+                command: "/Applications/Perplexity.app/Contents/MacOS/Perplexity"
+            )
+        ]
+
+        XCTAssertEqual(detector.detect(in: processes).map(\.kind), [.perplexityDesktop])
+    }
+
+    func testIgnoresPerplexityHelperDaemon() {
+        let detector = AgentDetector()
+        let processes = [
+            RunningProcess(
+                pid: 109,
+                ppid: 1,
+                executable: "Contents/Library/LaunchAgents/Perplexity Helper.app/Contents/MacOS/perplexityd",
+                command: "Contents/Library/LaunchAgents/Perplexity Helper.app/Contents/MacOS/perplexityd"
+            )
+        ]
+
+        XCTAssertTrue(detector.detect(in: processes).isEmpty)
+    }
+
     func testIgnoresShellWrapper() {
         let detector = AgentDetector()
         let processes = [

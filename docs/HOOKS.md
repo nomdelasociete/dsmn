@@ -33,6 +33,10 @@ dsmnctl install-hooks grok
 dsmnctl install-hooks pi
 ```
 
+Perplexity Desktop is recognized in process diagnostics, but it is not a hook
+target. dsmn must not arm a timer just because `Perplexity.app` or the
+`perplexityd` helper is running.
+
 The installer writes the executable hook to:
 
 ```text
