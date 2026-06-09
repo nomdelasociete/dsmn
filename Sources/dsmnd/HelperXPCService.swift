@@ -1,22 +1,35 @@
 import DSMNCore
 import Foundation
 
-final class DSMNHelperXPCService: NSObject, DSMNHelperXPCProtocol {
+final class DSMNHelperXPCService: NSObject, DSMNHelperXPCProtocol, @unchecked Sendable {
     private let controller: DSMNController
     private let powerManager: any PowerManaging
-    private var reconcileTimer: Timer?
+    private let liveSleepDisabledProvider: @Sendable () -> Bool?
+    private let operationLock = NSLock()
+    private let timerQueue = DispatchQueue(label: "com.nomdelasociete.dsmn.helper.reconcile")
+    private var periodicReconcileTimer: DispatchSourceTimer?
+    private var sleepReleaseTimer: DispatchSourceTimer?
 
     init(
         controller: DSMNController = DSMNController(store: StateStore.daemonStore()),
-        powerManager: any PowerManaging = PMSetPowerManager(dryRun: DSMNHelperXPCService.shouldDryRunPowerChanges())
+        powerManager: any PowerManaging = PMSetPowerManager(dryRun: DSMNHelperXPCService.shouldDryRunPowerChanges()),
+        liveSleepDisabledProvider: @escaping @Sendable () -> Bool? = DSMNHelperXPCService.defaultLiveSleepDisabled
     ) {
         self.controller = controller
         self.powerManager = powerManager
+        self.liveSleepDisabledProvider = liveSleepDisabledProvider
+    }
+
+    deinit {
+        periodicReconcileTimer?.cancel()
+        sleepReleaseTimer?.cancel()
     }
 
     func status(withReply reply: @escaping (String) -> Void) {
         reply(encode {
-            .success(status: try controller.status())
+            .success(status: try locked {
+                try controller.status()
+            })
         })
     }
 
@@ -43,69 +56,124 @@ final class DSMNHelperXPCService: NSObject, DSMNHelperXPCProtocol {
             let requester = requesterName.map {
                 ActivationRequester(name: $0, context: requesterContext, event: requesterEvent)
             }
-            _ = try controller.enableManual(minutes: minutes, extendOnly: extendOnly, requester: requester)
-            return .success(run: try controller.reconcile(
-                powerManager: powerManager,
-                liveSleepDisabled: liveSleepDisabled()
-            ))
+            return .success(run: try locked {
+                _ = try controller.enableManual(minutes: minutes, extendOnly: extendOnly, requester: requester)
+                return try reconcileLocked()
+            })
         })
     }
 
     func stop(withReply reply: @escaping (String) -> Void) {
         reply(encode {
-            _ = try controller.stop()
-            return .success(run: try controller.reconcile(
-                powerManager: powerManager,
-                liveSleepDisabled: liveSleepDisabled()
-            ))
+            return .success(run: try locked {
+                _ = try controller.stop()
+                return try reconcileLocked()
+            })
         })
     }
 
     func reconcile(withReply reply: @escaping (String) -> Void) {
         reply(encode {
-            .success(run: try controller.reconcile(
-                powerManager: powerManager,
-                liveSleepDisabled: liveSleepDisabled()
-            ))
+            .success(run: try locked {
+                try reconcileLocked()
+            })
         })
     }
 
     func repair(withReply reply: @escaping (String) -> Void) {
         reply(encode {
-            return .success(run: try controller.repair(
-                powerManager: powerManager,
-                liveSleepDisabled: liveSleepDisabled()
-            ))
+            return .success(run: try locked {
+                let report = try controller.repair(
+                    powerManager: powerManager,
+                    liveSleepDisabled: liveSleepDisabled()
+                )
+                scheduleSleepRelease(from: report.status)
+                return report
+            })
         })
     }
 
     func startPeriodicReconcile(interval: TimeInterval) {
         reconcileSilently()
-        reconcileTimer = Timer.scheduledTimer(
-            timeInterval: interval,
-            target: self,
-            selector: #selector(handlePeriodicReconcile),
-            userInfo: nil,
-            repeats: true
-        )
-    }
 
-    @objc private func handlePeriodicReconcile(_ timer: Timer) {
-        reconcileSilently()
+        timerQueue.async { [weak self] in
+            guard let self else {
+                return
+            }
+
+            periodicReconcileTimer?.cancel()
+            let timer = DispatchSource.makeTimerSource(queue: timerQueue)
+            timer.schedule(
+                deadline: .now() + interval,
+                repeating: interval,
+                leeway: .seconds(5)
+            )
+            timer.setEventHandler { [weak self] in
+                self?.reconcileSilently()
+            }
+            periodicReconcileTimer = timer
+            timer.resume()
+        }
     }
 
     private func reconcileSilently() {
         do {
-            _ = try controller.reconcile(
-                powerManager: powerManager,
-                liveSleepDisabled: liveSleepDisabled()
-            )
+            _ = try locked {
+                try reconcileLocked()
+            }
         } catch {
             fputs("dsmnd: reconcile failed: \(error.localizedDescription)\n", stderr)
         }
     }
 
+    private func reconcileLocked() throws -> DaemonRunReport {
+        let report = try controller.reconcile(
+            powerManager: powerManager,
+            liveSleepDisabled: liveSleepDisabled()
+        )
+        scheduleSleepRelease(from: report.status)
+        return report
+    }
+
+    private func scheduleSleepRelease(from status: StatusReport) {
+        let schedule = ReconcileSchedule.sleepReleaseDeadline(for: status)
+
+        timerQueue.async { [weak self] in
+            guard let self else {
+                return
+            }
+
+            sleepReleaseTimer?.cancel()
+            sleepReleaseTimer = nil
+
+            guard let deadline = schedule.deadline else {
+                return
+            }
+
+            let delay = max(0.1, deadline.timeIntervalSince(Date()))
+            let timer = DispatchSource.makeTimerSource(queue: timerQueue)
+            timer.schedule(deadline: .now() + delay, leeway: .seconds(1))
+            timer.setEventHandler { [weak self] in
+                self?.reconcileSilently()
+            }
+            sleepReleaseTimer = timer
+            timer.resume()
+        }
+    }
+
+    private func locked<T>(_ operation: () throws -> T) throws -> T {
+        operationLock.lock()
+        defer {
+            operationLock.unlock()
+        }
+        return try operation()
+    }
+
     private func liveSleepDisabled() -> Bool? {
+        liveSleepDisabledProvider()
+    }
+
+    private static func defaultLiveSleepDisabled() -> Bool? {
         try? SleepDiagnosticsInspector().report().sleepDisabled
     }
 

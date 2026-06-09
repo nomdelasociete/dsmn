@@ -85,6 +85,14 @@ reason is informational only; it is not a release condition in
 Do not reintroduce `lid_open_grace_elapsed` as a `stopReason` without an
 explicit product decision.
 
+The helper must not rely only on a periodic poll to release
+`pmset disablesleep`. Every successful helper reconcile that leaves dsmn owning
+the power lock must arm a one-shot release deadline for the earliest safety
+deadline (`manualUntil`, or no-route grace expiry when earlier). Keep
+`HelperXPCServiceSchedulerTests` covering: command arms the lock, no further
+command arrives, the helper still calls `pmset disablesleep 0` and clears
+state after expiry.
+
 ### Hook throttling
 
 Throttle **`dsmnctl manual` calls**, not agent hook events. The installer must
