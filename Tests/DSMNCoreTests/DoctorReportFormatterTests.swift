@@ -87,6 +87,27 @@ final class DoctorReportFormatterTests: XCTestCase {
         XCTAssertTrue(text.contains("- Codex: outdated (/Users/jb/.codex/hooks.json)"))
     }
 
+    func testFormatIncludesLastPowerOperation() throws {
+        var report = sampleReport(ownsSleepDisable: false, agentCount: 0)
+        report.state.lastPowerOperation = PowerOperationAudit(
+            action: .sleepNow,
+            occurredAt: Date(timeIntervalSince1970: 1_000),
+            reason: "closed_lid_release",
+            dryRun: false,
+            exitCode: 0,
+            command: "/usr/bin/pmset sleepnow"
+        )
+
+        let text = DoctorReportFormatter.format(
+            report: report,
+            source: .helper,
+            liveSleepDisabled: false
+        )
+
+        XCTAssertTrue(text.contains("Last power operation: sleep_now at 1970-01-01T00:16:40Z"))
+        XCTAssertTrue(text.contains("closed_lid_release, exit 0"))
+    }
+
     func testFormatRepairResultSummarizesStatus() throws {
         let report = sampleReport(ownsSleepDisable: false, agentCount: 0)
         let text = DoctorReportFormatter.formatRepairResult(report, source: .helper)

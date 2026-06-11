@@ -164,6 +164,89 @@ final class DaemonReconcileTests: XCTestCase {
         XCTAssertEqual(report.status.state.lastStopReason, "manual_expired")
     }
 
+    func testReconcileRequestsSleepNowAfterReleaseWhenLidIsClosedOnBattery() throws {
+        let now = Date(timeIntervalSince1970: 1_000)
+        let store = try makeStore()
+        try store.save(
+            DSMNState(
+                manualUntil: now.addingTimeInterval(-1),
+                ownsSleepDisable: true
+            )
+        )
+
+        let powerManager = RecordingPowerManager(dryRun: false)
+        let controller = DSMNController(
+            store: store,
+            processListing: StaticProcessListing([]),
+            snapshotProvider: StaticSystemSnapshotProvider(
+                SystemSnapshot(now: now, powerSource: .battery, batteryPercent: 80, lidClosed: true)
+            )
+        )
+
+        let report = try controller.reconcile(powerManager: powerManager, now: now)
+        let state = try store.load()
+
+        XCTAssertEqual(powerManager.requests, [false])
+        XCTAssertEqual(powerManager.sleepNowRequests, 1)
+        XCTAssertEqual(report.operations.map(\.action), [.enableSleep, .sleepNow])
+        XCTAssertFalse(report.status.state.ownsSleepDisable)
+        XCTAssertNil(report.status.state.manualUntil)
+        XCTAssertEqual(state.lastPowerOperation?.action, .sleepNow)
+        XCTAssertEqual(state.lastPowerOperation?.reason, "closed_lid_release")
+    }
+
+    func testReconcileDoesNotRequestSleepNowAfterReleaseWhenLidIsOpen() throws {
+        let now = Date(timeIntervalSince1970: 1_000)
+        let store = try makeStore()
+        try store.save(
+            DSMNState(
+                manualUntil: now.addingTimeInterval(-1),
+                ownsSleepDisable: true
+            )
+        )
+
+        let powerManager = RecordingPowerManager(dryRun: false)
+        let controller = DSMNController(
+            store: store,
+            processListing: StaticProcessListing([]),
+            snapshotProvider: StaticSystemSnapshotProvider(
+                SystemSnapshot(now: now, powerSource: .battery, batteryPercent: 80, lidClosed: false)
+            )
+        )
+
+        let report = try controller.reconcile(powerManager: powerManager, now: now)
+
+        XCTAssertEqual(powerManager.requests, [false])
+        XCTAssertEqual(powerManager.sleepNowRequests, 0)
+        XCTAssertEqual(report.operations.map(\.action), [.enableSleep])
+    }
+
+    func testReconcileDoesNotRequestSleepNowAfterReleaseOnACPower() throws {
+        let now = Date(timeIntervalSince1970: 1_000)
+        let store = try makeStore()
+        try store.save(
+            DSMNState(
+                manualUntil: now.addingTimeInterval(-1),
+                ownsSleepDisable: true
+            )
+        )
+
+        let powerManager = RecordingPowerManager(dryRun: false)
+        let controller = DSMNController(
+            store: store,
+            processListing: StaticProcessListing([]),
+            snapshotProvider: StaticSystemSnapshotProvider(
+                SystemSnapshot(now: now, powerSource: .ac, batteryPercent: 80, lidClosed: true)
+            )
+        )
+
+        let report = try controller.reconcile(powerManager: powerManager, now: now)
+
+        XCTAssertEqual(powerManager.requests, [false])
+        XCTAssertEqual(powerManager.sleepNowRequests, 0)
+        XCTAssertEqual(report.operations.map(\.action), [.enableSleep])
+    }
+
     func testReconcilePersistsNoRouteUnavailableSinceDuringGrace() throws {
         let now = Date(timeIntervalSince1970: 40_000)
         let store = try makeStore()
@@ -302,6 +385,7 @@ final class DaemonReconcileTests: XCTestCase {
 
 private final class RecordingPowerManager: PowerManaging, @unchecked Sendable {
     var requests: [Bool] = []
+    var sleepNowRequests = 0
     let dryRun: Bool
 
     init(dryRun: Bool) {
@@ -315,6 +399,17 @@ private final class RecordingPowerManager: PowerManaging, @unchecked Sendable {
             dryRun: dryRun,
             executedCommand: "recorded",
             exitCode: dryRun ? nil : 0
+        )
+    }
+
+    func requestSleepNow() throws -> PowerOperationResult {
+        sleepNowRequests += 1
+        return PowerOperationResult(
+            requestedSleepDisabled: false,
+            dryRun: dryRun,
+            executedCommand: "recorded sleepnow",
+            exitCode: dryRun ? nil : 0,
+            action: .sleepNow
         )
     }
 }

@@ -1,6 +1,13 @@
 import Foundation
 
+public enum PowerOperationAction: String, Codable, Equatable, Sendable {
+    case disableSleep = "disable_sleep"
+    case enableSleep = "enable_sleep"
+    case sleepNow = "sleep_now"
+}
+
 public struct PowerOperationResult: Codable, Equatable, Sendable {
+    public var action: PowerOperationAction
     public var requestedSleepDisabled: Bool
     public var dryRun: Bool
     public var executedCommand: String?
@@ -14,8 +21,10 @@ public struct PowerOperationResult: Codable, Equatable, Sendable {
         executedCommand: String?,
         exitCode: Int32?,
         stdout: String = "",
-        stderr: String = ""
+        stderr: String = "",
+        action: PowerOperationAction? = nil
     ) {
+        self.action = action ?? (requestedSleepDisabled ? .disableSleep : .enableSleep)
         self.requestedSleepDisabled = requestedSleepDisabled
         self.dryRun = dryRun
         self.executedCommand = executedCommand
@@ -23,10 +32,45 @@ public struct PowerOperationResult: Codable, Equatable, Sendable {
         self.stdout = stdout
         self.stderr = stderr
     }
+
+    private enum CodingKeys: String, CodingKey {
+        case action
+        case requestedSleepDisabled
+        case dryRun
+        case executedCommand
+        case exitCode
+        case stdout
+        case stderr
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        requestedSleepDisabled = try container.decode(Bool.self, forKey: .requestedSleepDisabled)
+        action = try container.decodeIfPresent(PowerOperationAction.self, forKey: .action)
+            ?? (requestedSleepDisabled ? .disableSleep : .enableSleep)
+        dryRun = try container.decode(Bool.self, forKey: .dryRun)
+        executedCommand = try container.decodeIfPresent(String.self, forKey: .executedCommand)
+        exitCode = try container.decodeIfPresent(Int32.self, forKey: .exitCode)
+        stdout = try container.decodeIfPresent(String.self, forKey: .stdout) ?? ""
+        stderr = try container.decodeIfPresent(String.self, forKey: .stderr) ?? ""
+    }
 }
 
 public protocol PowerManaging: Sendable {
     func setSleepDisabled(_ disabled: Bool) throws -> PowerOperationResult
+    func requestSleepNow() throws -> PowerOperationResult
+}
+
+public extension PowerManaging {
+    func requestSleepNow() throws -> PowerOperationResult {
+        PowerOperationResult(
+            requestedSleepDisabled: false,
+            dryRun: true,
+            executedCommand: nil,
+            exitCode: nil,
+            action: .sleepNow
+        )
+    }
 }
 
 public struct PMSetPowerManager: PowerManaging {
@@ -61,6 +105,31 @@ public struct PMSetPowerManager: PowerManaging {
             stderr: output.stderr
         )
     }
+
+    public func requestSleepNow() throws -> PowerOperationResult {
+        let command = "/usr/bin/pmset sleepnow"
+
+        if dryRun {
+            return PowerOperationResult(
+                requestedSleepDisabled: false,
+                dryRun: true,
+                executedCommand: command,
+                exitCode: nil,
+                action: .sleepNow
+            )
+        }
+
+        let output = try runner.run("/usr/bin/pmset", arguments: ["sleepnow"])
+        return PowerOperationResult(
+            requestedSleepDisabled: false,
+            dryRun: false,
+            executedCommand: command,
+            exitCode: output.exitCode,
+            stdout: output.stdout,
+            stderr: output.stderr,
+            action: .sleepNow
+        )
+    }
 }
 
 public struct NoopPowerManager: PowerManaging {
@@ -74,5 +143,14 @@ public struct NoopPowerManager: PowerManaging {
             exitCode: nil
         )
     }
-}
 
+    public func requestSleepNow() throws -> PowerOperationResult {
+        PowerOperationResult(
+            requestedSleepDisabled: false,
+            dryRun: true,
+            executedCommand: nil,
+            exitCode: nil,
+            action: .sleepNow
+        )
+    }
+}

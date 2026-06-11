@@ -32,13 +32,40 @@ public struct DaemonRunReport: Codable, Equatable, Sendable {
     public var generatedAt: Date
     public var status: StatusReport
     public var operation: PowerOperationResult?
+    public var operations: [PowerOperationResult]
     public var stateChanged: Bool
 
-    public init(generatedAt: Date, status: StatusReport, operation: PowerOperationResult?, stateChanged: Bool) {
+    public init(
+        generatedAt: Date,
+        status: StatusReport,
+        operation: PowerOperationResult?,
+        operations: [PowerOperationResult]? = nil,
+        stateChanged: Bool
+    ) {
         self.generatedAt = generatedAt
         self.status = status
         self.operation = operation
+        self.operations = operations ?? operation.map { [$0] } ?? []
         self.stateChanged = stateChanged
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case generatedAt
+        case status
+        case operation
+        case operations
+        case stateChanged
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        generatedAt = try container.decode(Date.self, forKey: .generatedAt)
+        status = try container.decode(StatusReport.self, forKey: .status)
+        operation = try container.decodeIfPresent(PowerOperationResult.self, forKey: .operation)
+        operations = try container.decodeIfPresent([PowerOperationResult].self, forKey: .operations)
+            ?? operation.map { [$0] }
+            ?? []
+        stateChanged = try container.decode(Bool.self, forKey: .stateChanged)
     }
 }
 
@@ -152,6 +179,7 @@ public struct DSMNController: Sendable {
                 generatedAt: report.generatedAt,
                 status: report.status,
                 operation: forcedRelease,
+                operations: [forcedRelease] + report.operations,
                 stateChanged: report.stateChanged || originalState != report.status.state
             )
         }
@@ -179,9 +207,19 @@ public struct DSMNController: Sendable {
 
         var nextState = evaluatedState
         var operation: PowerOperationResult?
+        var operations: [PowerOperationResult] = []
+        var shouldRequestSleepNowAfterRelease = false
 
         if decision.shouldPreventSleep && !originalState.ownsSleepDisable {
             operation = try powerManager.setSleepDisabled(true)
+            if let operation {
+                operations.append(operation)
+                nextState.recordPowerOperation(
+                    operation,
+                    at: now,
+                    reason: powerOperationReason(prefix: "enable", decision: decision, state: nextState)
+                )
+            }
             if operationSucceeded(operation) {
                 nextState.ownsSleepDisable = true
                 nextState.lastActivationReason = decision.reasons.joined(separator: ",")
@@ -193,17 +231,43 @@ public struct DSMNController: Sendable {
             liveSleepDisabled: liveSleepDisabled
         ) {
             operation = try powerManager.setSleepDisabled(false)
+            if let operation {
+                operations.append(operation)
+                nextState.recordPowerOperation(
+                    operation,
+                    at: now,
+                    reason: powerOperationReason(prefix: "release", decision: decision, state: nextState)
+                )
+            }
             if operationSucceeded(operation) {
                 nextState.ownsSleepDisable = false
                 nextState.lastStopReason = nextState.lastStopReason == "manual_expired"
                     ? "manual_expired"
                     : decision.stopReason
+                shouldRequestSleepNowAfterRelease = shouldRequestSleepNowAfterReleasing(
+                    snapshot: snapshot
+                )
             }
         }
 
         if nextState != originalState {
             nextState.updatedAt = now
             try store.save(nextState)
+        }
+
+        if shouldRequestSleepNowAfterRelease {
+            let sleepOperation = try powerManager.requestSleepNow()
+            operations.append(sleepOperation)
+
+            var savedState = try store.load()
+            savedState.recordPowerOperation(
+                sleepOperation,
+                at: now,
+                reason: "closed_lid_release"
+            )
+            savedState.updatedAt = now
+            try store.save(savedState)
+            nextState = savedState
         }
 
         let finalDecision = decisionEngine.evaluate(state: nextState, agents: agents, snapshot: snapshot)
@@ -219,6 +283,7 @@ public struct DSMNController: Sendable {
             generatedAt: now,
             status: status,
             operation: operation,
+            operations: operations,
             stateChanged: nextState != originalState
         )
     }
@@ -265,6 +330,23 @@ public struct DSMNController: Sendable {
         }
 
         return !operation.dryRun && operation.exitCode == 0
+    }
+
+    private func shouldRequestSleepNowAfterReleasing(snapshot: SystemSnapshot) -> Bool {
+        snapshot.lidClosed == true && snapshot.powerSource == .battery
+    }
+
+    private func powerOperationReason(
+        prefix: String,
+        decision: PowerDecision,
+        state: DSMNState
+    ) -> String {
+        let reason = decision.reasons.first
+            ?? state.lastStopReason
+            ?? decision.stopReason
+            ?? "unknown"
+
+        return "\(prefix):\(reason)"
     }
 
     private func shouldReleaseSleepDisable(

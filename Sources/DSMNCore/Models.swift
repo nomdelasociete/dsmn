@@ -120,6 +120,42 @@ public struct TriggerActivityBucket: Codable, Equatable, Sendable {
     }
 }
 
+public struct PowerOperationAudit: Codable, Equatable, Sendable {
+    public var action: PowerOperationAction
+    public var occurredAt: Date
+    public var reason: String?
+    public var dryRun: Bool
+    public var exitCode: Int32?
+    public var command: String?
+
+    public init(
+        action: PowerOperationAction,
+        occurredAt: Date,
+        reason: String? = nil,
+        dryRun: Bool,
+        exitCode: Int32?,
+        command: String?
+    ) {
+        self.action = action
+        self.occurredAt = occurredAt
+        self.reason = reason
+        self.dryRun = dryRun
+        self.exitCode = exitCode
+        self.command = command
+    }
+
+    public init(operation: PowerOperationResult, occurredAt: Date, reason: String?) {
+        self.init(
+            action: operation.action,
+            occurredAt: occurredAt,
+            reason: reason,
+            dryRun: operation.dryRun,
+            exitCode: operation.exitCode,
+            command: operation.executedCommand
+        )
+    }
+}
+
 public enum PowerSource: String, Codable, Sendable {
     case ac
     case battery
@@ -176,6 +212,8 @@ public struct DSMNState: Codable, Equatable, Sendable {
     public var recentRequesters: [ActivationRequester]
     public var triggerHistory: [ActivationRequester]
     public var triggerActivityBuckets: [TriggerActivityBucket]
+    public var lastPowerOperation: PowerOperationAudit?
+    public var powerOperationHistory: [PowerOperationAudit]
     public var noRouteUnavailableSince: Date?
     /// When the lid last transitioned from closed to open; anchors lid-open grace.
     public var lidOpenedAt: Date?
@@ -193,6 +231,8 @@ public struct DSMNState: Codable, Equatable, Sendable {
         recentRequesters: [ActivationRequester] = [],
         triggerHistory: [ActivationRequester] = [],
         triggerActivityBuckets: [TriggerActivityBucket] = [],
+        lastPowerOperation: PowerOperationAudit? = nil,
+        powerOperationHistory: [PowerOperationAudit] = [],
         noRouteUnavailableSince: Date? = nil,
         lidOpenedAt: Date? = nil,
         lastLidClosed: Bool? = nil,
@@ -207,6 +247,8 @@ public struct DSMNState: Codable, Equatable, Sendable {
         self.recentRequesters = recentRequesters
         self.triggerHistory = triggerHistory
         self.triggerActivityBuckets = triggerActivityBuckets
+        self.lastPowerOperation = lastPowerOperation
+        self.powerOperationHistory = powerOperationHistory
         self.noRouteUnavailableSince = noRouteUnavailableSince
         self.lidOpenedAt = lidOpenedAt
         self.lastLidClosed = lastLidClosed
@@ -223,6 +265,8 @@ public struct DSMNState: Codable, Equatable, Sendable {
         case recentRequesters
         case triggerHistory
         case triggerActivityBuckets
+        case lastPowerOperation
+        case powerOperationHistory
         case noRouteUnavailableSince
         case lidOpenedAt
         case lastLidClosed
@@ -253,6 +297,8 @@ public struct DSMNState: Codable, Equatable, Sendable {
         } else {
             triggerActivityBuckets = Self.makeTriggerActivityBuckets(from: triggerHistory)
         }
+        lastPowerOperation = try container.decodeIfPresent(PowerOperationAudit.self, forKey: .lastPowerOperation)
+        powerOperationHistory = try container.decodeIfPresent([PowerOperationAudit].self, forKey: .powerOperationHistory) ?? []
         noRouteUnavailableSince = try container.decodeIfPresent(Date.self, forKey: .noRouteUnavailableSince)
         lidOpenedAt = try container.decodeIfPresent(Date.self, forKey: .lidOpenedAt)
         lastLidClosed = try container.decodeIfPresent(Bool.self, forKey: .lastLidClosed)
@@ -271,6 +317,8 @@ public struct DSMNState: Codable, Equatable, Sendable {
         try container.encode(recentRequesters, forKey: .recentRequesters)
         try container.encode(triggerHistory, forKey: .triggerHistory)
         try container.encode(triggerActivityBuckets, forKey: .triggerActivityBuckets)
+        try container.encodeIfPresent(lastPowerOperation, forKey: .lastPowerOperation)
+        try container.encode(powerOperationHistory, forKey: .powerOperationHistory)
         try container.encodeIfPresent(noRouteUnavailableSince, forKey: .noRouteUnavailableSince)
         try container.encodeIfPresent(lidOpenedAt, forKey: .lidOpenedAt)
         try container.encodeIfPresent(lastLidClosed, forKey: .lastLidClosed)
@@ -323,6 +371,21 @@ public struct DSMNState: Codable, Equatable, Sendable {
 
         let remaining = Int(lidOpenedAt.addingTimeInterval(TimeInterval(graceSeconds)).timeIntervalSince(date).rounded(.down))
         return max(0, remaining)
+    }
+
+    public mutating func recordPowerOperation(
+        _ operation: PowerOperationResult,
+        at date: Date,
+        reason: String?,
+        maxHistoryCount: Int = 20
+    ) {
+        let audit = PowerOperationAudit(operation: operation, occurredAt: date, reason: reason)
+        lastPowerOperation = audit
+        powerOperationHistory.append(audit)
+
+        if powerOperationHistory.count > maxHistoryCount {
+            powerOperationHistory = Array(powerOperationHistory.suffix(maxHistoryCount))
+        }
     }
 
     public func isWithinLidOpenGrace(at date: Date, graceSeconds: Int) -> Bool {

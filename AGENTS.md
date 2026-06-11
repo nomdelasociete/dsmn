@@ -93,6 +93,15 @@ deadline (`manualUntil`, or no-route grace expiry when earlier). Keep
 command arrives, the helper still calls `pmset disablesleep 0` and clears
 state after expiry.
 
+When the helper releases `pmset disablesleep` while the Mac lid is closed and
+the machine is on battery, it must also request `pmset sleepnow` after the
+release succeeds. Closed-lid sleep can otherwise fail to happen because the
+lid-close event occurred while `SleepDisabled` was still active and idle
+assertions from audio/Electron can keep the machine awake. Keep Core tests
+covering: expired manual timer + owned lock + `lidClosed == true` +
+`powerSource == battery` releases `disablesleep` and then requests `sleepnow`;
+the same release with an open lid or AC power must not request `sleepnow`.
+
 ### Hook throttling
 
 Throttle **`dsmnctl manual` calls**, not agent hook events. The installer must
