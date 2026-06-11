@@ -52,6 +52,10 @@ public struct DoctorReportFormatter: Sendable {
             }
         }
 
+        if let operation = report.state.lastPowerOperation {
+            lines.append("Last power operation: \(formatPowerOperation(operation))")
+        }
+
         if report.state.recentRequesters.count > 1 {
             lines.append("Recent requests:")
             for requester in report.state.recentRequesters.prefix(6) {
@@ -137,6 +141,24 @@ public struct DoctorReportFormatter: Sendable {
         }
 
         return "\(remainingSeconds)s"
+    }
+
+    private static func formatPowerOperation(_ operation: PowerOperationAudit) -> String {
+        let timestamp = ISO8601DateFormatter().string(from: operation.occurredAt)
+        let exitStatus: String
+        if let exitCode = operation.exitCode {
+            exitStatus = "exit \(exitCode)"
+        } else if operation.dryRun {
+            exitStatus = "dry-run"
+        } else {
+            exitStatus = "exit unknown"
+        }
+
+        if let reason = operation.reason {
+            return "\(operation.action.rawValue) at \(timestamp) (\(reason), \(exitStatus))"
+        }
+
+        return "\(operation.action.rawValue) at \(timestamp) (\(exitStatus))"
     }
 
     private static func readinessMessage(
