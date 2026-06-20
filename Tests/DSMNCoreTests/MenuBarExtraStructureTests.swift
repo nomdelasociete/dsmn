@@ -99,6 +99,18 @@ final class MenuBarExtraStructureTests: XCTestCase {
         )
     }
 
+    func testRunningHelperXpcTimeoutDoesNotPromptRepairLoop() throws {
+        let storeSource = try sourceFile(at: "Sources/dsmnapp/Stores/DSMNMenuStore.swift")
+        let helperSource = try sourceFile(at: "Sources/dsmnapp/Services/HelperServiceClient.swift")
+
+        XCTAssertTrue(helperSource.contains("var isRunning: Bool"))
+        XCTAssertTrue(helperSource.contains("state = running"))
+        XCTAssertTrue(storeSource.contains("helperXPCUnavailableLooksTransient"))
+        XCTAssertTrue(storeSource.contains("helperRuntimeInfo?.isRunning == true"))
+        XCTAssertTrue(storeSource.contains("&& !helperXPCUnavailableLooksTransient"))
+        XCTAssertTrue(storeSource.contains("\"Helper busy; retrying\""))
+    }
+
     private func sourceFile(at relativePath: String) throws -> String {
         let repositoryRoot = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()

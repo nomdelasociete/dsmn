@@ -950,6 +950,7 @@ public struct AgentHookInstaller: Sendable {
         MINUTES="${DSMN_HOOK_MINUTES:-20}"
         MIN_INTERVAL_SECONDS="${DSMN_HOOK_MIN_INTERVAL_SECONDS:-120}"
         STAMP_PATH="${DSMN_HOOK_STAMP:-$HOME/.dsmn/last-extend.stamp}"
+        LOCK_PATH="${DSMN_HOOK_LOCK:-$HOME/.dsmn/extend.lock}"
         FALLBACK_SECONDS="${DSMN_HOOK_FALLBACK_SECONDS:-600}"
         LOG_PATH="${DSMN_HOOK_LOG:-/tmp/dsmn-agent-hook.log}"
         HOOK_AGENT="${DSMN_HOOK_AGENT:-agent}"
@@ -1123,9 +1124,35 @@ public struct AgentHookInstaller: Sendable {
           date +%s >"$STAMP_PATH" 2>/dev/null || true
         }
 
+        acquire_extend_lock() {
+          local attempts
+          attempts=0
+
+          mkdir -p "$(dirname "$LOCK_PATH")" 2>/dev/null || true
+
+          while ! mkdir "$LOCK_PATH" 2>/dev/null; do
+            if [[ -d "$LOCK_PATH" ]] && find "$LOCK_PATH" -prune -mmin +5 2>/dev/null | grep -q .; then
+              rm -rf "$LOCK_PATH" 2>/dev/null || true
+              continue
+            fi
+
+            if (( attempts >= 20 )); then
+              log_event "extend lock busy; skipping requester=$REQUESTER_NAME event=$REQUESTER_EVENT"
+              exit 0
+            fi
+
+            attempts=$((attempts + 1))
+            sleep 0.05
+          done
+
+          trap 'rmdir "$LOCK_PATH" 2>/dev/null || true' EXIT
+        }
+
         REQUESTER_NAME="$(requester_name)"
         REQUESTER_CONTEXT="$(hook_context)"
         REQUESTER_EVENT="$(hook_event)"
+
+        acquire_extend_lock
 
         if should_skip_extend; then
           log_event "dsmn extend throttled seconds=$MIN_INTERVAL_SECONDS requester=$REQUESTER_NAME event=$REQUESTER_EVENT"

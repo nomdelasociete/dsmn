@@ -390,12 +390,18 @@ final class DSMNMenuStore: ObservableObject {
     }
 
     var helperNeedsRepair: Bool {
-        helperStatus == .enabled && helperXPCUnavailableIsPersistent
+        helperStatus == .enabled
+            && helperXPCUnavailableIsPersistent
+            && !helperXPCUnavailableLooksTransient
     }
 
     var helperStatusDisplayName: String {
         if helperNeedsRepair {
             return "repair required"
+        }
+
+        if helperXPCUnavailableLooksTransient {
+            return "retrying"
         }
 
         return helperStatus.displayName
@@ -460,7 +466,7 @@ final class DSMNMenuStore: ObservableObject {
             await retryHelperXPCConnectionIfNeeded()
             await recoverActiveHookFallbackAfterSetupIfNeeded(reason: "setup_ready")
             clearHelperUpdateRetryIfResolved()
-            errorMessage = helperNeedsRepair ? "Helper unavailable; repair helper" : nil
+            errorMessage = helperUnavailableMessage
         } catch {
             errorMessage = error.localizedDescription
         }
@@ -528,20 +534,20 @@ final class DSMNMenuStore: ObservableObject {
             if helperStatus == .enabled {
                 do {
                     report = try await helperOperation()
-                    helperXPCUnavailable = false
+                    markHelperXPCAvailable()
                     errorMessage = nil
                 } catch {
-                    helperXPCUnavailable = true
+                    markHelperXPCUnavailable()
                     report = try await Task.detached {
                         try localOperation(controller)
                     }.value
-                    errorMessage = "Helper unavailable; repair helper"
+                    errorMessage = helperUnavailableMessage
                 }
             } else {
                 report = try await Task.detached {
                     try localOperation(controller)
                 }.value
-                helperXPCUnavailable = false
+                markHelperXPCAvailable()
                 errorMessage = nil
             }
         } catch {
@@ -720,7 +726,7 @@ final class DSMNMenuStore: ObservableObject {
 
             do {
                 let report = try await helper.repair()
-                helperXPCUnavailable = false
+                markHelperXPCAvailable()
                 self.report = report
                 let result = DoctorReportFormatter.formatRepairResult(report, source: .helper)
                 RepairResultPresenter.show(result: result)
@@ -729,7 +735,11 @@ final class DSMNMenuStore: ObservableObject {
                 errorMessage = nil
                 await refresh()
             } catch {
-                helperXPCUnavailable = helperStatus == .enabled
+                if helperStatus == .enabled {
+                    markHelperXPCUnavailable()
+                } else {
+                    markHelperXPCAvailable()
+                }
                 RepairResultPresenter.show(result: "", error: error.localizedDescription)
                 errorMessage = error.localizedDescription
             }
@@ -758,7 +768,7 @@ final class DSMNMenuStore: ObservableObject {
         if helperStatus == .enabled {
             do {
                 let report = try await helper.status()
-                helperXPCUnavailable = false
+                markHelperXPCAvailable()
                 return DoctorReportFormatter.format(
                     report: report,
                     source: .helper,
@@ -767,7 +777,7 @@ final class DSMNMenuStore: ObservableObject {
                     hookInspection: hookInspection
                 )
             } catch {
-                helperXPCUnavailable = true
+                markHelperXPCUnavailable()
                 let report = try await Task.detached {
                     try controller.status()
                 }.value
@@ -922,6 +932,24 @@ final class DSMNMenuStore: ObservableObject {
         return Date().timeIntervalSince(helperXPCUnavailableSince) >= helperRepairAttentionDelay
     }
 
+    private var helperXPCUnavailableLooksTransient: Bool {
+        helperStatus == .enabled
+            && helperXPCUnavailable
+            && helperRuntimeInfo?.isRunning == true
+    }
+
+    private var helperUnavailableMessage: String? {
+        if helperNeedsRepair {
+            return "Helper unavailable; repair helper"
+        }
+
+        if helperXPCUnavailableLooksTransient {
+            return "Helper busy; retrying"
+        }
+
+        return nil
+    }
+
     private func markHelperXPCAvailable() {
         helperXPCUnavailable = false
         helperXPCUnavailableSince = nil
@@ -949,11 +977,15 @@ final class DSMNMenuStore: ObservableObject {
                 event: reason
             )
             report = try await helper.enableManual(minutes: minutes, requester: requester)
-            helperXPCUnavailable = false
+            markHelperXPCAvailable()
             AgentHookLogInspector.markFallbackResolved(reason: reason)
             hookFallbackStatus = AgentHookLogInspector.recentFallbackStatus()
         } catch {
-            helperXPCUnavailable = helperStatus == .enabled
+            if helperStatus == .enabled {
+                markHelperXPCUnavailable()
+            } else {
+                markHelperXPCAvailable()
+            }
             errorMessage = error.localizedDescription
         }
     }

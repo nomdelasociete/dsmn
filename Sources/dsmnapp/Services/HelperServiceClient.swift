@@ -24,6 +24,7 @@ enum HelperRegistrationStatus: String, Equatable {
 
 struct HelperRuntimeInfo: Equatable {
     var parentBundleVersion: Int?
+    var isRunning: Bool
 }
 
 @MainActor
@@ -57,7 +58,7 @@ final class HelperServiceClient {
 
     func runtimeInfo() async -> HelperRuntimeInfo {
         await Task.detached(priority: .utility) {
-            HelperRuntimeInfo(parentBundleVersion: Self.readParentBundleVersion())
+            Self.readRuntimeInfo()
         }.value
     }
 
@@ -89,7 +90,7 @@ final class HelperServiceClient {
         }.value
     }
 
-    nonisolated private static func readParentBundleVersion() -> Int? {
+    nonisolated private static func readRuntimeInfo() -> HelperRuntimeInfo {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/bin/launchctl")
         process.arguments = ["print", "system/\(DSMNServiceConstants.helperLabel)"]
@@ -102,19 +103,19 @@ final class HelperServiceClient {
             try process.run()
             process.waitUntilExit()
         } catch {
-            return nil
+            return HelperRuntimeInfo(parentBundleVersion: nil, isRunning: false)
         }
 
         guard process.terminationStatus == 0 else {
-            return nil
+            return HelperRuntimeInfo(parentBundleVersion: nil, isRunning: false)
         }
 
         let data = pipe.fileHandleForReading.readDataToEndOfFile()
         guard let output = String(data: data, encoding: .utf8) else {
-            return nil
+            return HelperRuntimeInfo(parentBundleVersion: nil, isRunning: false)
         }
 
-        return output
+        let parentBundleVersion = output
             .split(separator: "\n")
             .first { $0.contains("parent bundle version =") }
             .flatMap { line -> Int? in
@@ -123,6 +124,10 @@ final class HelperServiceClient {
                     .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
                     .flatMap(Int.init)
             }
+        let isRunning = output.contains("state = running")
+            || output.contains("job state = running")
+
+        return HelperRuntimeInfo(parentBundleVersion: parentBundleVersion, isRunning: isRunning)
     }
 }
 

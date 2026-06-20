@@ -461,12 +461,17 @@ final class AgentHookInstallerTests: XCTestCase {
         _ = try installer.install(targets: [.codex])
 
         let hookScript = try String(contentsOf: home.appendingPathComponent(".dsmn/dsmn-agent-hook.sh"), encoding: .utf8)
+        XCTAssertTrue(hookScript.contains(#"LOCK_PATH="${DSMN_HOOK_LOCK:-$HOME/.dsmn/extend.lock}""#))
+        XCTAssertTrue(hookScript.contains("acquire_extend_lock()"))
+        XCTAssertTrue(hookScript.contains("extend lock busy; skipping"))
+
         let fallbackRange = try XCTUnwrap(hookScript.range(of: "fallback_caffeinate()"))
         let fallbackEndRange = try XCTUnwrap(hookScript.range(of: "requester_name()", range: fallbackRange.upperBound..<hookScript.endIndex))
         let fallbackBody = hookScript[fallbackRange.lowerBound..<fallbackEndRange.lowerBound]
         XCTAssertTrue(fallbackBody.contains("record_extend_stamp"))
 
         let requesterRange = try XCTUnwrap(hookScript.range(of: #"REQUESTER_NAME="$(requester_name)""#))
+        let lockRange = try XCTUnwrap(hookScript.range(of: "acquire_extend_lock", options: [], range: requesterRange.upperBound..<hookScript.endIndex))
         let skipRange = try XCTUnwrap(hookScript.range(of: "if should_skip_extend"))
         let resolveRange = try XCTUnwrap(hookScript.range(of: #"ctl="$(resolve_dsmnctl || true)""#))
         let doctorRange = try XCTUnwrap(hookScript.range(of: #"doctor="$("$ctl" doctor 2>&1 || true)""#))
@@ -475,6 +480,7 @@ final class AgentHookInstallerTests: XCTestCase {
         let stampRange = try XCTUnwrap(hookScript.range(of: "record_extend_stamp", options: [], range: sleepDisabledRange.upperBound..<hookScript.endIndex))
 
         XCTAssertLessThan(requesterRange.lowerBound, skipRange.lowerBound)
+        XCTAssertLessThan(lockRange.lowerBound, skipRange.lowerBound)
         XCTAssertLessThan(skipRange.lowerBound, resolveRange.lowerBound)
         XCTAssertLessThan(doctorRange.lowerBound, localFallbackRange.lowerBound)
         XCTAssertLessThan(localFallbackRange.lowerBound, stampRange.lowerBound)
