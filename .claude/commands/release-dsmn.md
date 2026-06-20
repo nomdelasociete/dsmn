@@ -145,13 +145,15 @@ Follow this runbook exactly:
    ```
 
    If the installed app is stale and the user expects this machine to test the
-   release immediately, use the app's Sparkle `Check for Updates...` flow or
-   install from the public DMG. A direct `ditto`/copy over `/Applications/dsmn.app`
-   can be blocked by macOS App Management or provenance protections and should
-   not be treated as a publication failure. After the app is updated, update or
-   reinstall the helper through the app menu. Do not copy helper files into
-   `/Library/LaunchDaemons`; use the app's `Update Helper`, `Repair Helper`, or
-   `1. Install Helper` action.
+   release immediately, stop and ask the user to update through the app's
+   Sparkle `Check for Updates...` flow. Do not replace `/Applications/dsmn.app`
+   with the public DMG on the maintainer machine unless the user explicitly asks
+   for a manual install. A direct `ditto`/copy over `/Applications/dsmn.app`
+   bypasses the self-update path that must be tested and can also be blocked by
+   macOS App Management or provenance protections. After the app is updated via
+   Sparkle, update or reinstall the helper through the app menu. Do not copy
+   helper files into `/Library/LaunchDaemons`; use the app's `Update Helper`,
+   `Repair Helper`, or `1. Install Helper` action.
 
    Reinstall hooks after a release that changes `AgentHookInstaller`:
 
