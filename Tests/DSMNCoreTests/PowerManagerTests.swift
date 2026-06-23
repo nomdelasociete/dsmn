@@ -35,6 +35,18 @@ final class PowerManagerTests: XCTestCase {
         XCTAssertEqual(result.exitCode, 0)
         XCTAssertEqual(runner.commands, ["/usr/bin/pmset sleepnow"])
     }
+
+    func testPMSetRequestsDisplaySleepNow() throws {
+        let runner = RecordingCommandRunner()
+        let manager = PMSetPowerManager(runner: runner, dryRun: false)
+
+        let result = try manager.requestDisplaySleepNow()
+
+        XCTAssertEqual(result.action, .displaySleepNow)
+        XCTAssertFalse(result.dryRun)
+        XCTAssertEqual(result.exitCode, 0)
+        XCTAssertEqual(runner.commands, ["/usr/bin/pmset displaysleepnow"])
+    }
 }
 
 private final class RecordingCommandRunner: CommandRunning, @unchecked Sendable {

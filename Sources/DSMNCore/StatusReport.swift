@@ -195,6 +195,7 @@ public struct DSMNController: Sendable {
         let originalState = try store.load()
         let agents = try detector.detect(using: processListing)
         let snapshot = try snapshotProvider.snapshot(now: now)
+        let previousLidClosed = originalState.lastLidClosed
         var evaluatedState = originalState
         evaluatedState.syncSnapshotTracking(with: snapshot)
 
@@ -248,6 +249,24 @@ public struct DSMNController: Sendable {
                     snapshot: snapshot
                 )
             }
+        }
+
+        if shouldRequestDisplaySleepNowForClosedLid(
+            decision: decision,
+            snapshot: snapshot,
+            previousLidClosed: previousLidClosed,
+            state: nextState
+        ) {
+            let displayOperation = try powerManager.requestDisplaySleepNow()
+            if operation == nil {
+                operation = displayOperation
+            }
+            operations.append(displayOperation)
+            nextState.recordPowerOperation(
+                displayOperation,
+                at: now,
+                reason: "closed_lid_display_sleep"
+            )
         }
 
         if nextState != originalState {
@@ -334,6 +353,18 @@ public struct DSMNController: Sendable {
 
     private func shouldRequestSleepNowAfterReleasing(snapshot: SystemSnapshot) -> Bool {
         snapshot.lidClosed == true && snapshot.powerSource == .battery
+    }
+
+    private func shouldRequestDisplaySleepNowForClosedLid(
+        decision: PowerDecision,
+        snapshot: SystemSnapshot,
+        previousLidClosed: Bool?,
+        state: DSMNState
+    ) -> Bool {
+        decision.shouldPreventSleep
+            && state.ownsSleepDisable
+            && snapshot.lidClosed == true
+            && previousLidClosed != true
     }
 
     private func powerOperationReason(

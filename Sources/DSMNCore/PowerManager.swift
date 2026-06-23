@@ -4,6 +4,7 @@ public enum PowerOperationAction: String, Codable, Equatable, Sendable {
     case disableSleep = "disable_sleep"
     case enableSleep = "enable_sleep"
     case sleepNow = "sleep_now"
+    case displaySleepNow = "display_sleep_now"
 }
 
 public struct PowerOperationResult: Codable, Equatable, Sendable {
@@ -59,6 +60,7 @@ public struct PowerOperationResult: Codable, Equatable, Sendable {
 public protocol PowerManaging: Sendable {
     func setSleepDisabled(_ disabled: Bool) throws -> PowerOperationResult
     func requestSleepNow() throws -> PowerOperationResult
+    func requestDisplaySleepNow() throws -> PowerOperationResult
 }
 
 public extension PowerManaging {
@@ -69,6 +71,16 @@ public extension PowerManaging {
             executedCommand: nil,
             exitCode: nil,
             action: .sleepNow
+        )
+    }
+
+    func requestDisplaySleepNow() throws -> PowerOperationResult {
+        PowerOperationResult(
+            requestedSleepDisabled: false,
+            dryRun: true,
+            executedCommand: nil,
+            exitCode: nil,
+            action: .displaySleepNow
         )
     }
 }
@@ -130,6 +142,31 @@ public struct PMSetPowerManager: PowerManaging {
             action: .sleepNow
         )
     }
+
+    public func requestDisplaySleepNow() throws -> PowerOperationResult {
+        let command = "/usr/bin/pmset displaysleepnow"
+
+        if dryRun {
+            return PowerOperationResult(
+                requestedSleepDisabled: false,
+                dryRun: true,
+                executedCommand: command,
+                exitCode: nil,
+                action: .displaySleepNow
+            )
+        }
+
+        let output = try runner.run("/usr/bin/pmset", arguments: ["displaysleepnow"])
+        return PowerOperationResult(
+            requestedSleepDisabled: false,
+            dryRun: false,
+            executedCommand: command,
+            exitCode: output.exitCode,
+            stdout: output.stdout,
+            stderr: output.stderr,
+            action: .displaySleepNow
+        )
+    }
 }
 
 public struct NoopPowerManager: PowerManaging {
@@ -151,6 +188,16 @@ public struct NoopPowerManager: PowerManaging {
             executedCommand: nil,
             exitCode: nil,
             action: .sleepNow
+        )
+    }
+
+    public func requestDisplaySleepNow() throws -> PowerOperationResult {
+        PowerOperationResult(
+            requestedSleepDisabled: false,
+            dryRun: true,
+            executedCommand: nil,
+            exitCode: nil,
+            action: .displaySleepNow
         )
     }
 }

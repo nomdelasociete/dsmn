@@ -102,6 +102,14 @@ covering: expired manual timer + owned lock + `lidClosed == true` +
 `powerSource == battery` releases `disablesleep` and then requests `sleepnow`;
 the same release with an open lid or AC power must not request `sleepnow`.
 
+While dsmn intentionally owns `pmset disablesleep`, closing the lid must also
+request `pmset displaysleepnow` once on the lid-close edge. `disablesleep`
+keeps the system awake for agent work, but it does not guarantee that the
+display turns off. Keep Core tests covering: active owned timer + transition to
+`lidClosed == true` requests `display_sleep_now`, enabling while already closed
+requests `disable_sleep` then `display_sleep_now`, and repeated closed-lid
+ticks do not request `display_sleep_now` again.
+
 ### Hook throttling
 
 Throttle **`dsmnctl manual` calls**, not agent hook events. The installer must
