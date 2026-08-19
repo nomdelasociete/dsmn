@@ -27,7 +27,7 @@ struct DSMNOnboardingView: View {
                         OnboardingStepRow(
                             systemImage: store.hooksStatusIconName,
                             title: "Connect your agents",
-                            detail: "Install bounded hooks for Claude Code, Codex, Grok Build, and Pi.",
+                            detail: "Install bounded hooks for \(AgentHookTarget.joinedDisplayNames()).",
                             status: store.hooksSummary,
                             isComplete: store.hooksAreReady,
                             isBusy: store.hooksAreBusy
@@ -134,7 +134,7 @@ struct DSMNOnboardingView: View {
                 Text("Don't Stop Me Now!")
                     .font(.system(size: 32, weight: .semibold, design: .rounded))
 
-                Text("Agent hooks extend a manual sleep timer so closed-lid sessions with Claude, Codex, Grok, and Pi keep going.")
+                Text("Agent hooks extend a manual sleep timer so closed-lid sessions with \(AgentHookTarget.joinedDisplayNames(short: true)) keep going.")
                     .font(.system(size: 15))
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)

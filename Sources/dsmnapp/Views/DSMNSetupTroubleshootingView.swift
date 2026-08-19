@@ -30,7 +30,7 @@ struct DSMNSetupTroubleshootingView: View {
                     SetupPanelRow(
                         systemImage: store.hooksStatusIconName,
                         title: "Agent hooks",
-                        detail: "Bounded hooks connect Claude Code, Codex, Grok Build, and Pi to the dsmn timer.",
+                        detail: "Bounded hooks connect \(AgentHookTarget.joinedDisplayNames()) to the dsmn timer.",
                         status: store.hooksSummary,
                         isComplete: store.hooksAreReady,
                         isBusy: store.hooksAreBusy

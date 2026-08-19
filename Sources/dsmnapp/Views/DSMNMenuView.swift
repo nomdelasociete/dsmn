@@ -210,7 +210,7 @@ struct DSMNMenuView: View {
         alert.informativeText = """
         dsmn is currently keeping the Mac awake. Quitting only closes the menu bar app; the helper and agent hooks can keep running.
 
-        Stop & Quit releases the current dsmn timer first. Active Claude, Codex, Grok, or Pi hooks can start a new timer again later.
+        Stop & Quit releases the current dsmn timer first. Active \(AgentHookTarget.joinedDisplayNames(short: true, conjunction: "or")) hooks can start a new timer again later.
         """
         alert.alertStyle = .warning
         alert.addButton(withTitle: "Stop & Quit")

@@ -858,7 +858,7 @@ final class DSMNMenuStore: ObservableObject {
                     errorMessage = nil
                     HookUninstallResultPresenter.show(
                         title: "Hooks Already Removed",
-                        detail: "No dsmn hook entries were found for Claude, Codex, Grok, or Pi."
+                        detail: "No dsmn hook entries were found for \(AgentHookTarget.joinedDisplayNames(short: true, conjunction: "or"))."
                     )
                 } else {
                     errorMessage = nil
@@ -1023,7 +1023,7 @@ final class DSMNMenuStore: ObservableObject {
             do {
                 let inspection = try AgentHookInstaller(dsmnctlPath: dsmnctlPath).inspect()
                 if inspection.isCurrent {
-                    return .ready("Claude, Codex, Grok, and Pi ready")
+                    return .ready("\(AgentHookTarget.joinedDisplayNames(short: true)) ready")
                 }
 
                 if inspection.needsUpdate {

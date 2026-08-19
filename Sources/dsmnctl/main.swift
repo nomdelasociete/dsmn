@@ -353,8 +353,8 @@ struct DSMNCTL {
               manual --minutes <n> [--extend-only] [--requester <name>] [--context <text>] [--event <name>] [--json]
               stop [--json]
               doctor
-              install-hooks [all|claude|codex|grok|pi] [--json]
-              uninstall-hooks [all|claude|codex|grok|pi] [--json]
+              install-hooks [all|claude|cursor|codex|grok|pi] [--json]
+              uninstall-hooks [all|claude|cursor|codex|grok|pi] [--json]
               repair
             """
         )

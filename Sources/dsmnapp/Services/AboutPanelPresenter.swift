@@ -1,4 +1,5 @@
 import AppKit
+import DSMNCore
 
 @MainActor
 enum AboutPanelPresenter {
@@ -17,7 +18,7 @@ enum AboutPanelPresenter {
         Published by NOM DE LA SOCIETE
         Developed by Jb Ronssin
 
-        Agent hooks keep Claude, Codex, Grok, and Pi sessions on the dsmn timer. Removing hooks does not quit dsmn or stop an active timer.
+        Agent hooks keep \(AgentHookTarget.joinedDisplayNames(short: true)) sessions on the dsmn timer. Removing hooks does not quit dsmn or stop an active timer.
         """
         alert.alertStyle = .informational
         alert.addButton(withTitle: "OK")
@@ -34,7 +35,7 @@ enum AboutPanelPresenter {
         let confirm = NSAlert()
         confirm.messageText = "Remove Agent Hooks?"
         confirm.informativeText = """
-        This removes dsmn hook entries from Claude Code, Codex, Grok Build, and Pi, and deletes ~/.dsmn/dsmn-agent-hook.sh.
+        This removes dsmn hook entries from \(AgentHookTarget.joinedDisplayNames()), and deletes ~/.dsmn/dsmn-agent-hook.sh.
 
         The menu bar app and privileged helper are unchanged. An active manual timer keeps running until it expires or you choose Stop.
         """

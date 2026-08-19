@@ -1,7 +1,7 @@
 # Hooks
 
 Use `dsmnctl` from hooks instead of spawning long stacks of `caffeinate`
-processes. The hook is agent-agnostic: Claude Code, Codex, Grok Build, Pi, or
+processes. The hook is agent-agnostic: Claude Code, Cursor, Codex, Grok Build, Pi, or
 any future tool should call the same `dsmn-agent-hook.sh` contract.
 
 The menu bar app does not need to be open for hooks. The required piece is the
@@ -28,6 +28,7 @@ Supported targets:
 ```sh
 dsmnctl install-hooks all
 dsmnctl install-hooks claude
+dsmnctl install-hooks cursor
 dsmnctl install-hooks codex
 dsmnctl install-hooks grok
 dsmnctl install-hooks pi
@@ -46,9 +47,20 @@ paths that are no longer shipped.
 Then it installs:
 
 - Claude Code: `~/.claude/settings.json`
+- Cursor: `~/.cursor/hooks.json`
 - Codex: `~/.codex/hooks.json`
 - Grok Build: `~/.grok/hooks/dsmn.json`
 - Pi: `~/.pi/agent/extensions/dsmn.ts`
+
+Cursor hooks use Cursor's native `hooks.json` schema (`version` plus per-event
+`command` entries) on `sessionStart`, `beforeSubmitPrompt`, `preToolUse`, and
+`postToolUse`. Install merges dsmn into an existing user hooks file and leaves
+unrelated commands in place. Tab completion hooks are not installed.
+
+Grok Bot cloud work runs on Grok's computer and does not need the Mac to stay
+awake. Using Grok inside Cursor Agent is covered by the Cursor hooks. Grok Bot
+local-computer commands, when enabled, are also covered if they run through
+Cursor's agent hook path. Grok Build remains the CLI/`~/.grok` target.
 
 For Codex, it also makes sure the current `features.hooks` flag is enabled in
 `~/.codex/config.toml`.
@@ -67,7 +79,7 @@ dsmnctl uninstall-hooks claude
 dsmnctl uninstall-hooks all --json
 ```
 
-`uninstall-hooks` with no target or `all` removes Claude, Codex, Grok, and Pi
+`uninstall-hooks` with no target or `all` removes Claude, Cursor, Codex, Grok, and Pi
 entries and deletes `~/.dsmn/dsmn-agent-hook.sh`. A partial target uninstall
 leaves the shared script in place for the remaining agents.
 
@@ -81,7 +93,10 @@ Re-run `dsmnctl install-hooks` to restore hooks after uninstalling.
 
 - run on session start, user prompt submit, pre-tool-use, and post-tool-use
   events where the agent supports them;
-- for Pi, run on `session_start`, `input`, `turn_start`, `tool_call`,
+- for Cursor, run on `sessionStart`, `beforeSubmitPrompt`, `preToolUse`, and
+  `postToolUse`;
+- for Cursor, run on `sessionStart`, `beforeSubmitPrompt`, `preToolUse`, and
+  `postToolUse`;
   `tool_result`, and `turn_end`;
 - skip `dsmnctl manual` when the last successful extend was within the minimum
   interval (default 120 seconds), using a stamp file at

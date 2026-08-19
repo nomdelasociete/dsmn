@@ -91,6 +91,9 @@ requester_name() {
   claude)
     printf '%s\n' "Claude Code"
     ;;
+  cursor)
+    printf '%s\n' "Cursor"
+    ;;
   codex)
     printf '%s\n' "Codex"
     ;;

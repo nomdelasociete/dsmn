@@ -52,7 +52,7 @@ final class AgentHookInstallerTests: XCTestCase {
         let installer = AgentHookInstaller(homeDirectory: home, dsmnctlPath: "/Applications/dsmn.app/Contents/Library/Helpers/dsmnctl")
         let reports = try installer.install()
 
-        XCTAssertEqual(Set(reports.map(\.target)), Set(["claude", "codex", "grok", "pi"]))
+        XCTAssertEqual(Set(reports.map(\.target)), Set(["claude", "cursor", "codex", "grok", "pi"]))
         let hookScriptURL = home.appendingPathComponent(".dsmn/dsmn-agent-hook.sh")
         XCTAssertTrue(FileManager.default.isExecutableFile(atPath: hookScriptURL.path))
         let hookScript = try String(contentsOf: hookScriptURL, encoding: .utf8)
@@ -60,6 +60,8 @@ final class AgentHookInstallerTests: XCTestCase {
         XCTAssertTrue(hookScript.contains("MIN_INTERVAL_SECONDS=\"${DSMN_HOOK_MIN_INTERVAL_SECONDS:-120}\""))
         XCTAssertTrue(hookScript.contains("should_skip_extend"))
         XCTAssertTrue(hookScript.contains("record_extend_stamp"))
+        XCTAssertTrue(hookScript.contains(#"cursor)"#))
+        XCTAssertTrue(hookScript.contains("Cursor"))
 
         let claude = try readJSON(home.appendingPathComponent(".claude/settings.json"))
         let claudeCommands = hookCommands(in: claude)
@@ -99,6 +101,18 @@ final class AgentHookInstallerTests: XCTestCase {
         )
         XCTAssertTrue(hookCommands(in: grok).allSatisfy { !$0.contains("dsmn-agent-hook.sh") || $0.contains("DSMN_HOOK_AGENT='grok'") })
 
+        let cursor = try readJSON(home.appendingPathComponent(".cursor/hooks.json"))
+        let cursorVersion = (cursor["version"] as? NSNumber)?.intValue ?? (cursor["version"] as? Int) ?? 0
+        XCTAssertEqual(cursorVersion, 1)
+        XCTAssertEqual(
+            hookCommands(
+                in: cursor,
+                events: ["sessionStart", "beforeSubmitPrompt", "preToolUse", "postToolUse"]
+            ).filter { $0.contains(home.appendingPathComponent(".dsmn/dsmn-agent-hook.sh").path) }.count,
+            4
+        )
+        XCTAssertTrue(hookCommands(in: cursor).allSatisfy { !$0.contains("dsmn-agent-hook.sh") || $0.contains("DSMN_HOOK_AGENT='cursor'") })
+
         let pi = try String(contentsOf: home.appendingPathComponent(".pi/agent/extensions/dsmn.ts"), encoding: .utf8)
         XCTAssertTrue(pi.contains("from \"@earendil-works/pi-coding-agent\""))
         XCTAssertTrue(pi.contains("pi.on(\"tool_call\""))
@@ -116,10 +130,55 @@ final class AgentHookInstallerTests: XCTestCase {
         }
 
         let installer = AgentHookInstaller(homeDirectory: home, dsmnctlPath: "/tmp/dsmnctl")
-        _ = try installer.install(targets: [.claude, .codex, .grok, .pi])
-        let secondReports = try installer.install(targets: [.claude, .codex, .grok, .pi])
+        _ = try installer.install(targets: [.claude, .cursor, .codex, .grok, .pi])
+        let secondReports = try installer.install(targets: [.claude, .cursor, .codex, .grok, .pi])
 
         XCTAssertTrue(secondReports.allSatisfy { !$0.changed })
+    }
+
+    func testInstallPreservesExistingCursorHooks() throws {
+        let home = temporaryHome()
+        defer {
+            try? FileManager.default.removeItem(at: home)
+        }
+
+        try FileManager.default.createDirectory(
+            at: home.appendingPathComponent(".cursor", isDirectory: true),
+            withIntermediateDirectories: true
+        )
+        try """
+        {
+          "version": 1,
+          "hooks": {
+            "afterFileEdit": [
+              { "command": "./hooks/format.sh" }
+            ]
+          }
+        }
+        """.write(
+            to: home.appendingPathComponent(".cursor/hooks.json"),
+            atomically: true,
+            encoding: .utf8
+        )
+
+        let installer = AgentHookInstaller(homeDirectory: home, dsmnctlPath: "/tmp/dsmnctl")
+        let reports = try installer.install(targets: [.cursor])
+
+        XCTAssertEqual(reports.first?.message, "installed")
+        let cursor = try readJSON(home.appendingPathComponent(".cursor/hooks.json"))
+        XCTAssertTrue(hookCommands(in: cursor, events: ["afterFileEdit"]).contains("./hooks/format.sh"))
+        XCTAssertEqual(
+            hookCommands(
+                in: cursor,
+                events: ["sessionStart", "beforeSubmitPrompt", "preToolUse", "postToolUse"]
+            ).filter { $0.contains("dsmn-agent-hook.sh") }.count,
+            4
+        )
+
+        _ = try installer.uninstall(targets: [.cursor])
+        let afterUninstall = try readJSON(home.appendingPathComponent(".cursor/hooks.json"))
+        XCTAssertTrue(hookCommands(in: afterUninstall, events: ["afterFileEdit"]).contains("./hooks/format.sh"))
+        XCTAssertTrue(hookCommands(in: afterUninstall).filter { $0.contains("dsmn-agent-hook.sh") }.isEmpty)
     }
 
     func testInspectReportsCurrentHooksAfterInstall() throws {
@@ -129,16 +188,16 @@ final class AgentHookInstallerTests: XCTestCase {
         }
 
         let installer = AgentHookInstaller(homeDirectory: home, dsmnctlPath: "/tmp/dsmnctl")
-        _ = try installer.install(targets: [.claude, .codex, .grok, .pi])
+        _ = try installer.install(targets: [.claude, .cursor, .codex, .grok, .pi])
 
         let inspection = try installer.inspect()
 
         XCTAssertTrue(inspection.isCurrent)
         XCTAssertFalse(inspection.needsUpdate)
         XCTAssertEqual(inspection.hookScriptStatus, .current)
-        XCTAssertEqual(inspection.currentTargetCount, 4)
-        XCTAssertEqual(inspection.installedTargetCount, 4)
-        XCTAssertEqual(inspection.targets.map(\.status), [.current, .current, .current, .current])
+        XCTAssertEqual(inspection.currentTargetCount, 5)
+        XCTAssertEqual(inspection.installedTargetCount, 5)
+        XCTAssertEqual(inspection.targets.map(\.status), [.current, .current, .current, .current, .current])
     }
 
     func testInspectReportsOutdatedSharedHookScript() throws {
@@ -174,7 +233,7 @@ final class AgentHookInstallerTests: XCTestCase {
         }
 
         let installer = AgentHookInstaller(homeDirectory: home, dsmnctlPath: "/tmp/dsmnctl")
-        _ = try installer.install(targets: [.claude, .codex, .grok, .pi])
+        _ = try installer.install(targets: [.claude, .cursor, .codex, .grok, .pi])
 
         let hookScriptURL = home.appendingPathComponent(".dsmn/dsmn-agent-hook.sh")
         try "#!/usr/bin/env bash\n/usr/bin/caffeinate -is -t 600\n".write(
@@ -184,7 +243,7 @@ final class AgentHookInstallerTests: XCTestCase {
         )
         try FileManager.default.setAttributes([.posixPermissions: 0o755], ofItemAtPath: hookScriptURL.path)
 
-        let reports = installer.installReportingFailures(targets: [.claude, .codex, .grok, .pi])
+        let reports = installer.installReportingFailures(targets: [.claude, .cursor, .codex, .grok, .pi])
 
         XCTAssertTrue(reports.allSatisfy(\.succeeded))
         XCTAssertTrue(reports.allSatisfy(\.changed))
@@ -321,6 +380,8 @@ final class AgentHookInstallerTests: XCTestCase {
 
         XCTAssertFalse(FileManager.default.fileExists(atPath: home.appendingPathComponent(".grok/hooks/dsmn.json").path))
         XCTAssertFalse(FileManager.default.fileExists(atPath: home.appendingPathComponent(".pi/agent/extensions/dsmn.ts").path))
+        XCTAssertTrue(hookCommands(in: try readJSON(home.appendingPathComponent(".cursor/hooks.json")))
+            .filter { $0.contains("dsmn-agent-hook.sh") }.isEmpty)
     }
 
     func testUninstallPreservesUnrelatedClaudeHooks() throws {
@@ -514,9 +575,13 @@ final class AgentHookInstallerTests: XCTestCase {
 
         return eventValues.flatMap { eventValue in
             (eventValue as? [[String: Any]] ?? []).flatMap { group in
-                (group["hooks"] as? [[String: Any]] ?? []).compactMap { hook in
+                let nested = (group["hooks"] as? [[String: Any]] ?? []).compactMap { hook in
                     hook["command"] as? String
                 }
+                if let command = group["command"] as? String {
+                    return nested + [command]
+                }
+                return nested
             }
         }
     }

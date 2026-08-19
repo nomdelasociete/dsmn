@@ -75,6 +75,34 @@ final class AgentDetectorTests: XCTestCase {
         XCTAssertEqual(detector.detect(in: processes).map(\.kind), [.pi])
     }
 
+    func testDetectsCursorAgentCLI() {
+        let detector = AgentDetector()
+        let processes = [
+            RunningProcess(
+                pid: 108,
+                ppid: 1,
+                executable: "/Users/jb/.local/bin/cursor-agent",
+                command: "/Users/jb/.local/bin/cursor-agent"
+            )
+        ]
+
+        XCTAssertEqual(detector.detect(in: processes).map(\.kind), [.cursor])
+    }
+
+    func testIgnoresCursorAppExecutable() {
+        let detector = AgentDetector()
+        let processes = [
+            RunningProcess(
+                pid: 109,
+                ppid: 1,
+                executable: "/Applications/Cursor.app/Contents/MacOS/Cursor",
+                command: "/Applications/Cursor.app/Contents/MacOS/Cursor"
+            )
+        ]
+
+        XCTAssertTrue(detector.detect(in: processes).isEmpty)
+    }
+
     func testIgnoresShellWrapper() {
         let detector = AgentDetector()
         let processes = [
