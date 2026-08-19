@@ -51,6 +51,7 @@ helper owns the actual power-management operation.
 `dsmnctl install-hooks` and `dsmnctl uninstall-hooks` support:
 
 - Claude Code
+- Cursor
 - Codex
 - Grok Build
 - Pi
@@ -124,7 +125,8 @@ Wrong approach: removing `PreToolUse` / `PostToolUse` from
 ### Hook uninstall (#17 / PR #55)
 
 `AgentHookInstaller.uninstall` is symmetric to `install` for Claude/Codex JSON,
-Grok `dsmn.json`, Pi `dsmn.ts`, and (on full uninstall) `~/.dsmn/dsmn-agent-hook.sh`.
+Cursor `hooks.json`, Grok `dsmn.json`, Pi `dsmn.ts`, and (on full uninstall)
+`~/.dsmn/dsmn-agent-hook.sh`.
 
 - **Per-hook removal inside groups** — Claude/Codex events can share one JSON
   group with a `matcher` and multiple `hooks` entries (for example dsmn beside

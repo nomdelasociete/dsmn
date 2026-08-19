@@ -2,6 +2,7 @@ import Foundation
 
 public enum AgentHookTarget: String, CaseIterable, Codable, Hashable, Sendable {
     case claude
+    case cursor
     case codex
     case grok
     case pi
@@ -10,10 +11,27 @@ public enum AgentHookTarget: String, CaseIterable, Codable, Hashable, Sendable {
         switch self {
         case .claude:
             "Claude Code"
+        case .cursor:
+            "Cursor"
         case .codex:
             "Codex"
         case .grok:
             "Grok Build"
+        case .pi:
+            "Pi"
+        }
+    }
+
+    public var shortDisplayName: String {
+        switch self {
+        case .claude:
+            "Claude"
+        case .cursor:
+            "Cursor"
+        case .codex:
+            "Codex"
+        case .grok:
+            "Grok"
         case .pi:
             "Pi"
         }
@@ -25,6 +43,20 @@ public enum AgentHookTarget: String, CaseIterable, Codable, Hashable, Sendable {
         }
 
         return target
+    }
+
+    public static func joinedDisplayNames(short: Bool = false, conjunction: String = "and") -> String {
+        let names = allCases.map { short ? $0.shortDisplayName : $0.displayName }
+        switch names.count {
+        case 0:
+            return ""
+        case 1:
+            return names[0]
+        case 2:
+            return "\(names[0]) \(conjunction) \(names[1])"
+        default:
+            return "\(names.dropLast().joined(separator: ", ")), \(conjunction) \(names.last ?? "")"
+        }
     }
 }
 
@@ -148,6 +180,13 @@ public struct AgentHookInstaller: Sendable {
         "PostToolUse"
     ]
 
+    private static let cursorHookEventNames = [
+        "sessionStart",
+        "beforeSubmitPrompt",
+        "preToolUse",
+        "postToolUse"
+    ]
+
     public var homeDirectory: URL
     public var hookScriptPath: URL
     public var dsmnctlPath: String?
@@ -224,6 +263,8 @@ public struct AgentHookInstaller: Sendable {
         switch target {
         case .claude:
             return try installClaudeHook()
+        case .cursor:
+            return try installCursorHook()
         case .codex:
             return try installCodexHook()
         case .grok:
@@ -238,6 +279,8 @@ public struct AgentHookInstaller: Sendable {
             switch target {
             case .claude:
                 return try uninstallClaudeHook()
+            case .cursor:
+                return try uninstallCursorHook()
             case .codex:
                 return try uninstallCodexHook()
             case .grok:
@@ -380,6 +423,24 @@ public struct AgentHookInstaller: Sendable {
         )
     }
 
+    private func installCursorHook() throws -> AgentHookInstallReport {
+        let path = hookConfigPath(for: .cursor)
+        var root = try readJSONObject(path)
+        let versionChanged = ensureCursorVersion(&root)
+        let hooksChanged = installCursorHooks(into: &root)
+        let changed = versionChanged || hooksChanged
+        if changed {
+            try writeJSONObject(root, to: path)
+        }
+
+        return AgentHookInstallReport(
+            target: AgentHookTarget.cursor.rawValue,
+            path: path.path,
+            changed: changed,
+            message: changed ? "installed" : "already installed"
+        )
+    }
+
     private func uninstallClaudeHook() throws -> AgentHookInstallReport {
         let path = homeDirectory.appendingPathComponent(".claude/settings.json")
         guard FileManager.default.fileExists(atPath: path.path) else {
@@ -490,6 +551,31 @@ public struct AgentHookInstaller: Sendable {
         )
     }
 
+    private func uninstallCursorHook() throws -> AgentHookInstallReport {
+        let path = hookConfigPath(for: .cursor)
+        guard FileManager.default.fileExists(atPath: path.path) else {
+            return AgentHookInstallReport(
+                target: AgentHookTarget.cursor.rawValue,
+                path: path.path,
+                changed: false,
+                message: "not installed"
+            )
+        }
+
+        var root = try readJSONObject(path)
+        let changed = uninstallCursorHooks(from: &root)
+        if changed {
+            try writeJSONObject(root, to: path)
+        }
+
+        return AgentHookInstallReport(
+            target: AgentHookTarget.cursor.rawValue,
+            path: path.path,
+            changed: changed,
+            message: changed ? "removed" : "not installed"
+        )
+    }
+
     private func uninstallHookScript() throws -> AgentHookInstallReport {
         guard FileManager.default.fileExists(atPath: hookScriptPath.path) else {
             return AgentHookInstallReport(
@@ -528,6 +614,17 @@ public struct AgentHookInstaller: Sendable {
             }
 
             return AgentHookTargetInspection(target: target, path: path.path, status: .missing)
+        case .cursor:
+            let root = try readJSONObject(path)
+            if hasCurrentCursorHookConfiguration(in: root) {
+                return AgentHookTargetInspection(target: target, path: path.path, status: .current)
+            }
+
+            if hookCommands(in: root).contains(where: { $0.contains("dsmn-agent-hook.sh") }) {
+                return AgentHookTargetInspection(target: target, path: path.path, status: .outdated)
+            }
+
+            return AgentHookTargetInspection(target: target, path: path.path, status: .missing)
         case .pi:
             let contents = try String(contentsOf: path, encoding: .utf8)
             if contents == piExtension() {
@@ -546,6 +643,8 @@ public struct AgentHookInstaller: Sendable {
         switch target {
         case .claude:
             homeDirectory.appendingPathComponent(".claude/settings.json")
+        case .cursor:
+            homeDirectory.appendingPathComponent(".cursor/hooks.json")
         case .codex:
             homeDirectory.appendingPathComponent(".codex/hooks.json")
         case .grok:
@@ -560,6 +659,101 @@ public struct AgentHookInstaller: Sendable {
                 .appendingPathComponent("extensions", isDirectory: true)
                 .appendingPathComponent("dsmn.ts")
         }
+    }
+
+    private func ensureCursorVersion(_ root: inout [String: Any]) -> Bool {
+        if let version = root["version"] as? Int, version == 1 {
+            return false
+        }
+        if let version = root["version"] as? NSNumber, version.intValue == 1 {
+            return false
+        }
+
+        root["version"] = 1
+        return true
+    }
+
+    private func cursorHookEntry(eventName: String) -> [String: Any] {
+        [
+            "command": hookCommand(target: .cursor, eventName: eventName),
+            "timeout": 5
+        ]
+    }
+
+    private func hasCurrentCursorHookConfiguration(in root: [String: Any]) -> Bool {
+        guard let hooks = root["hooks"] as? [String: Any] else {
+            return false
+        }
+
+        return Self.cursorHookEventNames.allSatisfy { eventName in
+            let entries = hooks[eventName] as? [[String: Any]] ?? []
+            let expectedCommand = hookCommand(target: .cursor, eventName: eventName)
+            return entries.contains { ($0["command"] as? String) == expectedCommand }
+        }
+    }
+
+    @discardableResult
+    private func installCursorHooks(into root: inout [String: Any]) -> Bool {
+        var changed = false
+        var hooks = root["hooks"] as? [String: Any] ?? [:]
+
+        for eventName in Self.cursorHookEventNames {
+            let expected = cursorHookEntry(eventName: eventName)
+            let expectedCommand = expected["command"] as? String
+            var entries = hooks[eventName] as? [[String: Any]] ?? []
+            let filtered = entries.filter { entry in
+                (entry["command"] as? String) == expectedCommand || !isDsmnHook(entry, target: .cursor)
+            }
+            if filtered.count != entries.count {
+                changed = true
+                entries = filtered
+            }
+
+            if !entries.contains(where: { ($0["command"] as? String) == expectedCommand }) {
+                entries.append(expected)
+                changed = true
+            }
+
+            hooks[eventName] = entries
+        }
+
+        root["hooks"] = hooks
+        return changed
+    }
+
+    @discardableResult
+    private func uninstallCursorHooks(from root: inout [String: Any]) -> Bool {
+        guard var hooks = root["hooks"] as? [String: Any] else {
+            return false
+        }
+
+        var changed = false
+        for eventName in Array(hooks.keys) {
+            guard let entries = hooks[eventName] as? [[String: Any]] else {
+                continue
+            }
+
+            let filtered = entries.filter { entry in
+                !isDsmnHook(entry, target: .cursor)
+            }
+            if filtered.count != entries.count {
+                changed = true
+            }
+
+            if filtered.isEmpty {
+                hooks.removeValue(forKey: eventName)
+            } else {
+                hooks[eventName] = filtered
+            }
+        }
+
+        if hooks.isEmpty {
+            root["hooks"] = [:]
+        } else {
+            root["hooks"] = hooks
+        }
+
+        return changed
     }
 
     private func hasCurrentHookConfiguration(in root: [String: Any], target: AgentHookTarget) -> Bool {
@@ -727,9 +921,13 @@ public struct AgentHookInstaller: Sendable {
 
         return hooks.values.flatMap { eventValue in
             (eventValue as? [[String: Any]] ?? []).flatMap { group in
-                (group["hooks"] as? [[String: Any]] ?? []).compactMap { hook in
+                let nested = (group["hooks"] as? [[String: Any]] ?? []).compactMap { hook in
                     hook["command"] as? String
                 }
+                if let command = group["command"] as? String {
+                    return nested + [command]
+                }
+                return nested
             }
         }
     }
@@ -1031,6 +1229,9 @@ public struct AgentHookInstaller: Sendable {
           case "$HOOK_AGENT" in
           claude)
             printf '%s\\n' "Claude Code"
+            ;;
+          cursor)
+            printf '%s\\n' "Cursor"
             ;;
           codex)
             printf '%s\\n' "Codex"

@@ -18,7 +18,7 @@ final class AgentHookSetupPresentationTests: XCTestCase {
     }
 
     func testReadyStatusKeepsReinstallSeparateFromUpdate() {
-        let status = AgentHooksSetupStatus.ready("Claude, Codex, Grok, and Pi ready")
+        let status = AgentHooksSetupStatus.ready("\(AgentHookTarget.joinedDisplayNames(short: true)) ready")
 
         XCTAssertEqual(AgentHookSetupPresentation.action(for: status), .reinstall)
         XCTAssertEqual(AgentHookSetupPresentation.actionTitle(for: status), "Reinstall")

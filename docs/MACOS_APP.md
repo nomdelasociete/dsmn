@@ -47,7 +47,7 @@ actions as the menu:
 
 - install the privileged helper;
 - open Login Items when macOS requires approval;
-- install agent hooks for Claude Code, Codex, Grok Build, and Pi;
+- install agent hooks for Claude Code, Cursor, Codex, Grok Build, and Pi;
 - optionally enable `Launch at Login`.
 
 The guide can be reopened from **Setup & Troubleshooting... → Setup Guide**.
@@ -165,7 +165,7 @@ bundle, it also embeds the helper executable and LaunchDaemon plist and can ask
 
 If dsmn is active, `Quit` asks whether to `Stop & Quit` or `Quit, Keep Running`.
 Quitting the menu bar app alone does not unload the privileged helper and does
-not disable installed agent hooks. A later Claude, Codex, Grok, or Pi hook can
+not disable installed agent hooks. A later Claude, Cursor, Codex, Grok, or Pi hook can
 start a fresh manual timer again.
 
 ## Next bundle step

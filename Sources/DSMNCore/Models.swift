@@ -2,6 +2,7 @@ import Foundation
 
 public enum AgentKind: String, Codable, CaseIterable, Sendable {
     case claudeCode
+    case cursor
     case codex
     case grokBuild
     case pi
@@ -10,6 +11,8 @@ public enum AgentKind: String, Codable, CaseIterable, Sendable {
         switch self {
         case .claudeCode:
             "Claude Code"
+        case .cursor:
+            "Cursor"
         case .codex:
             "Codex"
         case .grokBuild:

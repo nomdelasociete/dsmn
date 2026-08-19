@@ -79,6 +79,10 @@ public struct AgentDetector: Sendable {
             return .claudeCode
         }
 
+        if matchesCursor(executableName: executableName, executable: executable, command: command) {
+            return .cursor
+        }
+
         if matchesCodex(executableName: executableName, executable: executable, command: command) {
             return .codex
         }
@@ -98,6 +102,16 @@ public struct AgentDetector: Sendable {
         executableName == "claude"
             || executableName == "claude-code"
             || command.contains("claude-code")
+    }
+
+    private func matchesCursor(executableName: String, executable: String, command: String) -> Bool {
+        if executable.contains(".app/contents/macos") || command.contains(".app/contents/macos") {
+            return false
+        }
+
+        return executableName == "cursor-agent"
+            || command.contains("/cursor-agent")
+            || command.contains(" @cursor/agent")
     }
 
     private func matchesCodex(executableName: String, executable: String, command: String) -> Bool {
