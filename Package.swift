@@ -14,10 +14,11 @@ let package = Package(
         .executable(name: "dsmnd", targets: ["dsmnd"])
     ],
     dependencies: [
-        .package(url: "https://github.com/sparkle-project/Sparkle", from: "2.9.2")
+        .package(url: "https://github.com/sparkle-project/Sparkle", from: "2.9.2"),
+        .package(url: "https://github.com/LebJe/TOMLKit.git", exact: "0.5.0")
     ],
     targets: [
-        .target(name: "DSMNCore"),
+        .target(name: "DSMNCore", dependencies: [.product(name: "TOMLKit", package: "TOMLKit")]),
         .executableTarget(
             name: "dsmnapp",
             dependencies: [
