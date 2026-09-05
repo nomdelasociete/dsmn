@@ -84,6 +84,7 @@ Only modify:
   `ReconcileSchedule.swift`, `HelperXPC.swift`, `Models.swift`, and
   `PowerDecisionEngine.swift`, and `AgentDetector.swift` (route `PSProcessListing`
   through the bounded command runner; its previous private `Process` bypasses it)
+- New `Sources/DSMNCore/ControllerTelemetry.swift` for immutable observations
 - `Sources/dsmnd/HelperXPCService.swift`
 - New `Tests/DSMNCoreTests/CommandRunnerTests.swift`
 - `Tests/DSMNCoreTests/AgentDetectorTests.swift` for process-list runner fixtures

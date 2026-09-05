@@ -154,3 +154,21 @@ TOMLKit's C-string parser would otherwise accept only the prefix. Test fixtures
 use temporary homes. Archive preparation read only the installed app's public
 Sparkle key; it did not alter the installed app or actual Codex configuration.
 Release publication remains separate from this implementation.
+
+### 005 — implementation reviewed; final integration and interactive QA pending
+
+Executor commits `f0fd67e`, `26c7497`, and `1dad99e` on
+`jb/confirm-stop-before-quit`; integrated as `7c06e7b`, `f78032d`, and `09c2860`.
+Reviewer read all source/test/documentation and generated project changes.
+The combined suite with 001/003 passed 201 tests, including 18 app behavior tests;
+XcodeGen, signed Debug build, and bundle verification also passed independently.
+Final integration with 002 is still required.
+
+A disposable app hosted the real menu view with a simulated active report and
+an injected failing Stop operation. The user objected to the visible test window;
+it was immediately closed, and all further checks remain in the background.
+No buttons had been clicked and no injected helper call had occurred. The real
+alert interaction is therefore unverified, and `e2e_menu_setup.sh` has not run.
+Only that harness's preferences and temporary state were cleaned up; the
+installed app, helper registration, and actual power settings were not changed.
+Evidence is retained in `/tmp/dsmn-quit-qa-Dgx2E8/QA_RESULT.md`.
