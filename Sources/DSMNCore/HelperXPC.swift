@@ -57,6 +57,7 @@ public struct DSMNHelperCommandResponse: Codable, Equatable, Sendable {
 
 public enum DSMNHelperClientError: Error, LocalizedError {
     case unavailable(String)
+    case commandFailed(String)
     case invalidResponse(String)
     case timedOut
 
@@ -64,6 +65,8 @@ public enum DSMNHelperClientError: Error, LocalizedError {
         switch self {
         case .unavailable(let message):
             "Helper unavailable: \(message)"
+        case .commandFailed(let message):
+            "Helper command failed: \(message)"
         case .invalidResponse(let message):
             "Invalid helper response: \(message)"
         case .timedOut:
@@ -188,7 +191,7 @@ public final class DSMNHelperXPCClient: @unchecked Sendable {
         }
 
         guard let proxy = connection.remoteObjectProxyWithErrorHandler({ error in
-            completion.complete(.failure(error))
+            completion.complete(.failure(DSMNHelperClientError.unavailable(error.localizedDescription)))
         }) as? DSMNHelperXPCProtocol else {
             throw DSMNHelperClientError.unavailable("unable to create XPC proxy")
         }
@@ -202,17 +205,22 @@ public final class DSMNHelperXPCClient: @unchecked Sendable {
         return try completion.wait(timeout: timeout)
     }
 
-    private static func decodeResponse(_ payload: String) throws -> DSMNHelperCommandResponse {
+    static func decodeResponse(_ payload: String) throws -> DSMNHelperCommandResponse {
         guard let data = payload.data(using: .utf8) else {
             throw DSMNHelperClientError.invalidResponse("non-UTF8 payload")
         }
 
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
-        let response = try decoder.decode(DSMNHelperCommandResponse.self, from: data)
+        let response: DSMNHelperCommandResponse
+        do {
+            response = try decoder.decode(DSMNHelperCommandResponse.self, from: data)
+        } catch {
+            throw DSMNHelperClientError.invalidResponse(error.localizedDescription)
+        }
 
         if let error = response.error {
-            throw DSMNHelperClientError.unavailable(error)
+            throw DSMNHelperClientError.commandFailed(error)
         }
 
         return response

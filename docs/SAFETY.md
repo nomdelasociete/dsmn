@@ -64,10 +64,26 @@ forces a cleanup path through the privileged helper:
 pmset -a disablesleep 0
 ```
 
-The helper runs `repair` over XPC: it releases `pmset` when dsmn still owns the
-sleep lock, resets persisted state, then reconciles. Raycast and CLI invoke
-`dsmnctl repair`; they never call `pmset` directly. Without a registered helper,
-`dsmnctl repair` only repairs local state (development fallback).
+The helper runs `repair` over XPC. It first persists the end of the manual lease,
+retaining ownership until `pmset` confirms the release. A successful release is
+saved before requesting `pmset sleepnow` when the lid is closed and the machine
+is on battery. Open-lid, AC, and unknown lid or power states do not request sleep.
+
+A nonzero exit, dry-run, or thrown release is a failed Repair. Completed power
+operation results remain in the audit history, and an owned lock stays owned.
+The helper arms a one-shot retry before reporting the failure. Without a manual
+lease, retries have a one-second grace; they also survive another thrown release
+and do not depend on another command or the periodic poll. A dry-run never
+counts as a successful release. Repair can also explicitly release a live lock
+when persisted ownership was lost, but it does not claim ownership of an external
+lock if that attempt fails; that cleanup can be retried explicitly.
+
+Raycast and CLI invoke `dsmnctl repair`; they never call `pmset` directly. A helper
+command failure, invalid response, or ambiguous timeout makes CLI Repair fail.
+Only unavailable helper transport permits the local development fallback, which
+prints an explicit stderr notice that only local state was repaired and the
+system power lock was not changed. Local state repair is not evidence of system
+cleanup.
 
 ## XPC client authentication
 

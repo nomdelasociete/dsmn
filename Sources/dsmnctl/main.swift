@@ -63,7 +63,7 @@ struct DSMNCTL {
             let reports = try AgentHookInstaller().uninstall(targets: targets)
             try printHookInstallReports(reports, json: json)
         case "repair":
-            let report = try preferHelper(
+            let report = try runRepair(
                 { try helper.repair() },
                 fallback: { try controller.repairState() }
             )
@@ -72,6 +72,20 @@ struct DSMNCTL {
             printHelp()
         default:
             throw DSMNError.invalidCommand(command)
+        }
+    }
+
+    static func runRepair(
+        _ helperOperation: () throws -> StatusReport,
+        fallback: () throws -> StatusReport,
+        writeWarning: (String) -> Void = { fputs($0, stderr) }
+    ) throws -> StatusReport {
+        do {
+            return try helperOperation()
+        } catch DSMNHelperClientError.unavailable {
+            let report = try fallback()
+            writeWarning("dsmnctl: helper unavailable; only local state was repaired. The system power lock was not changed.\n")
+            return report
         }
     }
 
