@@ -133,6 +133,13 @@ tool-heavy sessions do not invoke dsmnctl for every tool event. Hook renewals
 are not additive and never shorten a longer manual timer; dsmn releases the
 lease automatically when activity stops.
 
+The helper's release deadline uses persisted lease intent independently of
+optional process and system diagnostics. A slow or failed probe cannot extend a
+hook lease or block its cleanup attempt. Unknown network data preserves an
+already recorded no-route deadline. Failed power releases retain ownership and
+retry; a bounded attempt does not guarantee that macOS accepted the release.
+Hook events, renewal throttling, and the manual-command timeout are unchanged.
+
 Optional environment overrides:
 
 ```sh
