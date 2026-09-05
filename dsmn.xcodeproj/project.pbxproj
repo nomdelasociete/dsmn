@@ -24,6 +24,7 @@
 		3B1B0405B4D29F02793BD9E2 /* MenuBarIconState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3357CC5A02DEAA80CF0E7714 /* MenuBarIconState.swift */; };
 		3E2C9C782AC7E952FA4A55F1 /* TriggerActivitySummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5DA64BBB8035E795523E90FD /* TriggerActivitySummary.swift */; };
 		3EAAD859F9B5BF895A2D2B7E /* DSMNCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 74B444C620310ADFA67DB8E3 /* DSMNCore.framework */; };
+		44A63173A14964531A93FFC8 /* AppQuitCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C06A4DC70F9BA2B1E497F5E /* AppQuitCoordinator.swift */; };
 		44D1F403292D62A04AB4BEFC /* StatusReport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3619C42C42B624EEF07BA6AC /* StatusReport.swift */; };
 		4666E8007090B6F18D21E4D6 /* com.nomdelasociete.dsmn.helper.plist in CopyFiles */ = {isa = PBXBuildFile; fileRef = 1428E24E9C88059C6735E168 /* com.nomdelasociete.dsmn.helper.plist */; };
 		48B342822DB4A703A252BE4C /* DSMNMenuStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F2C7905739A9F21409A0728 /* DSMNMenuStore.swift */; };
@@ -162,6 +163,7 @@
 		21DA81E3CA23BA3F88D6E053 /* SetupMenuPresentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupMenuPresentation.swift; sourceTree = "<group>"; };
 		22FC037E46E8EBB70D7AB405 /* AgentHookInstaller.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentHookInstaller.swift; sourceTree = "<group>"; };
 		24C77EE9388701AB19E70A0C /* MenuBarCountdownFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarCountdownFormatter.swift; sourceTree = "<group>"; };
+		2C06A4DC70F9BA2B1E497F5E /* AppQuitCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppQuitCoordinator.swift; sourceTree = "<group>"; };
 		3357CC5A02DEAA80CF0E7714 /* MenuBarIconState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarIconState.swift; sourceTree = "<group>"; };
 		3619C42C42B624EEF07BA6AC /* StatusReport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusReport.swift; sourceTree = "<group>"; };
 		3BE4F8288D3EB6BEB4D058E7 /* SetupTroubleshootingWindowPresenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupTroubleshootingWindowPresenter.swift; sourceTree = "<group>"; };
@@ -279,6 +281,7 @@
 			isa = PBXGroup;
 			children = (
 				05F227E11F3C8BC6AD1BECA4 /* AboutPanelPresenter.swift */,
+				2C06A4DC70F9BA2B1E497F5E /* AppQuitCoordinator.swift */,
 				F90947A8DA8E6F80381E11E7 /* DoctorWindowPresenter.swift */,
 				E03AF3CD060A3DFA891C3B89 /* FeedbackService.swift */,
 				B2C80055A7FD5F82CDA2B5E5 /* FeedbackWindowPresenter.swift */,
@@ -609,6 +612,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				00FE674C813817F2AD92688E /* AboutPanelPresenter.swift in Sources */,
+				44A63173A14964531A93FFC8 /* AppQuitCoordinator.swift in Sources */,
 				497137023785CE2B1A43EC52 /* CheckForUpdatesView.swift in Sources */,
 				0552AC01999A4BA4032DCCD5 /* DSMNApp.swift in Sources */,
 				D08E1EFCB2A514AF84DD5960 /* DSMNDoctorView.swift in Sources */,
