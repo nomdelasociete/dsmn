@@ -83,11 +83,26 @@ final class DSMNHelperXPCService: NSObject, DSMNHelperXPCProtocol, @unchecked Se
     func repair(withReply reply: @escaping (String) -> Void) {
         reply(encode {
             return .success(run: try locked {
-                let report = try controller.repair(
-                    powerManager: powerManager,
-                    liveSleepDisabled: liveSleepDisabled()
-                )
+                let report: DaemonRunReport
+                do {
+                    report = try controller.repair(
+                        powerManager: powerManager,
+                        liveSleepDisabled: liveSleepDisabled()
+                    )
+                } catch {
+                    rearmSleepReleaseFromSavedState()
+                    throw error
+                }
                 scheduleSleepRelease(from: report.status)
+                if let release = report.operations.first(where: { $0.action == .enableSleep }), !release.succeeded {
+                    throw NSError(
+                        domain: DSMNServiceConstants.helperLabel,
+                        code: Int(release.exitCode ?? -1),
+                        userInfo: [NSLocalizedDescriptionKey: release.dryRun
+                            ? "Repair did not release the power lock because power changes are in dry-run mode."
+                            : "Repair could not release the power lock (pmset exit \(release.exitCode.map(String.init) ?? "unknown"))."]
+                    )
+                }
                 return report
             })
         })
@@ -127,17 +142,37 @@ final class DSMNHelperXPCService: NSObject, DSMNHelperXPCProtocol, @unchecked Se
     }
 
     private func reconcileLocked() throws -> DaemonRunReport {
-        let report = try controller.reconcile(
-            powerManager: powerManager,
-            liveSleepDisabled: liveSleepDisabled()
-        )
+        let report: DaemonRunReport
+        do {
+            report = try controller.reconcile(
+                powerManager: powerManager,
+                liveSleepDisabled: liveSleepDisabled()
+            )
+        } catch {
+            rearmSleepReleaseFromSavedState()
+            throw error
+        }
         scheduleSleepRelease(from: report.status)
         return report
     }
 
-    private func scheduleSleepRelease(from status: StatusReport) {
-        let schedule = ReconcileSchedule.sleepReleaseDeadline(for: status)
+    private func rearmSleepReleaseFromSavedState() {
+        do {
+            scheduleSleepRelease(ReconcileSchedule.sleepReleaseDeadline(
+                for: try controller.store.load(),
+                now: Date(),
+                noRouteGraceSeconds: controller.decisionEngine.policy.noRouteGraceSeconds
+            ))
+        } catch {
+            fputs("dsmnd: could not rearm sleep release: \(error.localizedDescription)\n", stderr)
+        }
+    }
 
+    private func scheduleSleepRelease(from status: StatusReport) {
+        scheduleSleepRelease(ReconcileSchedule.sleepReleaseDeadline(for: status))
+    }
+
+    private func scheduleSleepRelease(_ schedule: ReconcileSchedule) {
         timerQueue.async { [weak self] in
             guard let self else {
                 return
