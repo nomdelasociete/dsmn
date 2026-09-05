@@ -18,7 +18,7 @@ live lid-close tests were not run as part of the audit or this planning pass.
 | [002](002-release-despite-diagnostic-failures.md) | Expiry and Stop survive diagnostic failures | 5 | P1 | L | 001 | IN PROGRESS |
 | [003](003-edit-codex-toml-safely.md) | Codex hook installation preserves valid configuration | 3 | P1 | M–L | — | IN PROGRESS |
 | [004](004-retire-helper-before-unregistering.md) | Helper removal/replacement releases safely | 1 | P1 | L | 001, 002 | BLOCKED: legacy migration scope decision |
-| [005](005-confirm-stop-before-quitting.md) | Stop & Quit closes only after confirmed Stop | 4 | P1 | M | 001, 002 | TODO |
+| [005](005-confirm-stop-before-quitting.md) | Stop & Quit closes only after confirmed Stop | 4 | P1 | M | 001; integrate with 002 | IN PROGRESS |
 
 Effort includes regression tests and integration checks: M is roughly a day or
 two; L spans several days. These estimates are deliberately larger than a local
@@ -42,6 +42,8 @@ is not a completed signed app/helper change.
 - 005 benefits from 004's app test target and should normally follow it to avoid
   conflicting edits in the store and helper client. It can proceed after 001/002
   if the legacy rollout decision holds up 004; its plan includes test-target setup.
+  Its app-only interface can be implemented in parallel with 002 after 001, but
+  final validation must include the completed helper changes.
 - 003 is independent and can run in its own worktree. Coordinate `Package.swift`
   and generated project changes with the app/CLI test target additions.
 

@@ -10,14 +10,16 @@
 - Priority: P1
 - Effort: M
 - Risk: LOW–MED; narrow control-flow change with executable app tests
-- Depends on: `001-preserve-failed-repair-ownership.md` and
-  `002-release-despite-diagnostic-failures.md`
+- Depends on: `001-preserve-failed-repair-ownership.md`
+- Integration gate: combine with `002-release-despite-diagnostic-failures.md`
+  before final validation; the app's injected Stop outcome interface can be
+  implemented independently while that helper work proceeds
 - Ordering preference: after Plan 004, which adds the app test target and touches
   the same store/service files; Plan 004's legacy rollout decision does not block
   this fix if it must proceed first
 - Category: bug
 - Planned at: `513b03a`, 2026-09-05; audit finding 4
-- Implementation status: TODO
+- Implementation status: IN PROGRESS
 
 ## Why this matters
 
