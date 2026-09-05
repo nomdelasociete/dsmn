@@ -31,6 +31,7 @@ let package = Package(
         .executableTarget(name: "dsmnd", dependencies: ["DSMNCore"]),
         .testTarget(name: "DSMNCoreTests", dependencies: ["DSMNCore"]),
         .testTarget(name: "dsmndTests", dependencies: ["dsmnd", "DSMNCore"]),
-        .testTarget(name: "dsmnctlTests", dependencies: ["dsmnctl", "DSMNCore"])
+        .testTarget(name: "dsmnctlTests", dependencies: ["dsmnctl", "DSMNCore"]),
+        .testTarget(name: "dsmnappTests", dependencies: ["dsmnapp", "DSMNCore"])
     ]
 )

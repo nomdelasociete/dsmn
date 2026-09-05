@@ -149,8 +149,11 @@ struct WhyAwakeView: View {
 
             Button("Stop dsmn") {
                 Task {
-                    await store.stopNow()
+                    let outcome = await store.stopNow()
                     await refreshAll()
+                    if let failure = outcome.failureMessage {
+                        errorMessage = failure
+                    }
                 }
             }
             .disabled(!store.isProtectingSleep || isRefreshing)
