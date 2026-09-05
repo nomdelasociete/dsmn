@@ -93,6 +93,121 @@ final class RepairTests: XCTestCase {
         XCTAssertEqual(report.status.state.lastStopReason, "repair")
     }
 
+    func testFailedRepairRetainsOwnershipAndAuditsAttempt() throws {
+        try assertUnsuccessfulRepair(dryRun: false, exitCode: 1)
+    }
+
+    func testDryRunRepairRetainsOwnershipAndAuditsAttempt() throws {
+        try assertUnsuccessfulRepair(dryRun: true, exitCode: nil)
+    }
+
+    func testThrownRepairClearsIntentButRetainsOwnership() throws {
+        let now = Date(timeIntervalSince1970: 1_000)
+        let store = try makeStore()
+        try store.save(DSMNState(manualUntil: now.addingTimeInterval(300), ownsSleepDisable: true))
+        let powerManager = RecordingPowerManager(dryRun: false, throwsOnRelease: true)
+        let controller = makeController(store: store, now: now)
+
+        XCTAssertThrowsError(try controller.repair(powerManager: powerManager, now: now))
+
+        let saved = try store.load()
+        XCTAssertTrue(saved.ownsSleepDisable)
+        XCTAssertNil(saved.manualUntil)
+        XCTAssertEqual(saved.lastStopReason, "repair")
+        XCTAssertEqual(powerManager.actions, [.enableSleep])
+        XCTAssertTrue(saved.powerOperationHistory.isEmpty)
+    }
+
+    func testSuccessfulRepairSavesReleaseBeforeSleepingOnClosedLidBattery() throws {
+        let now = Date(timeIntervalSince1970: 1_000)
+        let store = try makeStore()
+        try store.save(DSMNState(manualUntil: now.addingTimeInterval(300), ownsSleepDisable: true))
+        let powerManager = RecordingPowerManager(dryRun: false, beforeSleep: {
+            XCTAssertFalse(try store.load().ownsSleepDisable)
+            XCTAssertEqual(try store.load().lastPowerOperation?.action, .enableSleep)
+        })
+
+        let report = try makeController(store: store, now: now).repair(powerManager: powerManager, now: now)
+
+        XCTAssertEqual(powerManager.actions, [.enableSleep, .sleepNow])
+        XCTAssertEqual(report.operations.map(\.action), [.enableSleep, .sleepNow])
+        XCTAssertEqual(try store.load().powerOperationHistory.map(\.action), [.enableSleep, .sleepNow])
+        XCTAssertFalse(try store.load().ownsSleepDisable)
+        XCTAssertEqual(try store.load().lastStopReason, "repair")
+    }
+
+    func testRepairDoesNotSleepWithoutClosedLidBatteryFacts() throws {
+        let now = Date(timeIntervalSince1970: 1_000)
+        for snapshot in [
+            SystemSnapshot(now: now, powerSource: .ac, lidClosed: true),
+            SystemSnapshot(now: now, powerSource: .battery, lidClosed: false),
+            SystemSnapshot(now: now, powerSource: .unknown, lidClosed: true),
+            SystemSnapshot(now: now, powerSource: .battery, lidClosed: nil)
+        ] {
+            let store = try makeStore()
+            try store.save(DSMNState(ownsSleepDisable: true))
+            let powerManager = RecordingPowerManager(dryRun: false)
+            let controller = DSMNController(
+                store: store,
+                processListing: StaticProcessListing([]),
+                snapshotProvider: StaticSystemSnapshotProvider(snapshot)
+            )
+
+            _ = try controller.repair(powerManager: powerManager, now: now)
+
+            XCTAssertEqual(powerManager.actions, [.enableSleep])
+        }
+    }
+
+    func testFailedRepairOfExternalLockDoesNotClaimOwnership() throws {
+        let now = Date(timeIntervalSince1970: 1_000)
+        let store = try makeStore()
+        try store.save(DSMNState())
+        let powerManager = RecordingPowerManager(dryRun: false, exitCode: 1)
+
+        let report = try makeController(store: store, now: now).repair(
+            powerManager: powerManager, liveSleepDisabled: true, now: now
+        )
+
+        XCTAssertEqual(report.operation?.exitCode, 1)
+        XCTAssertFalse(report.status.state.ownsSleepDisable)
+        XCTAssertFalse(try store.load().ownsSleepDisable)
+        XCTAssertEqual(try store.load().lastPowerOperation?.exitCode, 1)
+        XCTAssertEqual(powerManager.actions, [.enableSleep])
+    }
+
+    private func assertUnsuccessfulRepair(dryRun: Bool, exitCode: Int32?) throws {
+        let now = Date(timeIntervalSince1970: 1_000)
+        let store = try makeStore()
+        try store.save(DSMNState(manualUntil: now.addingTimeInterval(300), ownsSleepDisable: true))
+        let powerManager = RecordingPowerManager(dryRun: dryRun, exitCode: exitCode)
+
+        let report = try makeController(store: store, now: now).repair(powerManager: powerManager, now: now)
+
+        let saved = try store.load()
+        XCTAssertTrue(report.status.state.ownsSleepDisable)
+        XCTAssertTrue(saved.ownsSleepDisable)
+        XCTAssertNil(saved.manualUntil)
+        XCTAssertEqual(saved.lastStopReason, "repair")
+        XCTAssertEqual(powerManager.actions, [.enableSleep])
+        XCTAssertEqual(report.operations.count, 1)
+        XCTAssertEqual(report.operation?.exitCode, exitCode)
+        XCTAssertEqual(saved.powerOperationHistory.count, 1)
+        XCTAssertEqual(saved.lastPowerOperation?.exitCode, exitCode)
+        XCTAssertEqual(saved.lastPowerOperation?.dryRun, dryRun)
+        XCTAssertEqual(saved.lastPowerOperation?.reason, "release:repair")
+    }
+
+    private func makeController(store: StateStore, now: Date) -> DSMNController {
+        DSMNController(
+            store: store,
+            processListing: StaticProcessListing([]),
+            snapshotProvider: StaticSystemSnapshotProvider(
+                SystemSnapshot(now: now, powerSource: .battery, batteryPercent: 80, lidClosed: true)
+            )
+        )
+    }
+
     private func makeStore() throws -> StateStore {
         let directory = URL(fileURLWithPath: NSTemporaryDirectory(), isDirectory: true)
             .appendingPathComponent("dsmn-\(UUID().uuidString)", isDirectory: true)
@@ -105,19 +220,42 @@ final class RepairTests: XCTestCase {
 
 private final class RecordingPowerManager: PowerManaging, @unchecked Sendable {
     var requests: [Bool] = []
+    var actions: [PowerOperationAction] = []
     let dryRun: Bool
+    let exitCode: Int32?
+    let throwsOnRelease: Bool
+    let beforeSleep: (() throws -> Void)?
 
-    init(dryRun: Bool) {
+    init(dryRun: Bool, exitCode: Int32? = 0, throwsOnRelease: Bool = false, beforeSleep: (() throws -> Void)? = nil) {
         self.dryRun = dryRun
+        self.exitCode = dryRun ? nil : exitCode
+        self.throwsOnRelease = throwsOnRelease
+        self.beforeSleep = beforeSleep
     }
 
     func setSleepDisabled(_ disabled: Bool) throws -> PowerOperationResult {
         requests.append(disabled)
+        actions.append(disabled ? .disableSleep : .enableSleep)
+        if throwsOnRelease, !disabled {
+            throw CocoaError(.executableNotLoadable)
+        }
         return PowerOperationResult(
             requestedSleepDisabled: disabled,
             dryRun: dryRun,
             executedCommand: "recorded",
-            exitCode: dryRun ? nil : 0
+            exitCode: exitCode
+        )
+    }
+
+    func requestSleepNow() throws -> PowerOperationResult {
+        try beforeSleep?()
+        actions.append(.sleepNow)
+        return PowerOperationResult(
+            requestedSleepDisabled: false,
+            dryRun: false,
+            executedCommand: "recorded sleepnow",
+            exitCode: 0,
+            action: .sleepNow
         )
     }
 }

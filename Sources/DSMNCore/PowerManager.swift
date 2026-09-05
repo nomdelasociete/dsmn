@@ -16,6 +16,10 @@ public struct PowerOperationResult: Codable, Equatable, Sendable {
     public var stdout: String
     public var stderr: String
 
+    public var succeeded: Bool {
+        !dryRun && exitCode == 0
+    }
+
     public init(
         requestedSleepDisabled: Bool,
         dryRun: Bool,
