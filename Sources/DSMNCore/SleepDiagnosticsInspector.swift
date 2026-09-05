@@ -81,6 +81,12 @@ public struct SleepDiagnosticsInspector: Sendable {
         )
     }
 
+    public func liveSleepDisabled() throws -> Bool? {
+        let output = try runner.run("/usr/bin/pmset", arguments: ["-g", "live"])
+        guard output.exitCode == 0 else { return nil }
+        return Self.parseSleepDisabled(output.stdout)
+    }
+
     public static func parse(
         liveOutput: String,
         assertionsOutput: String,

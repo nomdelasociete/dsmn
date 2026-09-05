@@ -75,7 +75,7 @@ public struct PowerDecisionEngine: Sendable {
             blocks.append("battery_below_threshold")
         }
 
-        if snapshot.defaultRouteAvailable == false,
+        if snapshot.defaultRouteAvailable != true,
            shouldBlockForNoRoute(state: state, snapshot: snapshot) {
             blocks.append("network_unavailable")
         }

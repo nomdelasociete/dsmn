@@ -3,6 +3,10 @@ import XCTest
 @testable import DSMNCore
 
 final class CommandRunnerTests: XCTestCase {
+    func testDefaultTimeoutIncludesFiniteTerminationAndReapingBudget() throws {
+        try assertTimeout("/bin/sleep", arguments: ["10"], timeout: 2, limit: 3)
+    }
+
     func testCapturesOutputAndNonzeroExit() throws {
         let output = try ProcessCommandRunner().run("/bin/sh", arguments: ["-c", "printf out; printf err >&2; exit 7"])
         XCTAssertEqual(output.stdout, "out")
@@ -42,15 +46,15 @@ final class CommandRunnerTests: XCTestCase {
         try assertTimeout("/bin/sh", arguments: ["-c", "sleep 10 & echo $! > \"$1\"; exit 0", "fixture", file.path])
     }
 
-    private func assertTimeout(_ executable: String, arguments: [String]) throws {
+    private func assertTimeout(_ executable: String, arguments: [String], timeout: TimeInterval = 0.08, limit: TimeInterval = 1) throws {
         let started = Date()
-        XCTAssertThrowsError(try ProcessCommandRunner(timeout: 0.08, terminationGrace: 0.04).run(executable, arguments: arguments)) { error in
+        XCTAssertThrowsError(try ProcessCommandRunner(timeout: timeout, terminationGrace: 0.1).run(executable, arguments: arguments)) { error in
             guard case CommandRunnerError.timedOut(_, _, let pid) = error else {
                 return XCTFail("Expected timeout, got \(error)")
             }
             XCTAssertEqual(kill(pid, 0), -1)
             XCTAssertEqual(errno, ESRCH)
         }
-        XCTAssertLessThan(Date().timeIntervalSince(started), 1)
+        XCTAssertLessThan(Date().timeIntervalSince(started), limit)
     }
 }

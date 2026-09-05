@@ -2,6 +2,28 @@ import XCTest
 @testable import DSMNCore
 
 final class SystemSnapshotProviderTests: XCTestCase {
+    func testFailedRouteProbeDoesNotDiscardBatteryOrLidFacts() throws {
+        let snapshot = try MacSystemSnapshotProvider(runner: PartialSnapshotRunner()).snapshot()
+        XCTAssertEqual(snapshot.powerSource, .battery)
+        XCTAssertEqual(snapshot.batteryPercent, 12)
+        XCTAssertEqual(snapshot.lidClosed, true)
+        XCTAssertNil(snapshot.defaultRouteAvailable)
+    }
+
+    func testFailedBatteryProbeDoesNotDiscardRouteOrLidFacts() throws {
+        let snapshot = try MacSystemSnapshotProvider(runner: PartialSnapshotRunner(failingExecutable: "/usr/bin/pmset")).snapshot()
+        XCTAssertEqual(snapshot.powerSource, .unknown)
+        XCTAssertNil(snapshot.batteryPercent)
+        XCTAssertEqual(snapshot.lidClosed, true)
+        XCTAssertEqual(snapshot.defaultRouteAvailable, true)
+    }
+
+    func testUnexpectedRouteExitIsUnknown() {
+        XCTAssertNil(SystemSnapshotParsers.parseDefaultRoute(CommandOutput(
+            executable: "/sbin/route", arguments: [], stdout: "", stderr: "permission denied", exitCode: 1
+        )))
+    }
+
     func testParsesBatteryPowerAndPercent() {
         let parsed = SystemSnapshotParsers.parseBattery(
             """
@@ -75,3 +97,12 @@ final class SystemSnapshotProviderTests: XCTestCase {
     }
 }
 
+private struct PartialSnapshotRunner: CommandRunning {
+    var failingExecutable = "/sbin/route"
+    func run(_ executable: String, arguments: [String]) throws -> CommandOutput {
+        if executable == failingExecutable { throw CocoaError(.fileReadUnknown) }
+        let text = executable == "/usr/bin/pmset" ? "Now drawing from 'Battery Power' 12%;" :
+            executable == "/sbin/route" ? "gateway: 192.168.1.1" : "AppleClamshellState = Yes"
+        return CommandOutput(executable: executable, arguments: arguments, stdout: text, stderr: "", exitCode: 0)
+    }
+}

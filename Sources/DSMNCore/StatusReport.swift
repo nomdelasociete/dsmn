@@ -8,6 +8,7 @@ public struct StatusReport: Codable, Equatable, Sendable {
     public var decision: PowerDecision
     public var manualRemainingSeconds: Int?
     public var noRouteGraceRemainingSeconds: Int?
+    public var diagnosticErrors: [String]?
 
     public init(
         generatedAt: Date,
@@ -16,7 +17,8 @@ public struct StatusReport: Codable, Equatable, Sendable {
         agents: [AgentProcess],
         decision: PowerDecision,
         manualRemainingSeconds: Int?,
-        noRouteGraceRemainingSeconds: Int? = nil
+        noRouteGraceRemainingSeconds: Int? = nil,
+        diagnosticErrors: [String]? = nil
     ) {
         self.generatedAt = generatedAt
         self.state = state
@@ -25,6 +27,7 @@ public struct StatusReport: Codable, Equatable, Sendable {
         self.decision = decision
         self.manualRemainingSeconds = manualRemainingSeconds
         self.noRouteGraceRemainingSeconds = noRouteGraceRemainingSeconds
+        self.diagnosticErrors = diagnosticErrors
     }
 }
 
@@ -91,8 +94,28 @@ public struct DSMNController: Sendable {
     }
 
     public func status(now: Date = Date()) throws -> StatusReport {
-        let state = try store.load()
-        return try makeStatus(state: state, now: now)
+        try status(telemetry: collectTelemetry(now: now), now: now)
+    }
+
+    public func status(telemetry: ControllerTelemetry, now: Date = Date()) throws -> StatusReport {
+        makeStatus(state: try store.load(), telemetry: telemetry, now: now)
+    }
+
+    public func collectTelemetry(now: Date = Date()) -> ControllerTelemetry {
+        var errors: [String] = []
+        let snapshot: SystemSnapshot
+        do { snapshot = try snapshotProvider.snapshot(now: now) }
+        catch {
+            snapshot = SystemSnapshot(now: now)
+            errors.append("System snapshot unavailable: \(error.localizedDescription)")
+        }
+        let agents: [AgentProcess]
+        do { agents = try detector.detect(using: processListing) }
+        catch {
+            agents = []
+            errors.append("Agent process listing unavailable: \(error.localizedDescription)")
+        }
+        return ControllerTelemetry(snapshot: snapshot, agents: agents, diagnosticErrors: errors)
     }
 
     public func enableManual(
@@ -101,6 +124,17 @@ public struct DSMNController: Sendable {
         extendOnly: Bool = false,
         requester: ActivationRequester? = nil
     ) throws -> StatusReport {
+        _ = try enableManualIntent(minutes: minutes, now: now, extendOnly: extendOnly, requester: requester)
+        return try status(now: now)
+    }
+
+    @discardableResult
+    public func enableManualIntent(
+        minutes: Int,
+        now: Date = Date(),
+        extendOnly: Bool = false,
+        requester: ActivationRequester? = nil
+    ) throws -> DSMNState {
         guard minutes > 0 else {
             throw DSMNError.invalidDuration("minutes must be greater than 0")
         }
@@ -118,9 +152,10 @@ public struct DSMNController: Sendable {
                 try store.save(state)
             }
 
-            return try makeStatus(state: state, now: now)
+            return state
         }
 
+        if !state.manualIsActive(at: now) { state.noRouteUnavailableSince = nil }
         state.manualUntil = requestedUntil
         state.lastActivationReason = extendOnly ? "manual_lease" : "manual_timer"
         if let requester {
@@ -131,10 +166,16 @@ public struct DSMNController: Sendable {
         state.lastStopReason = nil
         state.updatedAt = now
         try store.save(state)
-        return try makeStatus(state: state, now: now)
+        return state
     }
 
     public func stop(now: Date = Date()) throws -> StatusReport {
+        _ = try stopIntent(now: now)
+        return try status(now: now)
+    }
+
+    @discardableResult
+    public func stopIntent(now: Date = Date()) throws -> DSMNState {
         var state = try store.load()
         state.manualUntil = nil
         state.noRouteUnavailableSince = nil
@@ -143,7 +184,7 @@ public struct DSMNController: Sendable {
         state.lastStopReason = "user_stop"
         state.updatedAt = now
         try store.save(state)
-        return try makeStatus(state: state, now: now)
+        return state
     }
 
     public func repairState(now: Date = Date()) throws -> StatusReport {
@@ -156,11 +197,27 @@ public struct DSMNController: Sendable {
         state.lastStopReason = "repair"
         state.updatedAt = now
         try store.save(state)
-        return try makeStatus(state: state, now: now)
+        return makeStatus(state: state, telemetry: collectTelemetry(now: now), now: now)
     }
 
     public func repair(
         powerManager: any PowerManaging,
+        liveSleepDisabled: Bool? = nil,
+        now: Date = Date()
+    ) throws -> DaemonRunReport {
+        let report = try repair(
+            powerManager: powerManager,
+            telemetry: .unavailable(at: now),
+            liveSleepDisabled: liveSleepDisabled,
+            now: now
+        )
+        let telemetry = collectTelemetry(now: now)
+        return try finishRelease(report, powerManager: powerManager, telemetry: telemetry, sleepSnapshot: telemetry.snapshot, now: now)
+    }
+
+    public func repair(
+        powerManager: any PowerManaging,
+        telemetry: ControllerTelemetry,
         liveSleepDisabled: Bool? = nil,
         now: Date = Date()
     ) throws -> DaemonRunReport {
@@ -176,24 +233,20 @@ public struct DSMNController: Sendable {
         // an owned lock if launching pmset or persisting its result fails.
         try store.save(nextState)
 
-        let snapshot = try snapshotProvider.snapshot(now: now)
         var operations: [PowerOperationResult] = []
         if originalState.ownsSleepDisable || liveSleepDisabled == true {
             operations = try releaseSleepDisable(
                 powerManager: powerManager,
                 state: &nextState,
-                snapshot: snapshot,
                 reason: "release:repair",
                 stopReason: "repair",
                 now: now
             )
         }
 
-        let agents = try detector.detect(using: processListing)
-        let decision = decisionEngine.evaluate(state: nextState, agents: agents, snapshot: snapshot)
         return DaemonRunReport(
             generatedAt: now,
-            status: makeStatusReport(state: nextState, snapshot: snapshot, agents: agents, decision: decision, now: now),
+            status: makeStatus(state: nextState, telemetry: telemetry, now: now),
             operation: operations.first,
             operations: operations,
             stateChanged: nextState != originalState
@@ -205,17 +258,52 @@ public struct DSMNController: Sendable {
         liveSleepDisabled: Bool? = nil,
         now: Date = Date()
     ) throws -> DaemonRunReport {
+        let mandatory = try needsMandatoryRelease(now: now)
+        let telemetry = mandatory ? .unavailable(at: now) : collectTelemetry(now: now)
+        let report = try reconcile(
+            powerManager: powerManager,
+            telemetry: telemetry,
+            liveSleepDisabled: liveSleepDisabled,
+            updateTracking: !mandatory,
+            now: now
+        )
+        let finalTelemetry = mandatory ? collectTelemetry(now: now) : telemetry
+        let sleepSnapshot = mandatory ? finalTelemetry.snapshot :
+            ((report.operation?.action == .enableSleep && report.operation?.succeeded == true)
+                ? (try? snapshotProvider.sleepSnapshot(now: now)) : nil)
+        return try finishRelease(report, powerManager: powerManager, telemetry: finalTelemetry, sleepSnapshot: sleepSnapshot, now: now)
+    }
+
+    public func needsMandatoryRelease(now: Date = Date()) throws -> Bool {
+        let state = try store.load()
+        return state.ownsSleepDisable && (
+            !state.manualIsActive(at: now)
+                || state.noRouteGraceRemainingSeconds(at: now, graceSeconds: decisionEngine.policy.noRouteGraceSeconds) == 0
+        )
+    }
+
+    /// Uses already-collected facts only. The caller serializes state/power
+    /// operations and performs optional collection and post-release sleep later.
+    public func reconcile(
+        powerManager: any PowerManaging,
+        telemetry: ControllerTelemetry,
+        liveSleepDisabled: Bool? = nil,
+        updateTracking: Bool = true,
+        now: Date = Date()
+    ) throws -> DaemonRunReport {
         let originalState = try store.load()
-        let agents = try detector.detect(using: processListing)
-        let snapshot = try snapshotProvider.snapshot(now: now)
+        let agents = telemetry.agents
+        var snapshot = telemetry.snapshot
+        snapshot.now = now
         let previousLidClosed = originalState.lastLidClosed
         var evaluatedState = originalState
-        evaluatedState.syncSnapshotTracking(with: snapshot)
+        if updateTracking { evaluatedState.syncSnapshotTracking(with: telemetry.snapshot) }
 
         if let manualUntil = evaluatedState.manualUntil, manualUntil <= now {
             evaluatedState.manualUntil = nil
             evaluatedState.lastStopReason = "manual_expired"
         }
+        if !evaluatedState.manualIsActive(at: now) { evaluatedState.noRouteUnavailableSince = nil }
 
         let decision = decisionEngine.evaluate(state: evaluatedState, agents: agents, snapshot: snapshot)
 
@@ -237,6 +325,10 @@ public struct DSMNController: Sendable {
                 nextState.ownsSleepDisable = true
                 nextState.lastActivationReason = decision.reasons.joined(separator: ",")
                 nextState.lastStopReason = nil
+                // The following display operation may fail or time out. Keep
+                // the owned lock and its lease recoverable before attempting it.
+                nextState.updatedAt = now
+                try store.save(nextState)
             }
         } else if shouldReleaseSleepDisable(
             decision: decision,
@@ -249,7 +341,6 @@ public struct DSMNController: Sendable {
             operations = try releaseSleepDisable(
                 powerManager: powerManager,
                 state: &nextState,
-                snapshot: snapshot,
                 reason: powerOperationReason(prefix: "release", decision: decision, state: nextState),
                 stopReason: stopReason,
                 now: now
@@ -280,14 +371,7 @@ public struct DSMNController: Sendable {
             try store.save(nextState)
         }
 
-        let finalDecision = decisionEngine.evaluate(state: nextState, agents: agents, snapshot: snapshot)
-        let status = makeStatusReport(
-            state: nextState,
-            snapshot: snapshot,
-            agents: agents,
-            decision: finalDecision,
-            now: now
-        )
+        let status = makeStatus(state: nextState, telemetry: telemetry, now: now)
 
         return DaemonRunReport(
             generatedAt: now,
@@ -298,46 +382,28 @@ public struct DSMNController: Sendable {
         )
     }
 
-    private func makeStatus(state: DSMNState, now: Date) throws -> StatusReport {
-        let agents = try detector.detect(using: processListing)
-        let snapshot = try snapshotProvider.snapshot(now: now)
-        var evaluatedState = state
-        evaluatedState.syncSnapshotTracking(with: snapshot)
-        let decision = decisionEngine.evaluate(state: evaluatedState, agents: agents, snapshot: snapshot)
-        return makeStatusReport(
-            state: evaluatedState,
-            snapshot: snapshot,
-            agents: agents,
-            decision: decision,
-            now: now
-        )
-    }
-
-    private func makeStatusReport(
-        state: DSMNState,
-        snapshot: SystemSnapshot,
-        agents: [AgentProcess],
-        decision: PowerDecision,
-        now: Date
-    ) -> StatusReport {
-        StatusReport(
+    private func makeStatus(state: DSMNState, telemetry: ControllerTelemetry, now: Date) -> StatusReport {
+        var evaluationSnapshot = telemetry.snapshot
+        evaluationSnapshot.now = now
+        let decision = decisionEngine.evaluate(state: state, agents: telemetry.agents, snapshot: evaluationSnapshot)
+        return StatusReport(
             generatedAt: now,
             state: state,
-            snapshot: snapshot,
-            agents: agents,
+            snapshot: telemetry.snapshot,
+            agents: telemetry.agents,
             decision: decision,
             manualRemainingSeconds: state.manualRemainingSeconds(at: now),
             noRouteGraceRemainingSeconds: state.noRouteGraceRemainingSeconds(
                 at: now,
                 graceSeconds: decisionEngine.policy.noRouteGraceSeconds
-            )
+            ),
+            diagnosticErrors: telemetry.diagnosticErrors.isEmpty ? nil : telemetry.diagnosticErrors
         )
     }
 
     private func releaseSleepDisable(
         powerManager: any PowerManaging,
         state: inout DSMNState,
-        snapshot: SystemSnapshot,
         reason: String,
         stopReason: String?,
         now: Date
@@ -353,14 +419,38 @@ public struct DSMNController: Sendable {
         // particular, sleepnow must never run before the release is saved.
         try store.save(state)
 
-        var operations = [release]
-        if release.succeeded, snapshot.lidClosed == true, snapshot.powerSource == .battery {
-            let sleep = try powerManager.requestSleepNow()
-            operations.append(sleep)
-            state.recordPowerOperation(sleep, at: now, reason: "closed_lid_release")
-            try store.save(state)
+        return [release]
+    }
+
+    public func completeReleaseSleep(
+        powerManager: any PowerManaging,
+        snapshot: SystemSnapshot,
+        now: Date = Date()
+    ) throws -> PowerOperationResult? {
+        var state = try store.load()
+        guard !state.ownsSleepDisable, snapshot.lidClosed == true, snapshot.powerSource == .battery else { return nil }
+        let sleep = try powerManager.requestSleepNow()
+        state.recordPowerOperation(sleep, at: now, reason: "closed_lid_release")
+        state.updatedAt = now
+        try store.save(state)
+        return sleep
+    }
+
+    private func finishRelease(
+        _ report: DaemonRunReport,
+        powerManager: any PowerManaging,
+        telemetry: ControllerTelemetry,
+        sleepSnapshot: SystemSnapshot?,
+        now: Date
+    ) throws -> DaemonRunReport {
+        var report = report
+        if report.operation?.action == .enableSleep, report.operation?.succeeded == true,
+           let sleepSnapshot, sleepSnapshot.now >= report.generatedAt,
+           let sleep = try completeReleaseSleep(powerManager: powerManager, snapshot: sleepSnapshot, now: now) {
+            report.operations.append(sleep)
         }
-        return operations
+        report.status = try status(telemetry: telemetry, now: now)
+        return report
     }
 
     private func shouldRequestDisplaySleepNowForClosedLid(

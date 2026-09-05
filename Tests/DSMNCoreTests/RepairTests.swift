@@ -2,6 +2,23 @@ import XCTest
 @testable import DSMNCore
 
 final class RepairTests: XCTestCase {
+    func testRepairCleansUpDespiteSnapshotAndAgentFailures() throws {
+        let now = Date(timeIntervalSince1970: 1_000)
+        let store = try makeStore()
+        try store.save(DSMNState(manualUntil: now.addingTimeInterval(300), ownsSleepDisable: true))
+        let power = RecordingPowerManager(dryRun: false)
+        let controller = DSMNController(store: store, processListing: RepairThrowingListing(), snapshotProvider: RepairThrowingSnapshot())
+
+        let report = try controller.repair(powerManager: power, now: now)
+
+        XCTAssertEqual(power.actions, [.enableSleep])
+        XCTAssertFalse(try store.load().ownsSleepDisable)
+        XCTAssertNil(try store.load().manualUntil)
+        XCTAssertEqual(report.status.snapshot.powerSource, .unknown)
+        XCTAssertEqual(report.status.diagnosticErrors?.count, 2)
+        XCTAssertTrue(report.status.diagnosticErrors?.contains(where: { $0.contains("Agent process listing unavailable") }) == true)
+    }
+
     func testRepairForcesDisableWhenOwningSleepLock() throws {
         let now = Date(timeIntervalSince1970: 1_000)
         let store = try makeStore()
@@ -216,6 +233,14 @@ final class RepairTests: XCTestCase {
         }
         return StateStore(directory: directory)
     }
+}
+
+private struct RepairThrowingSnapshot: SystemSnapshotProviding {
+    func snapshot(now: Date) throws -> SystemSnapshot { throw CocoaError(.fileReadUnknown) }
+}
+
+private struct RepairThrowingListing: ProcessListing {
+    func listProcesses() throws -> [RunningProcess] { throw CocoaError(.fileReadUnknown) }
 }
 
 private final class RecordingPowerManager: PowerManaging, @unchecked Sendable {

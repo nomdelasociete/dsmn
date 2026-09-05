@@ -2,9 +2,20 @@ import XCTest
 @testable import DSMNCore
 
 final class AgentDetectorTests: XCTestCase {
-    func testPSListingUsesBoundedCommandRunner() throws {
-        let listing = PSProcessListing(runner: ProcessCommandRunner(timeout: 0.5))
-        XCTAssertFalse(try listing.listProcesses().isEmpty)
+    func testPSListingUsesInjectedRunnerAndParsesItsOutput() throws {
+        let runner = PSFixtureRunner()
+        let processes = try PSProcessListing(runner: runner).listProcesses()
+        XCTAssertEqual(runner.invocations, [["/bin/ps", "-axo", "pid=,ppid=,comm=,command="]])
+        XCTAssertEqual(processes, [RunningProcess(pid: 42, ppid: 1, executable: "/bin/codex", command: "/bin/codex agent")])
+    }
+
+    func testPSListingMapsNonzeroResultAndPropagatesTimeout() {
+        XCTAssertThrowsError(try PSProcessListing(runner: PSFixtureRunner(exitCode: 1)).listProcesses()) { error in
+            XCTAssertEqual(error as? DSMNError, .processListingFailed("fixture failure"))
+        }
+        XCTAssertThrowsError(try PSProcessListing(runner: PSFixtureRunner(timesOut: true)).listProcesses()) { error in
+            guard case CommandRunnerError.timedOut = error else { return XCTFail("Expected timeout, got \(error)") }
+        }
     }
 
     func testDetectsGrokBuildBinary() {
@@ -148,5 +159,17 @@ final class AgentDetectorTests: XCTestCase {
         ]
 
         XCTAssertTrue(detector.detect(in: processes).isEmpty)
+    }
+}
+
+private final class PSFixtureRunner: CommandRunning, @unchecked Sendable {
+    private(set) var invocations: [[String]] = []
+    let exitCode: Int32
+    let timesOut: Bool
+    init(exitCode: Int32 = 0, timesOut: Bool = false) { self.exitCode = exitCode; self.timesOut = timesOut }
+    func run(_ executable: String, arguments: [String]) throws -> CommandOutput {
+        invocations.append([executable] + arguments)
+        if timesOut { throw CommandRunnerError.timedOut(executable: executable, seconds: 2, processID: 123) }
+        return CommandOutput(executable: executable, arguments: arguments, stdout: "42 1 /bin/codex /bin/codex agent\n", stderr: "fixture failure", exitCode: exitCode)
     }
 }
