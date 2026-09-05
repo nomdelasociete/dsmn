@@ -165,26 +165,39 @@ public struct DSMNController: Sendable {
         now: Date = Date()
     ) throws -> DaemonRunReport {
         let originalState = try store.load()
-        var forcedRelease: PowerOperationResult?
+        var nextState = originalState
+        nextState.manualUntil = nil
+        nextState.noRouteUnavailableSince = nil
+        nextState.lidOpenedAt = nil
+        nextState.lastLidClosed = nil
+        nextState.lastStopReason = "repair"
+        nextState.updatedAt = now
+        // End the lease before attempting cleanup, but retain responsibility for
+        // an owned lock if launching pmset or persisting its result fails.
+        try store.save(nextState)
 
+        let snapshot = try snapshotProvider.snapshot(now: now)
+        var operations: [PowerOperationResult] = []
         if originalState.ownsSleepDisable || liveSleepDisabled == true {
-            forcedRelease = try powerManager.setSleepDisabled(false)
-        }
-
-        _ = try repairState(now: now)
-        var report = try reconcile(powerManager: powerManager, now: now)
-
-        if let forcedRelease {
-            report = DaemonRunReport(
-                generatedAt: report.generatedAt,
-                status: report.status,
-                operation: forcedRelease,
-                operations: [forcedRelease] + report.operations,
-                stateChanged: report.stateChanged || originalState != report.status.state
+            operations = try releaseSleepDisable(
+                powerManager: powerManager,
+                state: &nextState,
+                snapshot: snapshot,
+                reason: "release:repair",
+                stopReason: "repair",
+                now: now
             )
         }
 
-        return report
+        let agents = try detector.detect(using: processListing)
+        let decision = decisionEngine.evaluate(state: nextState, agents: agents, snapshot: snapshot)
+        return DaemonRunReport(
+            generatedAt: now,
+            status: makeStatusReport(state: nextState, snapshot: snapshot, agents: agents, decision: decision, now: now),
+            operation: operations.first,
+            operations: operations,
+            stateChanged: nextState != originalState
+        )
     }
 
     public func reconcile(
@@ -209,7 +222,6 @@ public struct DSMNController: Sendable {
         var nextState = evaluatedState
         var operation: PowerOperationResult?
         var operations: [PowerOperationResult] = []
-        var shouldRequestSleepNowAfterRelease = false
 
         if decision.shouldPreventSleep && !originalState.ownsSleepDisable {
             operation = try powerManager.setSleepDisabled(true)
@@ -221,7 +233,7 @@ public struct DSMNController: Sendable {
                     reason: powerOperationReason(prefix: "enable", decision: decision, state: nextState)
                 )
             }
-            if operationSucceeded(operation) {
+            if operation?.succeeded == true {
                 nextState.ownsSleepDisable = true
                 nextState.lastActivationReason = decision.reasons.joined(separator: ",")
                 nextState.lastStopReason = nil
@@ -231,24 +243,18 @@ public struct DSMNController: Sendable {
             originalState: originalState,
             liveSleepDisabled: liveSleepDisabled
         ) {
-            operation = try powerManager.setSleepDisabled(false)
-            if let operation {
-                operations.append(operation)
-                nextState.recordPowerOperation(
-                    operation,
-                    at: now,
-                    reason: powerOperationReason(prefix: "release", decision: decision, state: nextState)
-                )
-            }
-            if operationSucceeded(operation) {
-                nextState.ownsSleepDisable = false
-                nextState.lastStopReason = nextState.lastStopReason == "manual_expired"
-                    ? "manual_expired"
-                    : decision.stopReason
-                shouldRequestSleepNowAfterRelease = shouldRequestSleepNowAfterReleasing(
-                    snapshot: snapshot
-                )
-            }
+            let stopReason = ["manual_expired", "repair"].contains(nextState.lastStopReason ?? "")
+                ? nextState.lastStopReason
+                : decision.stopReason
+            operations = try releaseSleepDisable(
+                powerManager: powerManager,
+                state: &nextState,
+                snapshot: snapshot,
+                reason: powerOperationReason(prefix: "release", decision: decision, state: nextState),
+                stopReason: stopReason,
+                now: now
+            )
+            operation = operations.first
         }
 
         if shouldRequestDisplaySleepNowForClosedLid(
@@ -272,21 +278,6 @@ public struct DSMNController: Sendable {
         if nextState != originalState {
             nextState.updatedAt = now
             try store.save(nextState)
-        }
-
-        if shouldRequestSleepNowAfterRelease {
-            let sleepOperation = try powerManager.requestSleepNow()
-            operations.append(sleepOperation)
-
-            var savedState = try store.load()
-            savedState.recordPowerOperation(
-                sleepOperation,
-                at: now,
-                reason: "closed_lid_release"
-            )
-            savedState.updatedAt = now
-            try store.save(savedState)
-            nextState = savedState
         }
 
         let finalDecision = decisionEngine.evaluate(state: nextState, agents: agents, snapshot: snapshot)
@@ -343,16 +334,33 @@ public struct DSMNController: Sendable {
         )
     }
 
-    private func operationSucceeded(_ operation: PowerOperationResult?) -> Bool {
-        guard let operation else {
-            return false
+    private func releaseSleepDisable(
+        powerManager: any PowerManaging,
+        state: inout DSMNState,
+        snapshot: SystemSnapshot,
+        reason: String,
+        stopReason: String?,
+        now: Date
+    ) throws -> [PowerOperationResult] {
+        let release = try powerManager.setSleepDisabled(false)
+        state.recordPowerOperation(release, at: now, reason: reason)
+        if release.succeeded {
+            state.ownsSleepDisable = false
+            state.lastStopReason = stopReason
         }
+        state.updatedAt = now
+        // Persist both failed attempts and successful ownership changes. In
+        // particular, sleepnow must never run before the release is saved.
+        try store.save(state)
 
-        return !operation.dryRun && operation.exitCode == 0
-    }
-
-    private func shouldRequestSleepNowAfterReleasing(snapshot: SystemSnapshot) -> Bool {
-        snapshot.lidClosed == true && snapshot.powerSource == .battery
+        var operations = [release]
+        if release.succeeded, snapshot.lidClosed == true, snapshot.powerSource == .battery {
+            let sleep = try powerManager.requestSleepNow()
+            operations.append(sleep)
+            state.recordPowerOperation(sleep, at: now, reason: "closed_lid_release")
+            try store.save(state)
+        }
+        return operations
     }
 
     private func shouldRequestDisplaySleepNowForClosedLid(
