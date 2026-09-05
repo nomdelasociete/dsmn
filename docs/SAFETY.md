@@ -71,6 +71,9 @@ before sleeping; a newer command, including a renewal whose lock acquisition
 failed, cancels that follow-up. It does not use cached closed-lid facts. A
 successful lock acquisition is likewise saved before attempting display sleep,
 so a failed display command cannot erase responsibility for the system lock.
+Display-sleep edges also require a fresh observation. A command can acquire or
+release the system lock immediately using persisted intent, but cached closed-lid
+data cannot turn off the display before current telemetry arrives.
 
 Subprocess execution and output collection have a two-second budget. Both pipes
 are drained together, including when a descendant keeps an output pipe open.

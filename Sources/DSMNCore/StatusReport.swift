@@ -348,7 +348,10 @@ public struct DSMNController: Sendable {
             operation = operations.first
         }
 
-        if shouldRequestDisplaySleepNowForClosedLid(
+        // Cached command/deadline facts cannot establish a current lid-close
+        // edge. System-lock changes remain immediate; display sleep waits for
+        // a newly collected observation that is also eligible for tracking.
+        if updateTracking && shouldRequestDisplaySleepNowForClosedLid(
             decision: decision,
             snapshot: snapshot,
             previousLidClosed: previousLidClosed,
