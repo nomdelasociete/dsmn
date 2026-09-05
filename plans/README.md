@@ -2,8 +2,9 @@
 
 Prepared on 2026-09-05 against `513b03a` (0.1.43, build 44), which matched freshly
 fetched `origin/main`. The user selected audit findings 1–5 for implementation
-plans, then authorized implementation. Execution evidence appears below;
-no GitHub issue or PR has been created yet.
+plans, then authorized implementation. Execution evidence appears below.
+The four implemented fixes are tracked in
+[issue #92](https://github.com/nomdelasociete/dsmn/issues/92).
 
 Read the selected plan fully before execution. Each contains its own context,
 scope, regression cases, verification commands, and stop conditions. The baseline
@@ -15,10 +16,10 @@ live lid-close tests were not run as part of the audit or this planning pass.
 | Plan | Result | Original finding | Priority | Effort | Depends on | Status |
 | --- | --- | --- | --- | --- | --- | --- |
 | [001](001-preserve-failed-repair-ownership.md) | Failed Repair retains responsibility and reports failure | 2 | P1 | M–L | — | DONE |
-| [002](002-release-despite-diagnostic-failures.md) | Expiry and Stop survive diagnostic failures | 5 | P1 | L | 001 | IN PROGRESS |
+| [002](002-release-despite-diagnostic-failures.md) | Expiry and Stop survive diagnostic failures | 5 | P1 | L | 001 | DONE |
 | [003](003-edit-codex-toml-safely.md) | Codex hook installation preserves valid configuration | 3 | P1 | M–L | — | DONE |
 | [004](004-retire-helper-before-unregistering.md) | Helper removal/replacement releases safely | 1 | P1 | L | 001, 002 | BLOCKED: legacy migration scope decision |
-| [005](005-confirm-stop-before-quitting.md) | Stop & Quit closes only after confirmed Stop | 4 | P1 | M | 001; integrate with 002 | IN PROGRESS |
+| [005](005-confirm-stop-before-quitting.md) | Stop & Quit closes only after confirmed Stop | 4 | P1 | M | 001, 002 | BLOCKED: code complete; interactive QA pending |
 
 Effort includes regression tests and integration checks: M is roughly a day or
 two; L spans several days. These estimates are deliberately larger than a local
@@ -120,11 +121,31 @@ gates. No installed app, hooks, helper registration, or real power state changed
 The scheduler now retries an owned lock without a lease after one second even
 if an old no-route timestamp remains; this is necessary to avoid delaying Repair.
 
-### 002 — scoped preparation
+### 002 — reviewed and integrated
 
 Added `AgentDetector.swift` and process-list tests to scope: `PSProcessListing`
 has a separate unbounded `Process` implementation, so changing only
 `ProcessCommandRunner` would leave the diagnostic hang intact.
+
+Executor commits `071ccbd`, `77110f3`, `d037e13`, `77be3b2`, and `c0f0a24`
+on `jb/release-despite-probe-failures`; integrated as `0adfafa`, `e54a255`,
+`d6d83e7`, `136db04`, and `e360efb`. Reviewer read the complete implementation
+and regression diffs. Independent review also checked helper scheduling races.
+The final combined suite passed 233 tests; XcodeGen, signed Debug build, and
+bundle verification passed independently on the integration branch.
+
+Optional telemetry now runs outside the helper's power-operation lock, and
+subprocess execution has a bounded timeout with child termination/reaping.
+State-based deadlines retain failed-release ownership and retry without a new
+command. Regression tests gate telemetry while Stop and expiry release the lock,
+reject obsolete telemetry and sleep follow-ups after a new command, and require
+a fresh live probe for unowned Repair. Successful acquisition is persisted
+before a potentially failing display-sleep operation. Cached closed-lid data
+cannot sleep the display: fresh accepted observations drive that follow-up once.
+
+The Stop/Repair client budgets cover bounded cleanup operations; heavy contention
+can still produce an ambiguous timeout. Tests use injected power managers and
+temporary state. No installed helper or real power setting was changed.
 
 ### 004 — compatibility gate
 
@@ -155,14 +176,16 @@ use temporary homes. Archive preparation read only the installed app's public
 Sparkle key; it did not alter the installed app or actual Codex configuration.
 Release publication remains separate from this implementation.
 
-### 005 — implementation reviewed; final integration and interactive QA pending
+### 005 — implementation and integration reviewed; interactive QA pending
 
 Executor commits `f0fd67e`, `26c7497`, and `1dad99e` on
 `jb/confirm-stop-before-quit`; integrated as `7c06e7b`, `f78032d`, and `09c2860`.
 Reviewer read all source/test/documentation and generated project changes.
 The combined suite with 001/003 passed 201 tests, including 18 app behavior tests;
 XcodeGen, signed Debug build, and bundle verification also passed independently.
-Final integration with 002 is still required.
+Final integration with 002 subsequently passed all 233 tests and the same four
+standard gates. The implementation is complete; targeted interactive checks
+remain outstanding, so its PR must stay a draft.
 
 A disposable app hosted the real menu view with a simulated active report and
 an injected failing Stop operation. The user objected to the visible test window;
@@ -172,3 +195,24 @@ alert interaction is therefore unverified, and `e2e_menu_setup.sh` has not run.
 Only that harness's preferences and temporary state were cleaned up; the
 installed app, helper registration, and actual power settings were not changed.
 Evidence is retained in `/tmp/dsmn-quit-qa-Dgx2E8/QA_RESULT.md`.
+
+### Final combined background verification — 2026-09-05
+
+All implementation commits through `e360efb` were verified together:
+
+- `swift test`: 233 tests, zero failures (baseline: 145).
+- `xcodegen generate`: exit zero, no unexplained generated changes.
+- Required signed Debug `xcodebuild`: BUILD SUCCEEDED.
+- `verify_bundle.sh` on the Debug app: exit zero.
+- `archive.sh`: ARCHIVE SUCCEEDED and EXPORT SUCCEEDED.
+- `DSMN_REQUIRE_SPARKLE=1 verify_bundle.sh dist/export/dsmn.app`: exit zero.
+- Exported DSMNCore contains arm64/x86_64 slices and only system runtime
+  dependencies; bundled parser notices match their source byte for byte.
+- Exported signing identifiers match the required app, CLI, and helper values.
+- `git diff --check`: exit zero. Fetched `origin/main` remains `513b03a`.
+
+Local logs are `/tmp/dsmn-final-tests.log`, `/tmp/dsmn-final-build.log`,
+`/tmp/dsmn-final-bundle.log`, `/tmp/dsmn-final-archive.log`, and
+`/tmp/dsmn-final-export-check.log`. No notarization, release publication, local
+installation, helper registration change, or live lid/power test was performed.
+Interactive menu verification remains outstanding; open only a draft PR.

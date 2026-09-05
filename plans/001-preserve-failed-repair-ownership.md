@@ -189,11 +189,11 @@ local-only semantics. Run every command below; attach results to the PR.
 | `git diff --check` | Exit zero |
 | `git diff --name-only` | Only scoped files and the generated project if regeneration genuinely changes it |
 
-- [ ] Failure-injection, closed-lid repair, XPC-envelope, CLI-routing, and
+- [x] Failure-injection, closed-lid repair, XPC-envelope, CLI-routing, and
   no-further-command retry tests pass.
-- [ ] No failed/dry-run owned release forgets ownership or cancels its retry.
-- [ ] Received helper failure does not become successful CLI local repair.
-- [ ] Standard checks pass and the index row records evidence and status.
+- [x] No failed/dry-run owned release forgets ownership or cancels its retry.
+- [x] Received helper failure does not become successful CLI local repair.
+- [x] Standard checks pass and the index row records evidence and status.
 
 ## Git and release workflow
 

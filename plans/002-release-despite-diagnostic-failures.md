@@ -15,7 +15,7 @@
 - Depends on: `001-preserve-failed-repair-ownership.md`
 - Category: bug
 - Planned at: `513b03a`, 2026-09-05; audit finding 5
-- Implementation status: IN PROGRESS
+- Implementation status: DONE; reviewed on 2026-09-05 (233 combined tests and all four standard gates passed)
 
 ## Why this matters
 
@@ -210,12 +210,12 @@ consistent. Distinguish a guaranteed bounded attempt from guaranteed OS success.
 | `git diff --check` | Exit zero |
 | `git diff --name-only` | Only scoped files and necessary regenerated project changes |
 
-- [ ] Throwing diagnostics cannot prevent expired/stopped owned-lock release.
-- [ ] Real subprocess timeouts terminate and reap children; both pipes drain.
-- [ ] A blocked optional status probe cannot hold up deadline cleanup.
-- [ ] A failed timer callback retries without a new command or periodic poll.
-- [ ] Current manual/open-lid, no-route, and battery/lid follow-up semantics pass.
-- [ ] Index status and verification evidence are updated.
+- [x] Throwing diagnostics cannot prevent expired/stopped owned-lock release.
+- [x] Real subprocess timeouts terminate and reap children; both pipes drain.
+- [x] A blocked optional status probe cannot hold up deadline cleanup.
+- [x] A failed timer callback retries without a new command or periodic poll.
+- [x] Current manual/open-lid, no-route, and battery/lid follow-up semantics pass.
+- [x] Index status and verification evidence are updated.
 
 ## Git workflow
 

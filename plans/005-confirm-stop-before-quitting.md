@@ -19,7 +19,7 @@
   this fix if it must proceed first
 - Category: bug
 - Planned at: `513b03a`, 2026-09-05; audit finding 4
-- Implementation status: IN PROGRESS
+- Implementation status: BLOCKED; code and integration complete, interactive QA pending
 
 ## Why this matters
 
@@ -185,12 +185,12 @@ provide its automated regression evidence.
 | `git diff --check` | Exit zero |
 | `git diff --name-only` | Only scoped files |
 
-- [ ] Every unconfirmed stop outcome leaves termination count at zero.
-- [ ] Confirmed stop terminates once, after the helper response.
-- [ ] Local-only cleanup cannot erase the error or count as helper confirmation.
-- [ ] Stop is available with missing/ambiguous registration.
+- [x] Every unconfirmed stop outcome leaves termination count at zero.
+- [x] Confirmed stop terminates once, after the helper response.
+- [x] Local-only cleanup cannot erase the error or count as helper confirmation.
+- [x] Stop is available with missing/ambiguous registration.
 - [ ] Quit, Keep Running, Cancel, shortcuts, and direct menu structure are intact.
-- [ ] Tests leave user preferences, live helper registration, and power unchanged.
+- [x] Tests leave user preferences, live helper registration, and power unchanged.
 - [ ] Standard and targeted UI checks are recorded in the PR and plan index.
 
 ## Git and release workflow

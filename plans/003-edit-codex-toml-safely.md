@@ -187,12 +187,12 @@ gates below and review lockfile changes for unrelated dependencies.
 | `git diff --check` | Exit zero |
 | `git diff --name-only` | Only scoped files |
 
-- [ ] Commented-header regression is fixed with parser-based assertions.
-- [ ] All matrix cases pass without touching a real user home.
-- [ ] SwiftPM and Xcode dependency resolutions agree; Sparkle is unchanged.
-- [ ] Invalid/unreadable/unsupported input cannot become an empty replacement.
-- [ ] Inspection verifies the feature flag; uninstall still preserves it.
-- [ ] Index row records implementation and verification evidence.
+- [x] Commented-header regression is fixed with parser-based assertions.
+- [x] All matrix cases pass without touching a real user home.
+- [x] SwiftPM and Xcode dependency resolutions agree; Sparkle is unchanged.
+- [x] Invalid/unreadable/unsupported input cannot become an empty replacement.
+- [x] Inspection verifies the feature flag; uninstall still preserves it.
+- [x] Index row records implementation and verification evidence.
 
 ## Git, release, and references
 
