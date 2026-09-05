@@ -2,6 +2,11 @@ import Foundation
 
 public protocol SystemSnapshotProviding: Sendable {
     func snapshot(now: Date) throws -> SystemSnapshot
+    func sleepSnapshot(now: Date) throws -> SystemSnapshot
+}
+
+public extension SystemSnapshotProviding {
+    func sleepSnapshot(now: Date) throws -> SystemSnapshot { try snapshot(now: now) }
 }
 
 public struct MacSystemSnapshotProvider: SystemSnapshotProviding {
@@ -12,21 +17,33 @@ public struct MacSystemSnapshotProvider: SystemSnapshotProviding {
     }
 
     public func snapshot(now: Date = Date()) throws -> SystemSnapshot {
-        let battery = try batterySnapshot()
-        let routeAvailable = try defaultRouteAvailable()
-        let lidClosed = try lidClosedState()
+        let battery = try? batterySnapshot()
+        let routeAvailable = try? defaultRouteAvailable()
+        let lidClosed = try? lidClosedState()
 
         return SystemSnapshot(
             now: now,
-            powerSource: battery.powerSource,
-            batteryPercent: battery.batteryPercent,
+            powerSource: battery?.powerSource ?? .unknown,
+            batteryPercent: battery?.batteryPercent,
             defaultRouteAvailable: routeAvailable,
+            lidClosed: lidClosed
+        )
+    }
+
+    public func sleepSnapshot(now: Date) throws -> SystemSnapshot {
+        let battery = try? batterySnapshot()
+        let lidClosed = try? lidClosedState()
+        return SystemSnapshot(
+            now: now,
+            powerSource: battery?.powerSource ?? .unknown,
+            batteryPercent: battery?.batteryPercent,
             lidClosed: lidClosed
         )
     }
 
     private func batterySnapshot() throws -> (powerSource: PowerSource, batteryPercent: Int?) {
         let output = try runner.run("/usr/bin/pmset", arguments: ["-g", "batt"])
+        guard output.exitCode == 0 else { return (.unknown, nil) }
         return SystemSnapshotParsers.parseBattery(output.stdout)
     }
 
@@ -37,6 +54,7 @@ public struct MacSystemSnapshotProvider: SystemSnapshotProviding {
 
     private func lidClosedState() throws -> Bool? {
         let output = try runner.run("/usr/sbin/ioreg", arguments: ["-r", "-k", "AppleClamshellState", "-d", "4"])
+        guard output.exitCode == 0 else { return nil }
         return SystemSnapshotParsers.parseLidClosed(output.stdout)
     }
 }
@@ -59,7 +77,7 @@ enum SystemSnapshotParsers {
 
     static func parseDefaultRoute(_ output: CommandOutput) -> Bool? {
         if output.exitCode != 0 {
-            return false
+            return output.stderr.lowercased().contains("not in table") ? false : nil
         }
 
         let lower = output.stdout.lowercased()
@@ -98,4 +116,3 @@ enum SystemSnapshotParsers {
         return Int(value)
     }
 }
-

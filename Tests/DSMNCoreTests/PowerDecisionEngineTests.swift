@@ -2,6 +2,33 @@ import XCTest
 @testable import DSMNCore
 
 final class PowerDecisionEngineTests: XCTestCase {
+    func testUnknownRoutePreservesKnownOutageUntilConfirmedRestoration() {
+        let now = Date(timeIntervalSince1970: 2_000)
+        var state = DSMNState(manualUntil: now.addingTimeInterval(300), noRouteUnavailableSince: now.addingTimeInterval(-1_000))
+        let unknown = SystemSnapshot(now: now)
+        state.updateNoRouteTracking(snapshot: unknown)
+        XCTAssertNotNil(state.noRouteUnavailableSince)
+        XCTAssertEqual(PowerDecisionEngine().evaluate(state: state, agents: [], snapshot: unknown).stopReason, "network_unavailable")
+
+        let restored = SystemSnapshot(now: now, defaultRouteAvailable: true)
+        state.updateNoRouteTracking(snapshot: restored)
+        XCTAssertNil(state.noRouteUnavailableSince)
+        XCTAssertTrue(PowerDecisionEngine().evaluate(state: state, agents: [], snapshot: restored).shouldPreventSleep)
+    }
+
+    func testUnknownRouteDoesNotInventAnOutageAndInactiveLeaseClearsOldOutage() {
+        let now = Date(timeIntervalSince1970: 2_000)
+        var state = DSMNState(manualUntil: now.addingTimeInterval(300))
+        let unknown = SystemSnapshot(now: now)
+        state.updateNoRouteTracking(snapshot: unknown)
+        XCTAssertNil(state.noRouteUnavailableSince)
+        XCTAssertTrue(PowerDecisionEngine().evaluate(state: state, agents: [], snapshot: unknown).shouldPreventSleep)
+        state.manualUntil = nil
+        state.noRouteUnavailableSince = now.addingTimeInterval(-1_000)
+        state.updateNoRouteTracking(snapshot: unknown)
+        XCTAssertNil(state.noRouteUnavailableSince)
+    }
+
     private let policy = SafetyPolicy(lidOpenGraceSeconds: 300)
 
     func testManualTimerPreventsSleep() {
