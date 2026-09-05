@@ -4,7 +4,8 @@ Prepared on 2026-09-05 against `513b03a` (0.1.43, build 44), which matched fresh
 fetched `origin/main`. The user selected audit findings 1–5 for implementation
 plans, then authorized implementation. Execution evidence appears below.
 The four implemented fixes are tracked in
-[issue #92](https://github.com/nomdelasociete/dsmn/issues/92).
+[issue #92](https://github.com/nomdelasociete/dsmn/issues/92) and
+[draft PR #93](https://github.com/nomdelasociete/dsmn/pull/93).
 
 Read the selected plan fully before execution. Each contains its own context,
 scope, regression cases, verification commands, and stop conditions. The baseline
