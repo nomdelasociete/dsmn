@@ -15,7 +15,7 @@
 - Depends on: `001-preserve-failed-repair-ownership.md`
 - Category: bug
 - Planned at: `513b03a`, 2026-09-05; audit finding 5
-- Implementation status: TODO
+- Implementation status: IN PROGRESS
 
 ## Why this matters
 
@@ -82,9 +82,11 @@ Only modify:
 - `Sources/DSMNCore/CommandRunner.swift`, `StateStore.swift`, `StatusReport.swift`,
   `SystemSnapshotProvider.swift`, `SleepDiagnosticsInspector.swift`,
   `ReconcileSchedule.swift`, `HelperXPC.swift`, `Models.swift`, and
-  `PowerDecisionEngine.swift`
+  `PowerDecisionEngine.swift`, and `AgentDetector.swift` (route `PSProcessListing`
+  through the bounded command runner; its previous private `Process` bypasses it)
 - `Sources/dsmnd/HelperXPCService.swift`
 - New `Tests/DSMNCoreTests/CommandRunnerTests.swift`
+- `Tests/DSMNCoreTests/AgentDetectorTests.swift` for process-list runner fixtures
 - `Tests/DSMNCoreTests/DaemonReconcileTests.swift`, `RepairTests.swift`,
   `SystemSnapshotProviderTests.swift`, `ReconcileScheduleTests.swift`,
   `PowerDecisionEngineTests.swift`

@@ -2,8 +2,8 @@
 
 Prepared on 2026-09-05 against `513b03a` (0.1.43, build 44), which matched freshly
 fetched `origin/main`. The user selected audit findings 1–5 for implementation
-plans. These documents are handoffs; no product code has been implemented by
-this planning task, and no GitHub issues or PRs have been created.
+plans, then authorized implementation. Execution evidence appears below;
+no GitHub issue or PR has been created yet.
 
 Read the selected plan fully before execution. Each contains its own context,
 scope, regression cases, verification commands, and stop conditions. The baseline
@@ -14,10 +14,10 @@ live lid-close tests were not run as part of the audit or this planning pass.
 
 | Plan | Result | Original finding | Priority | Effort | Depends on | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| [001](001-preserve-failed-repair-ownership.md) | Failed Repair retains responsibility and reports failure | 2 | P1 | M–L | — | TODO |
-| [002](002-release-despite-diagnostic-failures.md) | Expiry and Stop survive diagnostic failures | 5 | P1 | L | 001 | TODO |
-| [003](003-edit-codex-toml-safely.md) | Codex hook installation preserves valid configuration | 3 | P1 | M–L | — | TODO |
-| [004](004-retire-helper-before-unregistering.md) | Helper removal/replacement releases safely | 1 | P1 | L | 001, 002 | TODO |
+| [001](001-preserve-failed-repair-ownership.md) | Failed Repair retains responsibility and reports failure | 2 | P1 | M–L | — | DONE |
+| [002](002-release-despite-diagnostic-failures.md) | Expiry and Stop survive diagnostic failures | 5 | P1 | L | 001 | IN PROGRESS |
+| [003](003-edit-codex-toml-safely.md) | Codex hook installation preserves valid configuration | 3 | P1 | M–L | — | IN PROGRESS |
+| [004](004-retire-helper-before-unregistering.md) | Helper removal/replacement releases safely | 1 | P1 | L | 001, 002 | BLOCKED: legacy migration scope decision |
 | [005](005-confirm-stop-before-quitting.md) | Stop & Quit closes only after confirmed Stop | 4 | P1 | M | 001, 002 | TODO |
 
 Effort includes regression tests and integration checks: M is roughly a day or
@@ -70,7 +70,7 @@ Update a feature worktree from main before coding. Follow the `jb/` branch names
 in the plans, commit/push completed logical implementation steps, and open a PR
 after required checks pass. Use a real issue association in its `Closes #N` body;
 no issue IDs were assigned during planning. Never commit or push directly to main.
-The planner left only files under `plans/` and did not create a feature commit.
+Implementation is being integrated on `jb/reliability-improvements`.
 
 ## Explicitly deferred findings
 
@@ -107,6 +107,29 @@ These remain useful work, but were not selected for this set of five plans:
 
 ## Execution evidence
 
-For each executed plan, append its branch/commit, issue/PR, exact checks and
-results, any approved scope changes, and remaining rollout limitations. None have
-been executed yet.
+### 001 — reviewed and integrated
+
+Executor commits `92fe16a`, `4613a8c`, and `8fdfe86` on
+`jb/repair-release-failures`; integrated as `898a7e2`, `ffac285`, and `b0608e1`.
+Reviewer read the complete diff and behavior assertions, then independently ran
+all four gates: 169 Swift tests passed, XcodeGen succeeded, Xcode Debug build
+succeeded, and bundle verification succeeded. The executor also passed these
+gates. No installed app, hooks, helper registration, or real power state changed.
+The scheduler now retries an owned lock without a lease after one second even
+if an old no-route timestamp remains; this is necessary to avoid delaying Repair.
+
+### 002 — scoped preparation
+
+Added `AgentDetector.swift` and process-list tests to scope: `PSProcessListing`
+has a separate unbounded `Process` implementation, so changing only
+`ProcessCommandRunner` would leave the diagnostic hang intact.
+
+### 004 — compatibility gate
+
+The shipped protocol has no admission barrier. Native asynchronous unregister
+waits for helper termination but cannot first stop legacy lease admission.
+A Stop/check/unregister sequence remains racy. A separate, durably armed,
+signed migration guard is a possible automatic migration design, but expands
+packaging/state scope and still needs signed integration proof. The user has
+been asked whether to include that expansion or finish the other four fixes.
+No lifecycle code has been changed.
