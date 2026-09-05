@@ -57,6 +57,50 @@ final class ReconcileScheduleTests: XCTestCase {
         XCTAssertNil(schedule.deadline)
     }
 
+    func testOwnedLockWithoutLeaseRetriesBeforeNoRouteGrace() {
+        let now = Date(timeIntervalSince1970: 3_000)
+        let report = makeReport(
+            now: now,
+            state: DSMNState(ownsSleepDisable: true, noRouteUnavailableSince: now),
+            shouldPreventSleep: false,
+            noRouteGraceRemainingSeconds: 900
+        )
+
+        XCTAssertEqual(ReconcileSchedule.sleepReleaseDeadline(for: report).deadline, now.addingTimeInterval(1))
+        XCTAssertEqual(ReconcileSchedule.sleepReleaseDeadline(for: report.state, now: now).deadline, now.addingTimeInterval(1))
+    }
+
+    func testSavedStateSchedulesEarlierManualOrNoRouteDeadline() {
+        let now = Date(timeIntervalSince1970: 3_000)
+        var state = DSMNState(
+            manualUntil: now.addingTimeInterval(600),
+            ownsSleepDisable: true,
+            noRouteUnavailableSince: now.addingTimeInterval(-30)
+        )
+
+        XCTAssertEqual(
+            ReconcileSchedule.sleepReleaseDeadline(for: state, now: now, noRouteGraceSeconds: 60).deadline,
+            now.addingTimeInterval(31)
+        )
+        state.manualUntil = now.addingTimeInterval(10)
+        XCTAssertEqual(
+            ReconcileSchedule.sleepReleaseDeadline(for: state, now: now, noRouteGraceSeconds: 60).deadline,
+            now.addingTimeInterval(11)
+        )
+        state.manualUntil = now.addingTimeInterval(-10)
+        XCTAssertEqual(
+            ReconcileSchedule.sleepReleaseDeadline(for: state, now: now, noRouteGraceSeconds: 60).deadline,
+            now.addingTimeInterval(1)
+        )
+    }
+
+    func testSavedStateDoesNotScheduleUnownedLock() {
+        let now = Date(timeIntervalSince1970: 3_000)
+        let state = DSMNState(manualUntil: now.addingTimeInterval(300))
+
+        XCTAssertNil(ReconcileSchedule.sleepReleaseDeadline(for: state, now: now).deadline)
+    }
+
     private func makeReport(
         now: Date,
         state: DSMNState,

@@ -15,18 +15,55 @@ public struct ReconcileSchedule: Equatable, Sendable {
             return ReconcileSchedule(deadline: nil)
         }
 
-        var deadlines: [Date] = []
+        return sleepReleaseDeadline(
+            state: report.state,
+            now: report.generatedAt,
+            noRouteGraceRemainingSeconds: report.noRouteGraceRemainingSeconds,
+            graceSeconds: graceSeconds
+        )
+    }
 
-        if let manualUntil = report.state.manualUntil {
-            deadlines.append(maxDate(manualUntil, report.generatedAt))
+    /// Rearm cleanup after a command throws without depending on system probes.
+    public static func sleepReleaseDeadline(
+        for state: DSMNState,
+        now: Date,
+        noRouteGraceSeconds: Int = SafetyPolicy().noRouteGraceSeconds,
+        graceSeconds: TimeInterval = 1
+    ) -> ReconcileSchedule {
+        guard state.ownsSleepDisable else {
+            return ReconcileSchedule(deadline: nil)
         }
 
-        if let noRouteGraceRemainingSeconds = report.noRouteGraceRemainingSeconds {
-            deadlines.append(report.generatedAt.addingTimeInterval(TimeInterval(noRouteGraceRemainingSeconds)))
+        return sleepReleaseDeadline(
+            state: state,
+            now: now,
+            noRouteGraceRemainingSeconds: state.noRouteGraceRemainingSeconds(at: now, graceSeconds: noRouteGraceSeconds),
+            graceSeconds: graceSeconds
+        )
+    }
+
+    private static func sleepReleaseDeadline(
+        state: DSMNState,
+        now: Date,
+        noRouteGraceRemainingSeconds: Int?,
+        graceSeconds: TimeInterval
+    ) -> ReconcileSchedule {
+        if state.ownsSleepDisable, state.manualUntil == nil {
+            return ReconcileSchedule(deadline: now.addingTimeInterval(graceSeconds))
+        }
+
+        var deadlines: [Date] = []
+
+        if let manualUntil = state.manualUntil {
+            deadlines.append(maxDate(manualUntil, now))
+        }
+
+        if let noRouteGraceRemainingSeconds {
+            deadlines.append(now.addingTimeInterval(TimeInterval(noRouteGraceRemainingSeconds)))
         }
 
         guard let deadline = deadlines.min() else {
-            return ReconcileSchedule(deadline: report.generatedAt.addingTimeInterval(graceSeconds))
+            return ReconcileSchedule(deadline: now.addingTimeInterval(graceSeconds))
         }
 
         return ReconcileSchedule(deadline: deadline.addingTimeInterval(graceSeconds))
