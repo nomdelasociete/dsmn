@@ -70,26 +70,26 @@ public struct ProcessCommandRunner: CommandRunning {
 
         let outputFD = stdout.fileHandleForReading.fileDescriptor
         let errorFD = stderr.fileHandleForReading.fileDescriptor
-        _ = fcntl(outputFD, F_SETFL, fcntl(outputFD, F_GETFL) | O_NONBLOCK)
-        _ = fcntl(errorFD, F_SETFL, fcntl(errorFD, F_GETFL) | O_NONBLOCK)
         var stdoutData = Data()
         var stderrData = Data()
         var outputEnded = false
         var errorEnded = false
 
         do {
+            try makeNonblocking(outputFD)
+            try makeNonblocking(errorFD)
             // Multiplex both nonblocking descriptors. Each pass reads at most
             // one buffer from each pipe so continuous output cannot starve the
             // other pipe or the deadline. EOF shares the process time budget.
             while true {
                 if !outputEnded { outputEnded = try drain(outputFD, into: &stdoutData) }
                 if !errorEnded { errorEnded = try drain(errorFD, into: &stderrData) }
-                if !process.isRunning && outputEnded && errorEnded { break }
                 if elapsed(since: started) >= timeout {
                     throw CommandRunnerError.timedOut(
                         executable: executable, seconds: timeout, processID: process.processIdentifier
                     )
                 }
+                if !process.isRunning && outputEnded && errorEnded { break }
                 var descriptors = [
                     pollfd(fd: outputEnded ? -1 : outputFD, events: Int16(POLLIN), revents: 0),
                     pollfd(fd: errorEnded ? -1 : errorFD, events: Int16(POLLIN), revents: 0)
@@ -118,6 +118,13 @@ public struct ProcessCommandRunner: CommandRunning {
         if count == 0 { return true }
         if errno == EAGAIN || errno == EINTR { return false }
         throw CommandRunnerError.pipeReadFailed(errno)
+    }
+
+    private func makeNonblocking(_ descriptor: Int32) throws {
+        let flags = fcntl(descriptor, F_GETFL)
+        guard flags >= 0, fcntl(descriptor, F_SETFL, flags | O_NONBLOCK) >= 0 else {
+            throw CommandRunnerError.pipeReadFailed(errno)
+        }
     }
 
     private func terminateAndReap(_ process: Process) {

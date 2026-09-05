@@ -123,7 +123,9 @@ public final class DSMNHelperXPCClient: @unchecked Sendable {
     }
 
     public func stop() throws -> StatusReport {
-        try request { proxy, reply in
+        // One preceding enable/display transition plus the release, each with
+        // a two-second command budget and bounded termination grace.
+        try request(timeout: max(timeout, 7)) { proxy, reply in
             proxy.stop(withReply: reply)
         }
     }
@@ -141,7 +143,9 @@ public final class DSMNHelperXPCClient: @unchecked Sendable {
     }
 
     public func repair() throws -> StatusReport {
-        try request { proxy, reply in
+        // Repair can additionally discover an unowned live lock outside the
+        // operation lock. Explicit longer client timeouts are still honored.
+        try request(timeout: max(timeout, 9)) { proxy, reply in
             proxy.repair(withReply: reply)
         }
     }
@@ -160,9 +164,10 @@ public final class DSMNHelperXPCClient: @unchecked Sendable {
     }
 
     private func request(
+        timeout requestTimeout: TimeInterval? = nil,
         _ send: (DSMNHelperXPCProtocol, @escaping (String) -> Void) -> Void
     ) throws -> StatusReport {
-        let response = try requestEnvelope(send)
+        let response = try requestEnvelope(timeout: requestTimeout, send)
 
         guard let status = response.status else {
             throw DSMNHelperClientError.invalidResponse("missing status report")
@@ -172,6 +177,7 @@ public final class DSMNHelperXPCClient: @unchecked Sendable {
     }
 
     private func requestEnvelope(
+        timeout requestTimeout: TimeInterval? = nil,
         _ send: (DSMNHelperXPCProtocol, @escaping (String) -> Void) -> Void
     ) throws -> DSMNHelperCommandResponse {
         let connection = NSXPCConnection(machServiceName: machServiceName, options: .privileged)
@@ -202,7 +208,7 @@ public final class DSMNHelperXPCClient: @unchecked Sendable {
             })
         }
 
-        return try completion.wait(timeout: timeout)
+        return try completion.wait(timeout: requestTimeout ?? timeout)
     }
 
     static func decodeResponse(_ payload: String) throws -> DSMNHelperCommandResponse {
