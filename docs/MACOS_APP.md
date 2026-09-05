@@ -3,42 +3,44 @@
 `dsmn` is the current Xcode-hosted macOS menu bar app. `dsmn-app` remains
 available as a SwiftPM development entrypoint.
 
-It is intentionally menu-bar-only:
+It is intentionally menu-bar-only, with no Dock icon. Clicking the pixel
+heartbeat opens a compact native SwiftUI panel with a live countdown, power
+lock state, last requester, recent activity, and timer controls.
 
-- no Dock icon;
-- status icon with an optional countdown while a manual lease is active;
-- native crown logo for the menu bar status item;
-- compact Coffee-style actions grouped as **Status**, **Control**, **Setup**, and
-  **More** in the menu bar menu.
+The identity follows [website PR #5](https://github.com/nomdelasociete/dsmn-website/pull/5):
+warm paper, charcoal, sage, orange warnings, and Geist Pixel headings. Window
+colors follow the macOS appearance; the compact timer panel uses the website's
+charcoal preview palette in both appearances. Controls retain system text and
+diagnostics use IBM Plex Mono. Font licenses are bundled with the app.
 
 The menu bar icon changes by state:
 
-- crown: off;
-- crown reversed inside a circle: manual timer actively preventing sleep;
-- `exclamationmark.triangle`: status unavailable, or dsmn wants to prevent
-  sleep but the helper has not applied the power lock.
+- heartbeat: off or loading;
+- heartbeat with a steady activity pixel: a manual timer is active;
+- warning triangle: status unavailable, fallback protection, incomplete setup,
+  or a sleep lock that the helper has not applied.
 
-The `Show Countdown` menu toggle controls whether active manual timers appear
-next to the status icon.
+The mark stays a template image for menu bar contrast. It has no continuous
+animation, including when Reduce Motion is enabled.
 
-The `Launch at Login` menu toggle asks macOS to launch `dsmn.app` when the user
-logs in. It is optional and uses `SMAppService.mainApp`; macOS may ask for
-approval in System Settings > General > Login Items.
+## Panel and settings
 
-## Menu structure
+| Surface | Actions and information |
+|---------|-------------------------|
+| Compact panel | Status, live countdown, power lock, last requester, 12-hour activity, 30m / 90m / Custom, Stop, Refresh, Setup, Why Awake, About, Quit |
+| Setup & Troubleshooting | Helper install/update/approval/repair, agent hooks, launch at login, Doctor, Repair, countdown preference, software updates, feedback, Setup Guide |
+| About | Version, credits, website, and confirmed removal of agent hooks |
 
-The menu bar menu is grouped into four sections:
+Actions remain direct buttons; there are no nested SwiftUI menus. Stop remains
+available even when helper registration is unavailable. Shortcuts are preserved:
+⌘3 / ⌘9 for timers, ⌘. for Stop, ⌘R for Refresh, and ⌘Q for Quit.
+Custom duration uses the existing floating native alert and accepts 1–720 minutes.
 
-| Section | Purpose |
-|---------|---------|
-| **Status** | Primary state line, one secondary detail (power lock, fallback, or last requester), and errors |
-| **Control** | Keep Awake 30m / 90m, Custom Duration, and Stop (keyboard shortcuts preserved) |
-| **Setup** | Current setup warning plus **Setup & Troubleshooting...**, which opens the dedicated setup/diagnostic window |
-| **Diagnostics** | **Why Awake?**, trigger activity, Doctor, and Repair |
-| **More** | Countdown and login toggles, updates, feedback, refresh, quit |
+**Show countdown in menu bar** and **Launch at Login** live in the setup window.
+Launch at Login uses `SMAppService.mainApp` and may require approval in System
+Settings > General > Login Items.
 
-Trigger activity appears under **Diagnostics** while a session is active, not in
-the default status block.
+See [design reference and validation](DESIGN.md) for asset provenance and previews.
 
 ## First-run setup
 
@@ -74,10 +76,9 @@ system value as `SleepDisabled 1` in `pmset -g live`.
 
 1. Launch the archived `dsmn.app`.
 2. Open the menu bar icon.
-3. In the **Setup** section, click **Install Helper** if the status line says
-   setup is required.
+3. Open **Setup & Troubleshooting...**, then **Install Helper** when required.
 4. If needed, click **Approve Helper in Login Items**, enable dsmn in System
-   Settings, then **Refresh Status** under **More**.
+   Settings, then **Refresh** in the setup window.
 5. Install agent hooks from the same setup area. Setup is ready when the helper
    is enabled and hooks report ready.
 
@@ -98,7 +99,7 @@ while true; do date '+%Y-%m-%d %H:%M:%S'; sleep 5; done | tee /tmp/dsmn-ticks.lo
 
 For the deterministic test, click `Keep Awake 30m` in the dsmn menu. Wait for:
 
-- `Active - 30m`
+- `Keeping Mac awake` and a running countdown
 - `Helper: enabled`
 - `Power lock: on`
 

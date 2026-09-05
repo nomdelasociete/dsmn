@@ -2,6 +2,17 @@ import XCTest
 @testable import DSMNCore
 
 final class MenuBarCountdownFormatterTests: XCTestCase {
+    func testPanelCountdownPreservesSecondsAndHandlesExpiry() {
+        XCTAssertEqual(MenuBarCountdownFormatter.panelText(remainingSeconds: -1), "00:00")
+        XCTAssertEqual(MenuBarCountdownFormatter.panelText(remainingSeconds: 0), "00:00")
+        XCTAssertEqual(MenuBarCountdownFormatter.panelText(remainingSeconds: 1), "00:01")
+        XCTAssertEqual(MenuBarCountdownFormatter.panelText(remainingSeconds: 59), "00:59")
+        XCTAssertEqual(MenuBarCountdownFormatter.panelText(remainingSeconds: 60), "01:00")
+        XCTAssertEqual(MenuBarCountdownFormatter.panelText(remainingSeconds: 3599), "59:59")
+        XCTAssertEqual(MenuBarCountdownFormatter.panelText(remainingSeconds: 3600), "1:00:00")
+        XCTAssertEqual(MenuBarCountdownFormatter.panelText(remainingSeconds: 43200), "12:00:00")
+    }
+
     func testFormatsCountdownWhenPowerLockIsOffDuringLidOpenGrace() {
         let report = makeReport(manualUntil: Date(timeIntervalSince1970: 2_200), shouldPreventSleep: false)
 

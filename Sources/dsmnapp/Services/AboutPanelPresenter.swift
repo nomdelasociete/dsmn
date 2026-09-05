@@ -1,34 +1,35 @@
 import AppKit
 import DSMNCore
+import SwiftUI
 
 @MainActor
 enum AboutPanelPresenter {
+    private static var window: NSWindow?
+
     static func show(store: DSMNMenuStore) {
-        let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "Unknown"
-        let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? ""
-        let versionLine = build.isEmpty ? version : "\(version) (\(build))"
-
-        NSApplication.shared.activate(ignoringOtherApps: true)
-
-        let alert = NSAlert()
-        alert.messageText = "dsmn"
-        alert.informativeText = """
-        Version \(versionLine)
-
-        Published by NOM DE LA SOCIETE
-        Developed by Jb Ronssin
-
-        Agent hooks keep \(AgentHookTarget.joinedDisplayNames(short: true)) sessions on the dsmn timer. Removing hooks does not quit dsmn or stop an active timer.
-        """
-        alert.alertStyle = .informational
-        alert.addButton(withTitle: "OK")
-        alert.addButton(withTitle: "Remove Agent Hooks…")
-
-        guard alert.runModal() == .alertSecondButtonReturn else {
+        if let window {
+            NSApp.activate(ignoringOtherApps: true)
+            window.makeKeyAndOrderFront(nil)
             return
         }
 
-        confirmRemoveAgentHooks(store: store)
+        let content = DSMNAboutView(
+            onRemoveHooks: { confirmRemoveAgentHooks(store: store) },
+            onClose: { window?.close(); window = nil }
+        )
+        let newWindow = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 500, height: 490),
+            styleMask: [.titled, .closable, .miniaturizable],
+            backing: .buffered, defer: false
+        )
+        newWindow.title = "About dsmn"
+        newWindow.titlebarAppearsTransparent = true
+        newWindow.isReleasedWhenClosed = false
+        newWindow.contentView = NSHostingView(rootView: content)
+        newWindow.center()
+        window = newWindow
+        NSApp.activate(ignoringOtherApps: true)
+        newWindow.makeKeyAndOrderFront(nil)
     }
 
     private static func confirmRemoveAgentHooks(store: DSMNMenuStore) {

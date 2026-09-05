@@ -6,19 +6,19 @@ enum SetupTroubleshootingWindowPresenter {
     private static var window: NSWindow?
     private static var closeDelegate: WindowCloseDelegate?
 
-    static func show(store: DSMNMenuStore) {
+    static func show(store: DSMNMenuStore, updateController: SoftwareUpdateController? = nil) {
         if let window {
             NSApp.activate(ignoringOtherApps: true)
             window.makeKeyAndOrderFront(nil)
             return
         }
 
-        let content = DSMNSetupTroubleshootingView(store: store) {
+        let content = DSMNSetupTroubleshootingView(store: store, updateController: updateController) {
             Self.close()
         }
         let hostingView = NSHostingView(rootView: content)
         let newWindow = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 700, height: 640),
+            contentRect: NSRect(x: 0, y: 0, width: 740, height: 700),
             styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
             backing: .buffered,
             defer: false
@@ -34,7 +34,7 @@ enum SetupTroubleshootingWindowPresenter {
         newWindow.delegate = delegate
         newWindow.contentView = hostingView
         newWindow.center()
-        newWindow.minSize = NSSize(width: 640, height: 540)
+        newWindow.minSize = NSSize(width: 680, height: 540)
 
         closeDelegate = delegate
         window = newWindow

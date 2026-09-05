@@ -5,196 +5,170 @@ import SwiftUI
 struct DSMNMenuView: View {
     @ObservedObject var store: DSMNMenuStore
     var updateController: SoftwareUpdateController?
-    @AppStorage("showMenuBarCountdown") private var showMenuBarCountdown = true
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
-        statusSection
-        controlSection
-
-        setupSection
-
-        diagnosticsSection
-        moreSection
-    }
-
-    // MARK: - Status
-
-    @ViewBuilder
-    private var statusSection: some View {
-        Section {
-            MenuStatusRow(
-                title: store.statusLine,
-                systemImage: store.menuStatusSystemImage,
-                prominent: true
-            )
-
-            if let subtitle = store.menuStatusSubtitle {
-                MenuStatusRow(title: subtitle, systemImage: "info.circle", prominent: false)
-            }
-
-            if let setupStatus = store.menuSetupIncompleteStatusTitle {
-                MenuStatusRow(
-                    title: setupStatus,
-                    systemImage: "exclamationmark.circle",
-                    prominent: false
-                )
-            }
-
-            if let errorMessage = store.errorMessage {
-                menuErrorText(errorMessage)
-            }
-        } header: {
-            Text("Status")
-        }
-    }
-
-    // MARK: - Control
-
-    @ViewBuilder
-    private var controlSection: some View {
-        Section {
-            Button {
-                store.keepAwake(minutes: 30)
-            } label: {
-                Label("Keep Awake for 30 Minutes", systemImage: "clock")
-            }
-            .keyboardShortcut("3")
-            .disabled(!store.canRunAwakeCommands)
-
-            Button {
-                store.keepAwake(minutes: 90)
-            } label: {
-                Label("Keep Awake for 90 Minutes", systemImage: "clock.badge.checkmark")
-            }
-            .keyboardShortcut("9")
-            .disabled(!store.canRunAwakeCommands)
-
-            Button {
-                requestCustomDuration()
-            } label: {
-                Label("Custom Duration...", systemImage: "slider.horizontal.3")
-            }
-            .disabled(!store.canRunAwakeCommands)
-
-            Button {
-                store.stop()
-            } label: {
-                Label("Stop", systemImage: "stop.circle")
-            }
-            .keyboardShortcut(".")
-        } header: {
-            Text("Control")
-        }
-    }
-
-    // MARK: - Setup
-
-    @ViewBuilder
-    private var setupSection: some View {
-        Section {
-            if let setupLine = store.setupLine {
-                MenuStatusRow(title: setupLine, systemImage: store.setupLineSystemImage, prominent: false)
-            }
-
-            Button {
-                SetupTroubleshootingWindowPresenter.show(store: store)
-            } label: {
-                Label("Setup & Troubleshooting...", systemImage: "wrench.and.screwdriver")
-            }
-        } header: {
-            Text("Setup")
-        }
-    }
-
-    // MARK: - Diagnostics
-
-    @ViewBuilder
-    private var diagnosticsSection: some View {
-        Section {
-            Button {
-                NSApplication.shared.activate(ignoringOtherApps: true)
-                openWindow(id: "why-awake")
-            } label: {
-                Label("Why Awake?", systemImage: "questionmark.circle")
-            }
-
-            if store.showsActivityMenu {
-                MenuStatusRow(
-                    title: store.triggerActivityLine,
-                    systemImage: "waveform.path",
-                    prominent: false
-                )
-            }
-
-            Button {
-                store.runDoctor()
-            } label: {
-                Label("Run Doctor", systemImage: "stethoscope")
-            }
-            .disabled(!store.canRunDoctor)
-
-            Button {
-                store.runRepair()
-            } label: {
-                Label("Run Repair", systemImage: "bandage")
-            }
-            .disabled(!store.canRunHelperRepair)
-        } header: {
-            Text("Diagnostics")
-        }
-    }
-
-    // MARK: - More
-
-    @ViewBuilder
-    private var moreSection: some View {
-        Section {
-            Toggle(isOn: $showMenuBarCountdown) {
-                Label("Show Countdown in Menu Bar", systemImage: "timer")
-            }
-
-            Toggle(isOn: Binding(
-                get: { store.launchAtLoginEnabled },
-                set: { store.setLaunchAtLogin($0) }
-            )) {
-                Label("Launch at Login", systemImage: "power")
-            }
-
-            CheckForUpdatesView(updateController: updateController)
-
-            Button {
-                FeedbackWindowPresenter.show(store: store)
-            } label: {
-                Label("Send Feedback", systemImage: "envelope")
-            }
-
-            Button {
-                AboutPanelPresenter.show(store: store)
-            } label: {
-                Label("About dsmn", systemImage: "info.circle")
-            }
-
-            Button {
-                Task {
-                    await store.refresh()
+        VStack(alignment: .leading, spacing: 0) {
+            Section {
+                HStack {
+                    DSMNWordmark(size: 24)
+                    Spacer()
+                    Button {
+                        Task { await store.refresh() }
+                    } label: {
+                        Image(systemName: "arrow.clockwise").frame(width: 28, height: 28)
+                    }
+                    .keyboardShortcut("r")
+                    .help("Refresh status (⌘R)")
+                    .accessibilityLabel("Refresh Status")
+                    .disabled(store.isRefreshing)
                 }
-            } label: {
-                Label("Refresh Status", systemImage: "arrow.clockwise")
-            }
-            .keyboardShortcut("r")
+                .foregroundStyle(DSMNBrand.panelMuted)
+                .padding(.bottom, 20)
 
-            Divider()
+                Label(store.menuPanelTitle, systemImage: store.menuStatusSystemImage)
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(store.menuBarIconState == .warning ? Color(hex: 0xF49B7E) : DSMNBrand.panelGreen)
+                    .accessibilityIdentifier("panel.status")
 
-            Button {
-                quit()
-            } label: {
-                Label("Quit", systemImage: "power")
+                TimelineView(.periodic(from: .now, by: 1)) { context in
+                    Text(store.menuPanelCountdown(at: context.date))
+                        .font(.system(size: 48, weight: .regular, design: .monospaced))
+                        .monospacedDigit()
+                        .tracking(-2)
+                        .accessibilityLabel("Time remaining")
+                        .accessibilityValue(store.menuPanelCountdown(at: context.date))
+                }
+                .padding(.top, 8)
+                .accessibilityIdentifier("panel.countdown")
+
+                Text(store.lastRequesterLine ?? "Start a timer, or let your agents take over.")
+                    .font(.system(size: 12))
+                    .foregroundStyle(DSMNBrand.panelMuted)
+                    .lineLimit(2)
+                    .help(store.lastRequesterLine ?? "")
+                    .padding(.top, 2)
+
+                if let detail = store.menuStatusSubtitle {
+                    Text(detail)
+                        .font(.system(size: 11))
+                        .foregroundStyle(DSMNBrand.panelMuted)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.top, 8)
+                }
+
+                if store.showsActivityMenu {
+                    HStack(spacing: 12) {
+                        Text("Activity · \(store.triggerActivitySummary.hours)h")
+                            .font(.system(size: 10))
+                            .foregroundStyle(DSMNBrand.panelMuted)
+                        Canvas { context, size in
+                            let buckets = store.triggerActivitySummary.buckets
+                            let peak = max(1, buckets.max() ?? 0)
+                            let step = size.width / CGFloat(max(1, buckets.count))
+                            for (index, count) in buckets.enumerated() {
+                                let height = max(1, size.height * CGFloat(count) / CGFloat(peak))
+                                context.fill(Path(CGRect(x: CGFloat(index) * step, y: size.height - height,
+                                                         width: max(1, step - 2), height: height)),
+                                             with: .color(DSMNBrand.panelGreen))
+                            }
+                        }
+                        .frame(height: 16)
+                        .accessibilityLabel("\(store.triggerActivitySummary.total) triggers in the last \(store.triggerActivitySummary.hours) hours")
+                    }
+                    .padding(.top, 12)
+                }
+
+                if let warning = store.errorMessage ?? store.menuSetupIncompleteStatusTitle {
+                    Label(warning, systemImage: "exclamationmark.circle")
+                        .font(.system(size: 12))
+                        .foregroundStyle(Color(hex: 0xF49B7E))
+                        .lineLimit(4)
+                        .help(warning)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.top, 10)
+                }
             }
-            .keyboardShortcut("q")
-        } header: {
-            Text("More")
+
+            Section {
+                HStack(spacing: 0) {
+                    Button("30 min") { store.keepAwake(minutes: 30) }
+                        .keyboardShortcut("3")
+                        .accessibilityLabel("Keep Awake for 30 Minutes")
+                    Rectangle().fill(DSMNBrand.panelRule).frame(width: 1)
+                    Button("90 min") { store.keepAwake(minutes: 90) }
+                        .keyboardShortcut("9")
+                        .accessibilityLabel("Keep Awake for 90 Minutes")
+                    Rectangle().fill(DSMNBrand.panelRule).frame(width: 1)
+                    Button("Custom…") { requestCustomDuration() }
+                        .accessibilityLabel("Custom Duration")
+                }
+                .buttonStyle(PanelDurationStyle())
+                .disabled(!store.canRunAwakeCommands)
+                .frame(height: 38)
+                .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(DSMNBrand.panelRule))
+                .padding(.top, 24)
+
+                Button { store.stop() } label: {
+                    Label("Stop keeping awake", systemImage: "stop.fill")
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 11)
+                        .background(Color(hex: 0x44483F), in: RoundedRectangle(cornerRadius: 6))
+                        .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(Color(hex: 0x62665C)))
+                }
+                .keyboardShortcut(".")
+                .accessibilityIdentifier("panel.stop")
+                .padding(.top, 12)
+
+                Text("Sleep allowed when the timer expires.\nAgent activity can extend it.")
+                    .font(.system(size: 11))
+                    .foregroundStyle(DSMNBrand.panelMuted)
+                    .lineSpacing(3)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.top, 10)
+            }
+
+            Section {
+                Rectangle().fill(DSMNBrand.panelRule).frame(height: 1)
+                    .padding(.top, 18)
+
+                Button {
+                    SetupTroubleshootingWindowPresenter.show(store: store, updateController: updateController)
+                } label: {
+                    HStack {
+                        Text("Setup & Troubleshooting...")
+                        Spacer()
+                        Image(systemName: "arrow.up.right").font(.system(size: 11))
+                    }
+                    .frame(maxWidth: .infinity, minHeight: 42, alignment: .leading)
+                    .contentShape(Rectangle())
+                }
+                .accessibilityIdentifier("panel.setup")
+            }
+
+            Section {
+                HStack {
+                    Button("Why Awake?") {
+                        NSApplication.shared.activate(ignoringOtherApps: true)
+                        openWindow(id: "why-awake")
+                    }
+                    Spacer()
+                    Button("About") { AboutPanelPresenter.show(store: store) }
+                    Button("Quit") { quit() }
+                        .keyboardShortcut("q")
+                        .padding(.leading, 12)
+                }
+                .foregroundStyle(DSMNBrand.panelMuted)
+                .font(.system(size: 11))
+            }
         }
+        .font(.system(size: 13))
+        .buttonStyle(PanelActionStyle())
+        .padding(20)
+        .frame(width: 340)
+        .foregroundStyle(DSMNBrand.panelInk)
+        .background(DSMNBrand.panel)
+        .environment(\.colorScheme, .dark)
     }
 
     // MARK: - Helpers
@@ -277,34 +251,35 @@ struct DSMNMenuView: View {
         store.keepAwake(minutes: minutes)
     }
 
-    private func menuErrorText(_ message: String) -> some View {
-        Label {
-            Text(message)
-                .fixedSize(horizontal: false, vertical: true)
-        } icon: {
-            Image(systemName: "xmark.octagon.fill")
-        }
-        .foregroundStyle(.red)
-        .font(.footnote)
+}
+
+private struct PanelDurationStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.isFocused) private var isFocused
+    @State private var isHovered = false
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.system(size: 12))
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(configuration.isPressed || isHovered ? Color(hex: 0x484D40) : .clear)
+            .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(DSMNBrand.panelGreen, lineWidth: isFocused ? 2 : 0))
+            .contentShape(Rectangle())
+            .opacity(isEnabled ? 1 : 0.4)
+            .onHover { isHovered = $0 }
     }
 }
 
-// MARK: - Menu status row
+private struct PanelActionStyle: ButtonStyle {
+    @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.isFocused) private var isFocused
+    @State private var isHovered = false
 
-private struct MenuStatusRow: View {
-    let title: String
-    let systemImage: String
-    let prominent: Bool
-
-    var body: some View {
-        Label {
-            Text(title)
-                .font(prominent ? .body.weight(.semibold) : .footnote)
-                .foregroundStyle(prominent ? .primary : .secondary)
-                .fixedSize(horizontal: false, vertical: true)
-        } icon: {
-            Image(systemName: systemImage)
-                .symbolRenderingMode(.hierarchical)
-        }
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .background(isHovered && isEnabled ? Color.white.opacity(0.06) : .clear, in: RoundedRectangle(cornerRadius: 4))
+            .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(DSMNBrand.panelGreen, lineWidth: isFocused ? 2 : 0))
+            .opacity(isEnabled ? (configuration.isPressed ? 0.65 : 1) : 0.4)
+            .onHover { isHovered = $0 }
     }
 }

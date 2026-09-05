@@ -18,7 +18,7 @@ final class MenuBarExtraStructureTests: XCTestCase {
         let menuViewSource = try sourceFile(at: "Sources/dsmnapp/Views/DSMNMenuView.swift")
 
         XCTAssertTrue(menuViewSource.contains("Setup & Troubleshooting..."))
-        XCTAssertTrue(menuViewSource.contains("SetupTroubleshootingWindowPresenter.show(store: store)"))
+        XCTAssertTrue(menuViewSource.contains("SetupTroubleshootingWindowPresenter.show(store: store,"))
         XCTAssertFalse(menuViewSource.contains("Label(\"Setup Guide\", systemImage: \"book\")"))
     }
 
@@ -56,7 +56,7 @@ final class MenuBarExtraStructureTests: XCTestCase {
 
         XCTAssertTrue(appSource.contains("store.shouldPresentHelperUpdateReminder"))
         XCTAssertTrue(appSource.contains("store.setupAttentionReminderSignature"))
-        XCTAssertTrue(appSource.contains("SetupTroubleshootingWindowPresenter.show(store: store)"))
+        XCTAssertTrue(appSource.contains("SetupTroubleshootingWindowPresenter.show(store: store,"))
         XCTAssertTrue(appSource.contains("store.deferHelperUpdateReminder()"))
         XCTAssertTrue(appSource.contains("OnboardingWindowPresenter.showIfNeeded(store: store)"))
         XCTAssertTrue(storeSource.contains("var shouldPresentSetupAttentionReminder"))

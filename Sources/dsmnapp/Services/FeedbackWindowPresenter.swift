@@ -18,7 +18,7 @@ enum FeedbackWindowPresenter {
         }
         let hostingView = NSHostingView(rootView: content)
         let newWindow = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 520, height: 500),
+            contentRect: NSRect(x: 0, y: 0, width: 580, height: 660),
             styleMask: [.titled, .closable, .miniaturizable, .fullSizeContentView],
             backing: .buffered,
             defer: false
