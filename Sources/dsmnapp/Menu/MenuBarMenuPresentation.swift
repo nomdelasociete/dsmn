@@ -2,6 +2,20 @@ import DSMNCore
 import Foundation
 
 extension DSMNMenuStore {
+    var menuPanelTitle: String {
+        switch menuBarIconState {
+        case .loading: "Checking your Mac"
+        case .warning: hookFallbackLine != nil ? "Fallback — lid must stay open" : "Needs attention"
+        case .off: "Your Mac can rest"
+        case .manualActive: "Keeping Mac awake"
+        }
+    }
+
+    func menuPanelCountdown(at date: Date) -> String {
+        guard let report else { return "—:—" }
+        return MenuBarCountdownFormatter.panelText(remainingSeconds: report.state.manualRemainingSeconds(at: date) ?? 0)
+    }
+
     var menuStatusSystemImage: String {
         switch menuBarIconState {
         case .loading:

@@ -4,20 +4,23 @@ import SwiftUI
 
 struct DSMNSetupTroubleshootingView: View {
     @ObservedObject var store: DSMNMenuStore
+    @Environment(\.dsmnRefreshOnAppear) private var refreshOnAppear
+    var updateController: SoftwareUpdateController?
     var onClose: () -> Void
+    @AppStorage("showMenuBarCountdown") private var showMenuBarCountdown = true
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
         VStack(spacing: 0) {
             ScrollView {
-                VStack(alignment: .leading, spacing: 14) {
+                VStack(alignment: .leading, spacing: 0) {
                     header
 
                     if store.helperNeedsUpdate {
                         helperUpdateBanner
                     }
 
-                    SetupPanelRow(
+                    DSMNSettingsRow(
                         systemImage: store.helperIsReady ? "checkmark.shield.fill" : "lock.shield",
                         title: "Helper",
                         detail: helperDetail,
@@ -27,7 +30,7 @@ struct DSMNSetupTroubleshootingView: View {
                         helperActions
                     }
 
-                    SetupPanelRow(
+                    DSMNSettingsRow(
                         systemImage: store.hooksStatusIconName,
                         title: "Agent hooks",
                         detail: "Bounded hooks connect \(AgentHookTarget.joinedDisplayNames()) to the dsmn timer.",
@@ -45,7 +48,7 @@ struct DSMNSetupTroubleshootingView: View {
                         HookActionResultList(rows: store.hookActionResultRows)
                     }
 
-                    SetupPanelRow(
+                    DSMNSettingsRow(
                         systemImage: store.launchAtLoginEnabled ? "checkmark.circle.fill" : "power",
                         title: "Launch with your Mac",
                         detail: "Optional. Start dsmn automatically when you log in.",
@@ -60,7 +63,7 @@ struct DSMNSetupTroubleshootingView: View {
                         .toggleStyle(.switch)
                     }
 
-                    SetupPanelRow(
+                    DSMNSettingsRow(
                         systemImage: "stethoscope",
                         title: "Troubleshooting",
                         detail: troubleshootingDetail,
@@ -89,6 +92,8 @@ struct DSMNSetupTroubleshootingView: View {
                         }
                     }
 
+                    preferencesSection
+
                     if let errorMessage = store.errorMessage {
                         Label {
                             Text(errorMessage)
@@ -111,47 +116,28 @@ struct DSMNSetupTroubleshootingView: View {
             footer
                 .padding(.horizontal, 28)
                 .padding(.vertical, 16)
-                .background(.regularMaterial)
+                .background(DSMNBrand.paper)
         }
-        .frame(minWidth: 640, idealWidth: 700, minHeight: 540, idealHeight: 640)
+        .frame(minWidth: 680, idealWidth: 740, minHeight: 540, idealHeight: 700)
+        .dsmnWindowStyle()
         .task {
-            await store.refresh()
+            if refreshOnAppear { await store.refresh() }
         }
     }
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(spacing: 12) {
-                Image(nsImage: NSApplication.shared.applicationIconImage)
-                    .resizable()
-                    .interpolation(.high)
-                    .frame(width: 38, height: 38)
-
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("Setup & Troubleshooting")
-                        .font(.title2.weight(.semibold))
-
-                    Text(statusSummary)
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(2)
-                }
-            }
-
-            if let setupLine = store.setupLine {
-                Label(setupLine, systemImage: store.setupLineSystemImage)
-                    .font(.footnote.weight(.medium))
-                    .foregroundStyle(.secondary)
-            }
-        }
-        .padding(.bottom, 4)
+        DSMNPageHeader(
+            eyebrow: "SETTINGS",
+            title: "Make yourself at home.",
+            detail: statusSummary
+        )
+        .padding(.bottom, 16)
     }
 
     @ViewBuilder
     private var helperActions: some View {
         if store.helperIsReady {
-            Button("Ready") {}
-                .disabled(true)
+            Label("Ready", systemImage: "checkmark").foregroundStyle(DSMNBrand.sage)
         } else if store.helperNeedsRepair {
             Button("Repair Helper") {
                 store.updateHelper()
@@ -185,6 +171,22 @@ struct DSMNSetupTroubleshootingView: View {
             }
             .accessibilityIdentifier("setup.helper-update-now")
         }
+    }
+
+    private var preferencesSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Make it yours").font(DSMNBrand.display(24))
+            Toggle("Show countdown in menu bar", isOn: $showMenuBarCountdown)
+                .toggleStyle(.checkbox)
+
+            HStack(spacing: 12) {
+                CheckForUpdatesView(updateController: updateController)
+                Button("Send Feedback") { FeedbackWindowPresenter.show(store: store) }
+                Spacer()
+            }
+            .buttonStyle(DSMNActionStyle())
+        }
+        .padding(.vertical, 20)
     }
 
     private var footer: some View {
@@ -225,6 +227,7 @@ struct DSMNSetupTroubleshootingView: View {
             Button("Done") {
                 onClose()
             }
+            .buttonStyle(DSMNActionStyle(prominent: true))
             .keyboardShortcut(.defaultAction)
             .accessibilityLabel("Done")
             .accessibilityIdentifier("setup.done")
@@ -287,7 +290,7 @@ struct DSMNSetupTroubleshootingView: View {
             Image(systemName: "arrow.triangle.2.circlepath.circle.fill")
                 .font(.system(size: 28, weight: .semibold))
                 .symbolRenderingMode(.hierarchical)
-                .foregroundStyle(.blue)
+                .foregroundStyle(DSMNBrand.sage)
                 .frame(width: 36, height: 36)
 
             VStack(alignment: .leading, spacing: 5) {
@@ -296,7 +299,7 @@ struct DSMNSetupTroubleshootingView: View {
 
                 Text(store.helperUpdateDetail)
                     .font(.system(size: 13))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(DSMNBrand.muted)
                     .fixedSize(horizontal: false, vertical: true)
 
                 if let retryMessage = store.helperUpdateRetryMessage {
@@ -307,7 +310,7 @@ struct DSMNSetupTroubleshootingView: View {
                         Image(systemName: "arrow.clockwise.circle.fill")
                     }
                     .font(.caption.weight(.medium))
-                    .foregroundStyle(.orange)
+                    .foregroundStyle(DSMNBrand.orange)
                     .padding(.top, 2)
                 }
             }
@@ -317,76 +320,10 @@ struct DSMNSetupTroubleshootingView: View {
             helperUpdateActions
         }
         .padding(14)
-        .background(.blue.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
+        .background(DSMNBrand.sage.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
         .overlay {
             RoundedRectangle(cornerRadius: 12)
-                .stroke(.blue.opacity(0.22), lineWidth: 1)
-        }
-    }
-}
-
-private struct SetupPanelRow<Actions: View>: View {
-    var systemImage: String
-    var title: String
-    var detail: String
-    var status: String
-    var isComplete: Bool
-    var isBusy = false
-    var isOptional = false
-    @ViewBuilder var actions: Actions
-
-    var body: some View {
-        HStack(alignment: .center, spacing: 14) {
-            Group {
-                if isBusy {
-                    ProgressView()
-                        .controlSize(.small)
-                } else {
-                    Image(systemName: systemImage)
-                        .font(.system(size: 20, weight: .semibold))
-                        .symbolRenderingMode(.hierarchical)
-                        .foregroundStyle(isComplete ? .green : .primary)
-                }
-            }
-            .frame(width: 32, height: 32)
-
-            VStack(alignment: .leading, spacing: 5) {
-                HStack(spacing: 8) {
-                    Text(title)
-                        .font(.system(size: 15, weight: .semibold))
-
-                    if isOptional {
-                        Text("Optional")
-                            .font(.caption.weight(.medium))
-                            .foregroundStyle(.secondary)
-                            .padding(.horizontal, 7)
-                            .padding(.vertical, 2)
-                            .background(.secondary.opacity(0.12), in: Capsule())
-                    }
-                }
-
-                Text(detail)
-                    .font(.system(size: 13))
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                Text(status)
-                    .font(.caption.monospacedDigit())
-                    .foregroundStyle(isComplete ? .green : .secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-
-            Spacer(minLength: 14)
-
-            actions
-                .controlSize(.regular)
-                .frame(minWidth: 138, alignment: .trailing)
-        }
-        .padding(14)
-        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12))
-        .overlay {
-            RoundedRectangle(cornerRadius: 12)
-                .stroke(.quaternary, lineWidth: 1)
+                .stroke(DSMNBrand.sage.opacity(0.3), lineWidth: 1)
         }
     }
 }
@@ -418,7 +355,7 @@ private struct HookActionResultList: View {
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
-        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 10))
+        .background(DSMNBrand.field)
         .overlay {
             RoundedRectangle(cornerRadius: 10)
                 .stroke(.quaternary, lineWidth: 1)
@@ -440,9 +377,9 @@ private struct HookActionResultList: View {
     private func foregroundStyle(for state: AgentHookActionResultState) -> AnyShapeStyle {
         switch state {
         case .updated:
-            AnyShapeStyle(.blue)
+            AnyShapeStyle(DSMNBrand.sage)
         case .unchanged:
-            AnyShapeStyle(.green)
+            AnyShapeStyle(DSMNBrand.sage)
         case .failed:
             AnyShapeStyle(.red)
         }

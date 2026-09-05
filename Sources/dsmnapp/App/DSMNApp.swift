@@ -37,7 +37,7 @@ struct DSMNApp: App {
                     await store.refresh()
 
                     if store.shouldPresentHelperUpdateReminder {
-                        SetupTroubleshootingWindowPresenter.show(store: store)
+                        SetupTroubleshootingWindowPresenter.show(store: store, updateController: softwareUpdateController)
                         store.deferHelperUpdateReminder()
                     } else if store.setupAttentionReminderSignature != nil {
                         presentSetupAttentionIfNeeded()
@@ -46,12 +46,12 @@ struct DSMNApp: App {
                     }
                 }
         }
-        .menuBarExtraStyle(.menu)
+        .menuBarExtraStyle(.window)
 
         WindowGroup("Why Awake?", id: "why-awake") {
             WhyAwakeView(store: store)
         }
-        .defaultSize(width: 580, height: 560)
+        .defaultSize(width: 620, height: 640)
     }
 
     private func presentSetupAttentionIfNeeded() {
@@ -65,7 +65,7 @@ struct DSMNApp: App {
         }
 
         presentedSetupAttentionSignature = signature
-        SetupTroubleshootingWindowPresenter.show(store: store)
+        SetupTroubleshootingWindowPresenter.show(store: store, updateController: softwareUpdateController)
     }
 }
 

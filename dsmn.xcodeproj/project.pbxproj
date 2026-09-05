@@ -14,6 +14,7 @@
 		07021235DBF2A577E657BF8B /* AgentDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D67112750F54179C1E0BEEC /* AgentDetector.swift */; };
 		0B89FDFAD900348B587898D2 /* DSMNLogoIcon.swift in Sources */ = {isa = PBXBuildFile; fileRef = BBED8BCEB1A618ADE50C5249 /* DSMNLogoIcon.swift */; };
 		13E74C509EE6834302AF906C /* XPCClientAuthentication.swift in Sources */ = {isa = PBXBuildFile; fileRef = A7489AD4B0CDAEC9E6870B93 /* XPCClientAuthentication.swift */; };
+		1475A6663E986AFE99E53DF7 /* IBMPlexMono-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = A2428EFCE3BBD1E88BC9745B /* IBMPlexMono-Regular.ttf */; };
 		17EAA3C353FEC29A807F96E5 /* DSMNOnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 171C6E232736EB7D17692DC5 /* DSMNOnboardingView.swift */; };
 		231FA510E94F11D4FB5D29A5 /* DSMNFeedbackView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FA7A4EADB04DB2BFFEF1241 /* DSMNFeedbackView.swift */; };
 		317D2B2D40ADF21191974887 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 9AA42F96CD573113144B9278 /* Sparkle */; };
@@ -22,6 +23,7 @@
 		394D5CF05FEB9D34FB876D9D /* MenuBarCountdownFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24C77EE9388701AB19E70A0C /* MenuBarCountdownFormatter.swift */; };
 		396CD92F47D2F27A25FABE2C /* MenuBarMenuPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9AA226B952E7EDA56C699658 /* MenuBarMenuPresentation.swift */; };
 		3B1B0405B4D29F02793BD9E2 /* MenuBarIconState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3357CC5A02DEAA80CF0E7714 /* MenuBarIconState.swift */; };
+		3D0588A868855F1CA59400FB /* DSMNAboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF3B252D30DA8E0E1171AD42 /* DSMNAboutView.swift */; };
 		3E2C9C782AC7E952FA4A55F1 /* TriggerActivitySummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5DA64BBB8035E795523E90FD /* TriggerActivitySummary.swift */; };
 		3EAAD859F9B5BF895A2D2B7E /* DSMNCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 74B444C620310ADFA67DB8E3 /* DSMNCore.framework */; };
 		44A63173A14964531A93FFC8 /* AppQuitCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C06A4DC70F9BA2B1E497F5E /* AppQuitCoordinator.swift */; };
@@ -34,8 +36,10 @@
 		59D7E28176C8799F1656420E /* FeedbackService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E03AF3CD060A3DFA891C3B89 /* FeedbackService.swift */; };
 		5D671B897AF34B3E4CC393F2 /* OnboardingPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = 924BDBA13CA2E1D50336D678 /* OnboardingPreferences.swift */; };
 		5D7B9BEFC69BD6D1E9D563DA /* SetupMenuPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21DA81E3CA23BA3F88D6E053 /* SetupMenuPresentation.swift */; };
+		601E526424DFE14D99D4E5D2 /* GeistPixelSquare.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 4ACF968A588BCD6F58F2422E /* GeistPixelSquare.ttf */; };
 		6119B41483147AF7FA74C71D /* DSMNCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 74B444C620310ADFA67DB8E3 /* DSMNCore.framework */; };
 		62B192A4636DA4E37DF4DB39 /* OnboardingWindowPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4962B06F89AA1B677EF19DB8 /* OnboardingWindowPresenter.swift */; };
+		6487DBCA7BACAFF5501BB797 /* DSMNIdentity.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE9930F62AB4C8FAE97E285C /* DSMNIdentity.swift */; };
 		66D5703C1DE9B770F9944DA7 /* ControllerTelemetry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D631261B06763D0DC0CC43C /* ControllerTelemetry.swift */; };
 		6F0918E8F5D6C670806C0BC1 /* SystemSnapshotProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = F670FC14F66FBA7A602B5CBE /* SystemSnapshotProvider.swift */; };
 		6F7893D6AEF2B2C4E7287062 /* THIRD_PARTY_NOTICES.txt in Resources */ = {isa = PBXBuildFile; fileRef = 9AA8D2AB8FBD0EA6CE85C610 /* THIRD_PARTY_NOTICES.txt */; };
@@ -47,13 +51,17 @@
 		809705EFBD76D07779E7138F /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7B4A2E7E5EA04A0BF90449F /* Models.swift */; };
 		81C315970D886B7C9522A1B5 /* AgentHookLogInspector.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC102235C1EE46A73C04E17C /* AgentHookLogInspector.swift */; };
 		8BB43E1563BD73705526097D /* PowerDecisionEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4ED81C70EF47353A88BF55D1 /* PowerDecisionEngine.swift */; };
+		8DE664FBD7F8669BBF27519B /* dsmn-pulse.svg in Resources */ = {isa = PBXBuildFile; fileRef = 07317E704BC90BFEDD42139E /* dsmn-pulse.svg */; };
 		901BC43E9E0364F95FE9F074 /* DSMNCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 74B444C620310ADFA67DB8E3 /* DSMNCore.framework */; };
 		960E906581CD04E8BF3D0638 /* AgentHookSetupPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58E9E9A50557171FBF677FEA /* AgentHookSetupPresentation.swift */; };
 		B0886F9E3B4E90D1FE1ED08B /* DoctorWindowPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = F90947A8DA8E6F80381E11E7 /* DoctorWindowPresenter.swift */; };
 		B3DFFD72854DAF3E6FE29A2B /* PowerManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 905431EEC13EC448A5EB8382 /* PowerManager.swift */; };
+		B749C526C7574CE090827FE6 /* IBMPlexMono-LICENSE.txt in Resources */ = {isa = PBXBuildFile; fileRef = 0133BBCC4AC141EFC932321A /* IBMPlexMono-LICENSE.txt */; };
+		B85DEE6DEC877D1E9F0EADCF /* Geist-LICENSE.txt in Resources */ = {isa = PBXBuildFile; fileRef = 52C59ECE0E6CBAFEE95D899B /* Geist-LICENSE.txt */; };
 		BA4E80D2B6B0BBFDEEA0B2FB /* HelperXPC.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61FE22C17B810CA959C3CACA /* HelperXPC.swift */; };
 		C5B282C0C41DF34036A185AC /* SetupTroubleshootingWindowPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3BE4F8288D3EB6BEB4D058E7 /* SetupTroubleshootingWindowPresenter.swift */; };
 		C5F3421390A8BD2777D1B823 /* DSMNSetupTroubleshootingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 884A4725CD27020EA9F0F168 /* DSMNSetupTroubleshootingView.swift */; };
+		CFB1D15847FBB385D5433156 /* DSMNBrand.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C63186E8C0250C77EFD5357 /* DSMNBrand.swift */; };
 		D08E1EFCB2A514AF84DD5960 /* DSMNDoctorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4467B6CF349F4A78C8320B52 /* DSMNDoctorView.swift */; };
 		D22B79587D387496D7F5FBA3 /* HelperServiceClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5BBDCFF55A2F8F35800A50E /* HelperServiceClient.swift */; };
 		D27626225E4A18ED0785B4EB /* ReconcileSchedule.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9EBDC0E1ED5BD3418A792F0 /* ReconcileSchedule.swift */; };
@@ -111,10 +119,10 @@
 		54B36EE5329AD3B55A7E76C2 /* Embed Dependencies */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
-			dstPath = Contents/Library/Helpers;
+			dstPath = Contents/Library/LaunchServices;
 			dstSubfolderSpec = 1;
 			files = (
-				0643E25D3C36B6DF1A393C9B /* dsmnctl in Embed Dependencies */,
+				7AB68B7EEC2FFDBB33183F64 /* dsmnd in Embed Dependencies */,
 			);
 			name = "Embed Dependencies";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -143,10 +151,10 @@
 		9E6E5D8A4D39E0AEF8C45CD0 /* Embed Dependencies */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
-			dstPath = Contents/Library/LaunchServices;
+			dstPath = Contents/Library/Helpers;
 			dstSubfolderSpec = 1;
 			files = (
-				7AB68B7EEC2FFDBB33183F64 /* dsmnd in Embed Dependencies */,
+				0643E25D3C36B6DF1A393C9B /* dsmnctl in Embed Dependencies */,
 			);
 			name = "Embed Dependencies";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -154,7 +162,9 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		0133BBCC4AC141EFC932321A /* IBMPlexMono-LICENSE.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "IBMPlexMono-LICENSE.txt"; sourceTree = "<group>"; };
 		05F227E11F3C8BC6AD1BECA4 /* AboutPanelPresenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutPanelPresenter.swift; sourceTree = "<group>"; };
+		07317E704BC90BFEDD42139E /* dsmn-pulse.svg */ = {isa = PBXFileReference; path = "dsmn-pulse.svg"; sourceTree = "<group>"; };
 		0F2C7905739A9F21409A0728 /* DSMNMenuStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DSMNMenuStore.swift; sourceTree = "<group>"; };
 		119D786BB6E6C5D87A9EB778 /* CheckForUpdatesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CheckForUpdatesView.swift; sourceTree = "<group>"; };
 		1428E24E9C88059C6735E168 /* com.nomdelasociete.dsmn.helper.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = com.nomdelasociete.dsmn.helper.plist; sourceTree = "<group>"; };
@@ -166,14 +176,17 @@
 		22FC037E46E8EBB70D7AB405 /* AgentHookInstaller.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentHookInstaller.swift; sourceTree = "<group>"; };
 		24C77EE9388701AB19E70A0C /* MenuBarCountdownFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarCountdownFormatter.swift; sourceTree = "<group>"; };
 		2C06A4DC70F9BA2B1E497F5E /* AppQuitCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppQuitCoordinator.swift; sourceTree = "<group>"; };
+		2C63186E8C0250C77EFD5357 /* DSMNBrand.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DSMNBrand.swift; sourceTree = "<group>"; };
 		3357CC5A02DEAA80CF0E7714 /* MenuBarIconState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarIconState.swift; sourceTree = "<group>"; };
 		3619C42C42B624EEF07BA6AC /* StatusReport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusReport.swift; sourceTree = "<group>"; };
 		3BE4F8288D3EB6BEB4D058E7 /* SetupTroubleshootingWindowPresenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupTroubleshootingWindowPresenter.swift; sourceTree = "<group>"; };
 		4467B6CF349F4A78C8320B52 /* DSMNDoctorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DSMNDoctorView.swift; sourceTree = "<group>"; };
 		4962B06F89AA1B677EF19DB8 /* OnboardingWindowPresenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingWindowPresenter.swift; sourceTree = "<group>"; };
+		4ACF968A588BCD6F58F2422E /* GeistPixelSquare.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = GeistPixelSquare.ttf; sourceTree = "<group>"; };
 		4D67112750F54179C1E0BEEC /* AgentDetector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentDetector.swift; sourceTree = "<group>"; };
 		4ED81C70EF47353A88BF55D1 /* PowerDecisionEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PowerDecisionEngine.swift; sourceTree = "<group>"; };
 		4FF12FB4F2E9D0CA91282B07 /* dsmnd */ = {isa = PBXFileReference; includeInIndex = 0; path = dsmnd; sourceTree = BUILT_PRODUCTS_DIR; };
+		52C59ECE0E6CBAFEE95D899B /* Geist-LICENSE.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "Geist-LICENSE.txt"; sourceTree = "<group>"; };
 		58E9E9A50557171FBF677FEA /* AgentHookSetupPresentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentHookSetupPresentation.swift; sourceTree = "<group>"; };
 		5DA64BBB8035E795523E90FD /* TriggerActivitySummary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TriggerActivitySummary.swift; sourceTree = "<group>"; };
 		61FE22C17B810CA959C3CACA /* HelperXPC.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperXPC.swift; sourceTree = "<group>"; };
@@ -188,8 +201,10 @@
 		9AA226B952E7EDA56C699658 /* MenuBarMenuPresentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarMenuPresentation.swift; sourceTree = "<group>"; };
 		9AA8D2AB8FBD0EA6CE85C610 /* THIRD_PARTY_NOTICES.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = THIRD_PARTY_NOTICES.txt; sourceTree = "<group>"; };
 		9C89A4114361C6F9FACA4919 /* DSMND.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DSMND.swift; sourceTree = "<group>"; };
+		A2428EFCE3BBD1E88BC9745B /* IBMPlexMono-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "IBMPlexMono-Regular.ttf"; sourceTree = "<group>"; };
 		A7489AD4B0CDAEC9E6870B93 /* XPCClientAuthentication.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XPCClientAuthentication.swift; sourceTree = "<group>"; };
 		AAA3593C1FB4896356B24159 /* LaunchAtLoginService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchAtLoginService.swift; sourceTree = "<group>"; };
+		AF3B252D30DA8E0E1171AD42 /* DSMNAboutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DSMNAboutView.swift; sourceTree = "<group>"; };
 		B2C80055A7FD5F82CDA2B5E5 /* FeedbackWindowPresenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedbackWindowPresenter.swift; sourceTree = "<group>"; };
 		B631CA4B883E9FCF612EA3B6 /* HelperXPCService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperXPCService.swift; sourceTree = "<group>"; };
 		B9EBDC0E1ED5BD3418A792F0 /* ReconcileSchedule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReconcileSchedule.swift; sourceTree = "<group>"; };
@@ -197,6 +212,7 @@
 		C5BBDCFF55A2F8F35800A50E /* HelperServiceClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperServiceClient.swift; sourceTree = "<group>"; };
 		C92E378A107B31D8A2594DF8 /* DSMNApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DSMNApp.swift; sourceTree = "<group>"; };
 		CC8C8661F0C29336DF4C864E /* StateStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StateStore.swift; sourceTree = "<group>"; };
+		CE9930F62AB4C8FAE97E285C /* DSMNIdentity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DSMNIdentity.swift; sourceTree = "<group>"; };
 		DB3D013F84E79A098A35E60B /* HookUninstallResultPresenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HookUninstallResultPresenter.swift; sourceTree = "<group>"; };
 		DC102235C1EE46A73C04E17C /* AgentHookLogInspector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentHookLogInspector.swift; sourceTree = "<group>"; };
 		E03AF3CD060A3DFA891C3B89 /* FeedbackService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedbackService.swift; sourceTree = "<group>"; };
@@ -353,8 +369,11 @@
 			isa = PBXGroup;
 			children = (
 				119D786BB6E6C5D87A9EB778 /* CheckForUpdatesView.swift */,
+				AF3B252D30DA8E0E1171AD42 /* DSMNAboutView.swift */,
+				2C63186E8C0250C77EFD5357 /* DSMNBrand.swift */,
 				4467B6CF349F4A78C8320B52 /* DSMNDoctorView.swift */,
 				8FA7A4EADB04DB2BFFEF1241 /* DSMNFeedbackView.swift */,
+				CE9930F62AB4C8FAE97E285C /* DSMNIdentity.swift */,
 				BBED8BCEB1A618ADE50C5249 /* DSMNLogoIcon.swift */,
 				849E36A9D8CE4CD95098D34D /* DSMNMenuView.swift */,
 				171C6E232736EB7D17692DC5 /* DSMNOnboardingView.swift */,
@@ -376,7 +395,12 @@
 		F1CC94ECFFBB89A2A9B48F3C /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				07317E704BC90BFEDD42139E /* dsmn-pulse.svg */,
 				88F8B60751F29892A00E5270 /* dsmn.icns */,
+				52C59ECE0E6CBAFEE95D899B /* Geist-LICENSE.txt */,
+				4ACF968A588BCD6F58F2422E /* GeistPixelSquare.ttf */,
+				0133BBCC4AC141EFC932321A /* IBMPlexMono-LICENSE.txt */,
+				A2428EFCE3BBD1E88BC9745B /* IBMPlexMono-Regular.ttf */,
 				9AA8D2AB8FBD0EA6CE85C610 /* THIRD_PARTY_NOTICES.txt */,
 			);
 			path = Resources;
@@ -557,7 +581,12 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				B85DEE6DEC877D1E9F0EADCF /* Geist-LICENSE.txt in Resources */,
+				601E526424DFE14D99D4E5D2 /* GeistPixelSquare.ttf in Resources */,
+				B749C526C7574CE090827FE6 /* IBMPlexMono-LICENSE.txt in Resources */,
+				1475A6663E986AFE99E53DF7 /* IBMPlexMono-Regular.ttf in Resources */,
 				6F7893D6AEF2B2C4E7287062 /* THIRD_PARTY_NOTICES.txt in Resources */,
+				8DE664FBD7F8669BBF27519B /* dsmn-pulse.svg in Resources */,
 				F20391AC430E71BFD5AA3A7C /* dsmn.icns in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -618,9 +647,12 @@
 				00FE674C813817F2AD92688E /* AboutPanelPresenter.swift in Sources */,
 				44A63173A14964531A93FFC8 /* AppQuitCoordinator.swift in Sources */,
 				497137023785CE2B1A43EC52 /* CheckForUpdatesView.swift in Sources */,
+				3D0588A868855F1CA59400FB /* DSMNAboutView.swift in Sources */,
 				0552AC01999A4BA4032DCCD5 /* DSMNApp.swift in Sources */,
+				CFB1D15847FBB385D5433156 /* DSMNBrand.swift in Sources */,
 				D08E1EFCB2A514AF84DD5960 /* DSMNDoctorView.swift in Sources */,
 				231FA510E94F11D4FB5D29A5 /* DSMNFeedbackView.swift in Sources */,
+				6487DBCA7BACAFF5501BB797 /* DSMNIdentity.swift in Sources */,
 				0B89FDFAD900348B587898D2 /* DSMNLogoIcon.swift in Sources */,
 				48B342822DB4A703A252BE4C /* DSMNMenuStore.swift in Sources */,
 				726EF89C354B1FAA841B9DC6 /* DSMNMenuView.swift in Sources */,

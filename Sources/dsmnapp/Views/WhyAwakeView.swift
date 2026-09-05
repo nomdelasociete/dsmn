@@ -3,6 +3,7 @@ import SwiftUI
 
 struct WhyAwakeView: View {
     @ObservedObject var store: DSMNMenuStore
+    @Environment(\.dsmnRefreshOnAppear) private var refreshOnAppear
     @Environment(\.dismiss) private var dismiss
 
     @State private var diagnostics: SleepDiagnosticsReport?
@@ -30,28 +31,16 @@ struct WhyAwakeView: View {
 
             footer
         }
-        .frame(width: 580, height: 560)
+        .frame(minWidth: 620, minHeight: 640)
+        .dsmnWindowStyle()
         .task {
-            await refreshAll()
+            if refreshOnAppear { await refreshAll() }
         }
     }
 
     private var header: some View {
-        HStack(spacing: 12) {
-            DSMNMenuBarIcon(state: store.menuBarIconState, size: 24)
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Why Awake?")
-                    .font(.title3.weight(.semibold))
-
-                Text(statusSummary)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
-            Spacer()
-        }
-        .padding(20)
+        DSMNPageHeader(eyebrow: "ACTIVITY", title: "Why awake?", detail: statusSummary)
+            .padding(24)
     }
 
     private var dsmnSection: some View {
@@ -94,7 +83,7 @@ struct WhyAwakeView: View {
         DiagnosticSection(title: title) {
             if blockers.isEmpty {
                 Text("None")
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(DSMNBrand.muted)
             } else {
                 VStack(alignment: .leading, spacing: 8) {
                     ForEach(blockers) { blocker in
@@ -105,18 +94,18 @@ struct WhyAwakeView: View {
 
                                 Text("pid \(blocker.pid)")
                                     .font(.caption)
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(DSMNBrand.muted)
 
                                 Spacer()
 
                                 Text(blocker.duration)
                                     .font(.caption.monospacedDigit())
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(DSMNBrand.muted)
                             }
 
                             Text("\(blocker.assertionType): \(blocker.assertionName)")
                                 .font(.caption)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(DSMNBrand.muted)
                                 .lineLimit(2)
                         }
                     }
@@ -135,7 +124,7 @@ struct WhyAwakeView: View {
             } else if let diagnostics {
                 Text("Updated \(diagnostics.generatedAt.formatted(date: .omitted, time: .standard))")
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(DSMNBrand.muted)
             }
 
             Spacer()
@@ -161,6 +150,7 @@ struct WhyAwakeView: View {
             Button("Done") {
                 dismiss()
             }
+            .buttonStyle(DSMNActionStyle(prominent: true))
             .keyboardShortcut(.defaultAction)
         }
         .padding(20)
@@ -235,7 +225,8 @@ private struct DiagnosticSection<Content: View>: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
-                .font(.headline)
+                .font(DSMNBrand.mono(12))
+                .foregroundStyle(DSMNBrand.sage)
 
             VStack(alignment: .leading, spacing: 6) {
                 content
@@ -251,12 +242,13 @@ private struct DiagnosticRow: View {
     var body: some View {
         HStack(alignment: .firstTextBaseline, spacing: 12) {
             Text(label)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(DSMNBrand.muted)
                 .frame(width: 110, alignment: .leading)
 
             Text(value)
+                .font(DSMNBrand.mono(12))
                 .textSelection(.enabled)
-                .lineLimit(3)
+                .fixedSize(horizontal: false, vertical: true)
 
             Spacer(minLength: 0)
         }

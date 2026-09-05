@@ -29,51 +29,56 @@ struct DSMNFeedbackView: View {
             }
         }
         .padding(24)
-        .frame(width: 520, height: 500)
+        .frame(width: 580, height: 660)
+        .dsmnWindowStyle()
     }
 
     private var formContent: some View {
         VStack(alignment: .leading, spacing: 18) {
             header
 
-            VStack(alignment: .leading, spacing: 14) {
-                Picker("Type", selection: $category) {
-                    ForEach(FeedbackCategory.allCases) { category in
-                        Text(category.displayName).tag(category)
-                    }
-                }
-                .pickerStyle(.segmented)
-
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Message")
-                        .font(.headline)
-
-                    TextEditor(text: $message)
-                        .font(.body)
-                        .frame(minHeight: 150)
-                        .padding(8)
-                        .background(.quaternary.opacity(0.35), in: RoundedRectangle(cornerRadius: 8))
-                        .overlay {
-                            RoundedRectangle(cornerRadius: 8)
-                                .stroke(.separator.opacity(0.45))
+            ScrollView {
+                VStack(alignment: .leading, spacing: 14) {
+                    Picker("Type", selection: $category) {
+                        ForEach(FeedbackCategory.allCases) { category in
+                            Text(category.displayName).tag(category)
                         }
-                }
+                    }
+                    .pickerStyle(.segmented)
 
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Email")
-                        .font(.headline)
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Message")
+                            .font(.headline)
 
-                    TextField("Optional", text: $email)
-                        .textFieldStyle(.roundedBorder)
-                }
+                        TextEditor(text: $message)
+                            .font(.body)
+                            .scrollContentBackground(.hidden)
+                            .accessibilityLabel("Message")
+                            .frame(minHeight: 150)
+                            .padding(8)
+                            .background(DSMNBrand.field)
+                            .overlay {
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(DSMNBrand.rule)
+                            }
+                    }
 
-                Toggle("Include diagnostics", isOn: $includeDiagnostics)
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Email")
+                            .font(.headline)
 
-                if includeDiagnostics {
-                    Text("Includes version, helper state, power state, active agents, and last requester.")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
+                        TextField("Optional", text: $email)
+                            .textFieldStyle(.roundedBorder)
+                    }
+
+                    Toggle("Include diagnostics", isOn: $includeDiagnostics)
+
+                    if includeDiagnostics {
+                        Text("Includes version, helper state, power state, active agents, and last requester.")
+                            .font(.footnote)
+                            .foregroundStyle(DSMNBrand.muted)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
             }
 
@@ -96,21 +101,21 @@ struct DSMNFeedbackView: View {
 
             ZStack {
                 Circle()
-                    .fill(.green.opacity(0.16))
+                    .fill(DSMNBrand.sage.opacity(0.12))
                     .frame(width: 74, height: 74)
 
                 Image(systemName: "checkmark.circle.fill")
                     .font(.system(size: 42, weight: .semibold))
-                    .foregroundStyle(.green)
+                    .foregroundStyle(DSMNBrand.sage)
             }
 
             VStack(spacing: 6) {
-                Text("Feedback Sent")
-                    .font(.title2.weight(.semibold))
+                Text("Note received.")
+                    .font(DSMNBrand.display(32))
 
                 Text("Thanks. It has been saved and the window will close automatically.")
                     .font(.callout)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(DSMNBrand.muted)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -123,28 +128,18 @@ struct DSMNFeedbackView: View {
                 Button("Done") {
                     onClose()
                 }
+                .buttonStyle(DSMNActionStyle(prominent: true))
                 .keyboardShortcut(.defaultAction)
             }
         }
     }
 
     private var header: some View {
-        HStack(spacing: 12) {
-            Image(nsImage: NSApplication.shared.applicationIconImage)
-                .resizable()
-                .interpolation(.high)
-                .frame(width: 42, height: 42)
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Send Feedback")
-                    .font(.title2.weight(.semibold))
-
-                Text("Tell us what happened, what you expected, or what should improve.")
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
+        DSMNPageHeader(
+            eyebrow: "FEEDBACK",
+            title: "A little note goes a long way.",
+            detail: "Tell us what happened, what you expected, or what should improve."
+        )
     }
 
     private var footer: some View {
@@ -172,6 +167,7 @@ struct DSMNFeedbackView: View {
                         .frame(width: 46)
                 }
             }
+            .buttonStyle(DSMNActionStyle(prominent: true))
             .keyboardShortcut(.defaultAction)
             .disabled(!canSubmit)
         }

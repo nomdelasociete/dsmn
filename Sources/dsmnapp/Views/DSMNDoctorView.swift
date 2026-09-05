@@ -7,20 +7,22 @@ struct DSMNDoctorView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("Diagnostic report from the helper and local dsmn state.")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-                .padding(.horizontal, 20)
-                .padding(.top, 18)
-                .padding(.bottom, 12)
+            DSMNPageHeader(
+                eyebrow: "DIAGNOSTICS",
+                title: "A closer look.",
+                detail: "Diagnostic report from the helper and local dsmn state."
+            )
+            .padding(24)
 
             ScrollView {
                 Text(report)
-                    .font(.system(.body, design: .monospaced))
+                    .font(DSMNBrand.mono(12))
+                    .lineSpacing(4)
                     .textSelection(.enabled)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 20)
+                    .padding(20)
             }
+            .background(DSMNBrand.field)
 
             Divider()
 
@@ -39,6 +41,7 @@ struct DSMNDoctorView: View {
             }
             .padding(20)
         }
-        .frame(minWidth: 560, minHeight: 520)
+        .frame(minWidth: 620, minHeight: 620)
+        .dsmnWindowStyle()
     }
 }

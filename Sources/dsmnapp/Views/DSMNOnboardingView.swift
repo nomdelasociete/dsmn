@@ -4,6 +4,7 @@ import SwiftUI
 
 struct DSMNOnboardingView: View {
     @ObservedObject var store: DSMNMenuStore
+    @Environment(\.dsmnRefreshOnAppear) private var refreshOnAppear
     var onSkip: () -> Void
     var onDone: () -> Void
 
@@ -13,8 +14,8 @@ struct DSMNOnboardingView: View {
                 VStack(spacing: 0) {
                     header
 
-                    VStack(spacing: 14) {
-                        OnboardingStepRow(
+                    VStack(spacing: 0) {
+                        DSMNSettingsRow(
                             systemImage: store.helperIsReady ? "checkmark.circle.fill" : "lock.shield",
                             title: "Install the helper",
                             detail: helperDetail,
@@ -24,7 +25,7 @@ struct DSMNOnboardingView: View {
                             helperAction
                         }
 
-                        OnboardingStepRow(
+                        DSMNSettingsRow(
                             systemImage: store.hooksStatusIconName,
                             title: "Connect your agents",
                             detail: "Install bounded hooks for \(AgentHookTarget.joinedDisplayNames()).",
@@ -42,7 +43,7 @@ struct DSMNOnboardingView: View {
                             OnboardingHookActionResultList(rows: store.hookActionResultRows)
                         }
 
-                        OnboardingStepRow(
+                        DSMNSettingsRow(
                             systemImage: store.launchAtLoginEnabled ? "checkmark.circle.fill" : "power",
                             title: "Launch with your Mac",
                             detail: "Optional. Starts the menu bar app automatically when you log in.",
@@ -57,7 +58,7 @@ struct DSMNOnboardingView: View {
                             .toggleStyle(.switch)
                         }
 
-                        OnboardingStepRow(
+                        DSMNSettingsRow(
                             systemImage: "stethoscope",
                             title: "Troubleshooting",
                             detail: troubleshootingDetail,
@@ -85,7 +86,7 @@ struct DSMNOnboardingView: View {
                         Text(errorMessage)
                             .font(.footnote)
                             .foregroundStyle(.red)
-                            .lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(.top, 12)
                     }
@@ -98,57 +99,27 @@ struct DSMNOnboardingView: View {
             footer
                 .padding(.horizontal, 32)
                 .padding(.vertical, 16)
-                .background(.regularMaterial)
+                .background(DSMNBrand.paper)
         }
         .frame(width: 720, height: 720, alignment: .top)
-        .background(
-            LinearGradient(
-                colors: [
-                    Color(nsColor: .windowBackgroundColor),
-                    Color(nsColor: .controlBackgroundColor)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-        )
+        .dsmnWindowStyle()
         .task {
-            await store.refresh()
+            if refreshOnAppear { await store.refresh() }
         }
     }
 
     private var header: some View {
-        VStack(spacing: 16) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 28)
-                    .fill(.ultraThinMaterial)
-                    .frame(width: 88, height: 88)
-                    .shadow(color: .black.opacity(0.16), radius: 20, y: 9)
-
-                Image(nsImage: NSApplication.shared.applicationIconImage)
-                    .resizable()
-                    .interpolation(.high)
-                    .frame(width: 70, height: 70)
-            }
-
-            VStack(spacing: 7) {
-                Text("Don't Stop Me Now!")
-                    .font(.system(size: 32, weight: .semibold, design: .rounded))
-
-                Text("Agent hooks extend a manual sleep timer so closed-lid sessions with \(AgentHookTarget.joinedDisplayNames(short: true)) keep going.")
-                    .font(.system(size: 15))
-                    .foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: 600)
-            }
-        }
+        DSMNPageHeader(
+            eyebrow: "01 / GETTING STARTED",
+            title: "Set it up. Then step away.",
+            detail: "Keep your Mac awake while your local AI agents work. Even with the lid closed."
+        )
     }
 
     @ViewBuilder
     private var helperAction: some View {
         if store.helperIsReady {
-            Button("Ready") {}
-                .disabled(true)
+            Label("Ready", systemImage: "checkmark").foregroundStyle(DSMNBrand.sage)
         } else if store.helperNeedsRepair {
             Button("Repair Helper") {
                 store.updateHelper()
@@ -162,7 +133,7 @@ struct DSMNOnboardingView: View {
                 if let retryMessage = store.helperUpdateRetryMessage {
                     Text(retryMessage)
                         .font(.caption)
-                        .foregroundStyle(.orange)
+                        .foregroundStyle(DSMNBrand.orange)
                         .multilineTextAlignment(.trailing)
                         .fixedSize(horizontal: false, vertical: true)
                         .frame(maxWidth: 190, alignment: .trailing)
@@ -237,72 +208,8 @@ struct DSMNOnboardingView: View {
             Button(store.setupIsComplete ? "Done" : "Finish Later") {
                 onDone()
             }
+            .buttonStyle(DSMNActionStyle(prominent: true))
             .keyboardShortcut(.defaultAction)
-        }
-    }
-}
-
-private struct OnboardingStepRow<Actions: View>: View {
-    var systemImage: String
-    var title: String
-    var detail: String
-    var status: String
-    var isComplete: Bool
-    var isBusy = false
-    var isOptional = false
-    @ViewBuilder var actions: Actions
-
-    var body: some View {
-        HStack(alignment: .center, spacing: 16) {
-            Group {
-                if isBusy {
-                    ProgressView()
-                        .controlSize(.small)
-                } else {
-                    Image(systemName: systemImage)
-                        .font(.system(size: 22, weight: .semibold))
-                        .symbolRenderingMode(.hierarchical)
-                        .foregroundStyle(isComplete ? .green : .primary)
-                }
-            }
-            .frame(width: 34, height: 34)
-
-            VStack(alignment: .leading, spacing: 5) {
-                HStack(spacing: 8) {
-                    Text(title)
-                        .font(.system(size: 16, weight: .semibold))
-
-                    if isOptional {
-                        Text("Optional")
-                            .font(.caption.weight(.medium))
-                            .foregroundStyle(.secondary)
-                            .padding(.horizontal, 7)
-                            .padding(.vertical, 2)
-                            .background(.secondary.opacity(0.12), in: Capsule())
-                    }
-                }
-
-                Text(detail)
-                    .font(.system(size: 13))
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                Text(status)
-                    .font(.caption.monospacedDigit())
-                    .foregroundStyle(isComplete ? .green : .secondary)
-            }
-
-            Spacer(minLength: 16)
-
-            actions
-                .controlSize(.regular)
-                .frame(minWidth: 132, alignment: .trailing)
-        }
-        .padding(16)
-        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 14))
-        .overlay {
-            RoundedRectangle(cornerRadius: 14)
-                .stroke(.quaternary, lineWidth: 1)
         }
     }
 }
@@ -334,7 +241,7 @@ private struct OnboardingHookActionResultList: View {
         }
         .padding(.horizontal, 18)
         .padding(.vertical, 10)
-        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .background(DSMNBrand.field)
         .overlay {
             RoundedRectangle(cornerRadius: 12)
                 .stroke(.quaternary, lineWidth: 1)
@@ -355,9 +262,9 @@ private struct OnboardingHookActionResultList: View {
     private func foregroundStyle(for state: AgentHookActionResultState) -> AnyShapeStyle {
         switch state {
         case .updated:
-            AnyShapeStyle(.blue)
+            AnyShapeStyle(DSMNBrand.sage)
         case .unchanged:
-            AnyShapeStyle(.green)
+            AnyShapeStyle(DSMNBrand.sage)
         case .failed:
             AnyShapeStyle(.red)
         }
