@@ -2,6 +2,11 @@ import XCTest
 @testable import DSMNCore
 
 final class AgentDetectorTests: XCTestCase {
+    func testPSListingUsesBoundedCommandRunner() throws {
+        let listing = PSProcessListing(runner: ProcessCommandRunner(timeout: 0.5))
+        XCTAssertFalse(try listing.listProcesses().isEmpty)
+    }
+
     func testDetectsGrokBuildBinary() {
         let detector = AgentDetector()
         let processes = [
