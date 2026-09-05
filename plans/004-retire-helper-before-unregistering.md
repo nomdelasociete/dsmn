@@ -15,7 +15,7 @@
   `002-release-despite-diagnostic-failures.md`
 - Category: bug
 - Planned at: `513b03a`, 2026-09-05; audit finding 1
-- Implementation status: TODO
+- Implementation status: BLOCKED; first-upgrade scope decision pending
 
 ## Why this matters
 
@@ -257,3 +257,34 @@ requires force-killing the root helper from the app, extending a preserved lease
 or automatic registration recovery. Future XPC methods that can acquire a lock
 must obey the retirement admission barrier. Review shutdown retries and timer
 callbacks together so no callback can reacquire during retirement.
+
+## Compatibility investigation — 2026-09-05
+
+The current helper releases its operation lock before replying to Stop, and its
+manual selectors remain available afterward. Therefore Stop, a live-state check,
+and unregister cannot together establish the requested admission barrier.
+
+Apple's installed `SMAppService.h` documents that synchronous unregister does not
+wait for process reaping. The
+[asynchronous unregister API](https://developer.apple.com/documentation/servicemanagement/smappservice/unregister%28completionhandler%3A%29?language=objc)
+does wait for termination and is the correct replacement primitive, but offers
+no way to pause an older helper's request admission before terminating it.
+Registering an already registered service is not a supported replacement path.
+A reboot also must not be advertised as resetting `disablesleep`: the Apple
+[pmset implementation](https://github.com/apple-oss-distributions/PowerManagement/blob/main/pmset/pmset.m)
+uses `IOPMSetSystemPowerSetting`, whose
+[IOKit implementation](https://github.com/apple-oss-distributions/IOKitUser/blob/main/pwr_mgt.subproj/IOPMEnergyPrefs.c)
+persists system settings through CFPreferences.
+
+A possible automatic first-upgrade design adds a separately registered migration
+guard mode of the signed helper. It must be approved and durably armed before
+the old registration is removed, independently observe old-process termination,
+retain cleanup responsibility across app failure, and coordinate release before
+the replacement can reacquire. This expands the current packaging, state, and
+integration scope. Child power-command draining and signed crash/restart cases
+still need proof; the design is not an implemented or verified solution.
+
+The user was asked whether to include that expansion or complete the other four
+fixes first. Their clarification was answered: this concerns every Mac upgrading
+from an older installed helper, not only the maintainer machine. No lifecycle
+implementation or installed-helper mutation has been performed.
