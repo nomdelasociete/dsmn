@@ -3,6 +3,7 @@ import Foundation
 
 @MainActor
 final class DSMNMenuStore: ObservableObject {
+    let quitCoordinator = AppQuitCoordinator()
     @Published private(set) var report: StatusReport?
     @Published private(set) var errorMessage: String?
     @Published private(set) var isRefreshing = false
@@ -49,10 +50,12 @@ final class DSMNMenuStore: ObservableObject {
     init(
         controller: DSMNController,
         helperStatus: HelperRegistrationStatus,
+        initialReport: StatusReport? = nil,
         stopHelper: @escaping () async throws -> StatusReport
     ) {
         self.controller = controller
         self.helperStatus = helperStatus
+        report = initialReport
         setupError = nil
         stopHelperOverride = stopHelper
     }

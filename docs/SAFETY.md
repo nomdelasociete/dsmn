@@ -21,7 +21,13 @@ forgetting ownership before the system state has been released.
 Quitting the menu bar app is not the same as stopping protection. The app asks
 for an explicit choice when dsmn is active: `Stop & Quit` releases the current
 timer before closing, while `Quit, Keep Running` leaves the helper and hooks in
-their current state.
+their current state. Stop & Quit closes the app only after the authenticated
+helper confirms that its timer is cleared and it no longer owns the power lock.
+If the request fails, times out, or still reports a timer or lock, the app stays
+open and shows the failure. Clearing local fallback state alone cannot confirm
+that the helper stopped. The user can retry or explicitly choose Quit, Keep
+Running. A later hook can start a new timer; Stop is not a persistent pause and
+does not clear other apps' sleep assertions.
 
 ## Activation model
 

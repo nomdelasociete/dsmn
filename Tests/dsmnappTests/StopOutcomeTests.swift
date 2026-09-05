@@ -158,6 +158,25 @@ final class StopOutcomeTests: XCTestCase {
         XCTAssertEqual(helperCalls, 2)
     }
 
+    func testFailedStopKeepsKnownHelperProtectionVisible() async throws {
+        let controller = try temporaryController()
+        var protected = stoppedReport()
+        protected.state.ownsSleepDisable = true
+        protected.state.manualUntil = Date().addingTimeInterval(600)
+        let store = DSMNMenuStore(
+            controller: controller,
+            helperStatus: .notFound,
+            initialReport: protected,
+            stopHelper: { throw DSMNHelperClientError.commandFailed("injected release failure") }
+        )
+        let outcome = await store.stopNow()
+        XCTAssertFalse(outcome.isHelperConfirmed)
+        XCTAssertEqual(store.report, protected)
+        XCTAssertTrue(store.isProtectingSleep)
+        XCTAssertTrue(store.hasUnconfirmedStop)
+        XCTAssertTrue(store.errorMessage?.contains("injected release failure") == true)
+    }
+
     private func temporaryController() throws -> DSMNController {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent("dsmn-stop-test-\(UUID())")
         addTeardownBlock { try? FileManager.default.removeItem(at: directory) }

@@ -164,6 +164,11 @@ bundle, it also embeds the helper executable and LaunchDaemon plist and can ask
 - `Quit`
 
 If dsmn is active, `Quit` asks whether to `Stop & Quit` or `Quit, Keep Running`.
+Stop & Quit waits for the helper to confirm that its timer and owned power lock
+are cleared. Failed or unconfirmed stops keep the app open with an error, even
+if local timer cleanup succeeded. Retry Stop & Quit or explicitly choose Quit,
+Keep Running; Cancel leaves the app running without issuing Stop. Stop remains
+available when helper registration is missing or ambiguous.
 Quitting the menu bar app alone does not unload the privileged helper and does
 not disable installed agent hooks. A later Claude, Cursor, Codex, Grok, or Pi hook can
 start a fresh manual timer again.

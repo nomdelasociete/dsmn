@@ -59,3 +59,44 @@ enum StopRequest {
         }
     }
 }
+
+enum AppQuitChoice {
+    case stopAndQuit
+    case keepRunning
+    case cancel
+}
+
+@MainActor
+final class AppQuitCoordinator {
+    private var isStopping = false
+    private var terminationRequested = false
+
+    func request(
+        _ choice: AppQuitChoice,
+        stop: () async -> StopOutcome,
+        terminate: () -> Void,
+        presentFailure: (String) -> Void
+    ) async {
+        guard !terminationRequested else { return }
+        switch choice {
+        case .cancel:
+            return
+        case .keepRunning:
+            terminationRequested = true
+            terminate()
+        case .stopAndQuit:
+            guard !isStopping else { return }
+            isStopping = true
+            defer { isStopping = false }
+            let outcome = await stop()
+            // An explicit keep-running quit may have occurred while Stop was pending.
+            guard !terminationRequested else { return }
+            if outcome.isHelperConfirmed {
+                terminationRequested = true
+                terminate()
+            } else {
+                presentFailure(outcome.failureMessage ?? "The helper did not confirm a stop.")
+            }
+        }
+    }
+}
