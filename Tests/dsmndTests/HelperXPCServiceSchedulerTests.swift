@@ -3,6 +3,57 @@ import XCTest
 @testable import dsmnd
 
 final class HelperXPCServiceSchedulerTests: XCTestCase {
+    func testCachedClosedLidDoesNotSleepDisplayAfterStopAndFreshOpenRenewal() throws {
+        try assertRenewalDisplayUsesFreshSample(lidClosed: false)
+    }
+
+    func testClosedLidRenewalSleepsDisplayOnlyAfterFreshObservation() throws {
+        try assertRenewalDisplayUsesFreshSample(lidClosed: true)
+    }
+
+    private func assertRenewalDisplayUsesFreshSample(lidClosed: Bool) throws {
+        let blocked = expectation(description: "new lid observation blocked")
+        let gate = ProbeGate(entered: blocked)
+        defer { gate.open() }
+        let store = try makeStore()
+        try store.save(DSMNState(manualUntil: Date().addingTimeInterval(300), ownsSleepDisable: true, lastLidClosed: true))
+        let power = RecordingPowerManager(dryRun: false)
+        let service = DSMNHelperXPCService(
+            controller: DSMNController(
+                store: store, processListing: StaticProcessListing([]),
+                snapshotProvider: FirstClosedThenGatedSnapshotProvider(gate: gate, freshLidClosed: lidClosed)
+            ),
+            powerManager: power,
+            liveSleepDisabledProvider: { nil }
+        )
+        service.status { _ in }
+        var status: StatusReport?
+        let readyDeadline = Date().addingTimeInterval(1)
+        repeat {
+            pump(for: 0.01)
+            service.status { status = try? self.decode($0).status }
+        } while status?.snapshot.lidClosed != true && Date() < readyDeadline
+        XCTAssertEqual(status?.snapshot.lidClosed, true)
+        wait(for: [blocked], timeout: 1)
+        XCTAssertEqual(power.displayCount, 0)
+
+        service.stop { _ in }
+        service.enableManual(minutes: 20) { _ in }
+
+        XCTAssertEqual(power.snapshot(), [false, true])
+        XCTAssertEqual(power.displayCount, 0, "Cached closed-lid data must not trigger display sleep")
+        gate.open()
+        let publicationDeadline = Date().addingTimeInterval(1)
+        while Date() < publicationDeadline, try store.load().lastLidClosed != lidClosed { pump(for: 0.01) }
+
+        XCTAssertEqual(try store.load().lastLidClosed, lidClosed)
+        XCTAssertTrue(try store.load().ownsSleepDisable)
+        XCTAssertNotNil(try store.load().manualUntil)
+        XCTAssertEqual(power.displayCount, lidClosed ? 1 : 0)
+        XCTAssertEqual(power.recordedActions, lidClosed ? [.enableSleep, .disableSleep, .displaySleepNow] : [.enableSleep, .disableSleep])
+        withExtendedLifetime(service) {}
+    }
+
     func testUnownedRepairFreshlyChecksLiveLockDespiteCachedOffState() throws {
         try assertFreshUnownedRepair(cached: false, fresh: true)
     }
@@ -44,35 +95,25 @@ final class HelperXPCServiceSchedulerTests: XCTestCase {
     }
 
     func testThrownDisplayFollowupStillArmsExpiryCleanupForNewlyAcquiredLock() throws {
-        let blocked = expectation(description: "next closed-lid sample blocked")
-        let gate = ProbeGate(entered: blocked)
-        defer { gate.open() }
+        let displayAttempted = expectation(description: "fresh closed-lid display operation attempted")
         let store = try makeStore()
-        let power = RecordingPowerManager(dryRun: false, throwsOnDisplay: true)
+        try store.save(DSMNState(manualUntil: Date().addingTimeInterval(2)))
+        let power = RecordingPowerManager(dryRun: false, throwsOnDisplay: true, displayAttempted: displayAttempted)
         let service = DSMNHelperXPCService(
             controller: DSMNController(
                 store: store, processListing: StaticProcessListing([]),
-                snapshotProvider: FirstClosedThenGatedSnapshotProvider(gate: gate)
+                snapshotProvider: StaticSystemSnapshotProvider(SystemSnapshot(powerSource: .ac, lidClosed: true))
             ),
             powerManager: power,
             liveSleepDisabledProvider: { nil }
         )
-        service.status { _ in }
-        var status: StatusReport?
-        let readyDeadline = Date().addingTimeInterval(1)
-        repeat {
-            pump(for: 0.02)
-            service.status { status = try? self.decode($0).status }
-        } while status?.snapshot.lidClosed != true && Date() < readyDeadline
-        XCTAssertEqual(status?.snapshot.lidClosed, true)
-        wait(for: [blocked], timeout: 1)
-        // Start at a closed-lid edge with a short fixture lease. A successful
-        // acquisition followed by a throwing display command must remain owned.
-        try store.save(DSMNState(manualUntil: Date().addingTimeInterval(2), lastLidClosed: false))
         var payload = ""
         service.reconcile { payload = $0 }
 
-        XCTAssertNotNil(try decode(payload).error)
+        XCTAssertNil(try decode(payload).error)
+        // Fresh asynchronous telemetry supplies the display edge after the
+        // system lock is acquired. Its failure must preserve the expiry timer.
+        wait(for: [displayAttempted], timeout: 1)
         XCTAssertTrue(try store.load().ownsSleepDisable)
         let deadline = Date().addingTimeInterval(5)
         while Date() < deadline, try store.load().ownsSleepDisable { pump(for: 0.02) }
@@ -80,8 +121,7 @@ final class HelperXPCServiceSchedulerTests: XCTestCase {
         XCTAssertEqual(power.snapshot(), [true, false])
         XCTAssertFalse(try store.load().ownsSleepDisable)
         XCTAssertNil(try store.load().manualUntil)
-        XCTAssertFalse(gate.isOpen)
-        gate.open()
+        XCTAssertEqual(power.displayCount, 1)
         withExtendedLifetime(service) {}
     }
 
@@ -522,20 +562,25 @@ private final class RecordingPowerManager: PowerManaging, @unchecked Sendable {
     private var requests: [Bool] = []
     private var outcomes: [Outcome]
     private var sleepRequests = 0
+    private var displayRequests = 0
+    private var actions: [PowerOperationAction] = []
     private let defaultExitCode: Int32
     private let throwsOnDisplay: Bool
+    private let displayAttempted: XCTestExpectation?
     let dryRun: Bool
 
-    init(dryRun: Bool, outcomes: [Outcome] = [], defaultExitCode: Int32 = 0, throwsOnDisplay: Bool = false) {
+    init(dryRun: Bool, outcomes: [Outcome] = [], defaultExitCode: Int32 = 0, throwsOnDisplay: Bool = false, displayAttempted: XCTestExpectation? = nil) {
         self.dryRun = dryRun
         self.outcomes = outcomes
         self.defaultExitCode = defaultExitCode
         self.throwsOnDisplay = throwsOnDisplay
+        self.displayAttempted = displayAttempted
     }
 
     func setSleepDisabled(_ disabled: Bool) throws -> PowerOperationResult {
         lock.lock()
         requests.append(disabled)
+        actions.append(disabled ? .disableSleep : .enableSleep)
         let outcome = outcomes.isEmpty ? .exit(defaultExitCode) : outcomes.removeFirst()
         lock.unlock()
 
@@ -560,12 +605,16 @@ private final class RecordingPowerManager: PowerManaging, @unchecked Sendable {
     }
 
     var sleepCount: Int { lock.withLock { sleepRequests } }
+    var displayCount: Int { lock.withLock { displayRequests } }
+    var recordedActions: [PowerOperationAction] { lock.withLock { actions } }
     func requestSleepNow() throws -> PowerOperationResult {
-        lock.withLock { sleepRequests += 1 }
+        lock.withLock { sleepRequests += 1; actions.append(.sleepNow) }
         return PowerOperationResult(requestedSleepDisabled: false, dryRun: false, executedCommand: "fake sleep", exitCode: 0, action: .sleepNow)
     }
 
     func requestDisplaySleepNow() throws -> PowerOperationResult {
+        lock.withLock { displayRequests += 1; actions.append(.displaySleepNow) }
+        displayAttempted?.fulfill()
         if throwsOnDisplay { throw CocoaError(.executableNotLoadable) }
         return PowerOperationResult(requestedSleepDisabled: false, dryRun: false, executedCommand: "fake display sleep", exitCode: 0, action: .displaySleepNow)
     }
@@ -607,11 +656,12 @@ private final class FirstClosedThenGatedSnapshotProvider: SystemSnapshotProvidin
     private let lock = NSLock()
     private var calls = 0
     let gate: ProbeGate
-    init(gate: ProbeGate) { self.gate = gate }
+    let freshLidClosed: Bool
+    init(gate: ProbeGate, freshLidClosed: Bool = true) { self.gate = gate; self.freshLidClosed = freshLidClosed }
     func snapshot(now: Date) throws -> SystemSnapshot {
         let call = lock.withLock { calls += 1; return calls }
         if call > 1 { gate.wait() }
-        return SystemSnapshot(now: now, powerSource: .ac, lidClosed: true)
+        return SystemSnapshot(now: now, powerSource: .ac, lidClosed: call == 1 ? true : freshLidClosed)
     }
     func sleepSnapshot(now: Date) throws -> SystemSnapshot { SystemSnapshot(now: now, powerSource: .ac) }
 }
