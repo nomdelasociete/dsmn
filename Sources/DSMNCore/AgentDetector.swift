@@ -5,30 +5,19 @@ public protocol ProcessListing: Sendable {
 }
 
 public struct PSProcessListing: ProcessListing {
-    public init() {}
+    public var runner: any CommandRunning
+
+    public init(runner: any CommandRunning = ProcessCommandRunner()) {
+        self.runner = runner
+    }
 
     public func listProcesses() throws -> [RunningProcess] {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/bin/ps")
-        process.arguments = ["-axo", "pid=,ppid=,comm=,command="]
-
-        let output = Pipe()
-        let error = Pipe()
-        process.standardOutput = output
-        process.standardError = error
-
-        try process.run()
-        let data = output.fileHandleForReading.readDataToEndOfFile()
-        let errorData = error.fileHandleForReading.readDataToEndOfFile()
-        process.waitUntilExit()
-
-        guard process.terminationStatus == 0 else {
-            let message = String(data: errorData, encoding: .utf8) ?? "ps failed"
-            throw DSMNError.processListingFailed(message)
+        let output = try runner.run("/bin/ps", arguments: ["-axo", "pid=,ppid=,comm=,command="])
+        guard output.exitCode == 0 else {
+            throw DSMNError.processListingFailed(output.stderr)
         }
 
-        let text = String(data: data, encoding: .utf8) ?? ""
-        return text.split(separator: "\n").compactMap { parsePSLine(String($0)) }
+        return output.stdout.split(separator: "\n").compactMap { parsePSLine(String($0)) }
     }
 
     private func parsePSLine(_ line: String) -> RunningProcess? {

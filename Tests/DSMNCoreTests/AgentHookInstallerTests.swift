@@ -1,7 +1,227 @@
 import XCTest
+import TOMLKit
 @testable import DSMNCore
 
 final class AgentHookInstallerTests: XCTestCase {
+    func testCodexInstallationPreservesCommentedFeatureHeader() throws {
+        let home = temporaryHome()
+        defer { try? FileManager.default.removeItem(at: home) }
+        let config = home.appendingPathComponent(".codex/config.toml")
+        try FileManager.default.createDirectory(at: config.deletingLastPathComponent(), withIntermediateDirectories: true)
+        let original = "[features] # valid table comment\nhooks = false # user note\nother = true\n[desktop] # next table\nname = 'original'\n"
+        try original.write(to: config, atomically: true, encoding: .utf8)
+
+        _ = try AgentHookInstaller(homeDirectory: home).install(targets: [.codex])
+
+        let installed = try String(contentsOf: config, encoding: .utf8)
+        let parsed = try TOMLTable(string: installed)
+        XCTAssertEqual(parsed["features"]?.table?["hooks"]?.bool, true)
+        XCTAssertEqual(parsed["features"]?.table?["other"]?.bool, true)
+        XCTAssertEqual(parsed["desktop"]?.table?["name"]?.string, "original")
+        XCTAssertEqual(installed, original.replacingOccurrences(of: "hooks = false", with: "hooks = true"))
+    }
+
+    func testCodexPreparationFailurePreservesBothExistingFiles() throws {
+        let validJSON = Data("{ \"other\": true, \"hooks\": {} }\n".utf8)
+        let validTOML = Data("[features] # keep\nhooks = false\n".utf8)
+        let fixtures: [(Data, Data)] = [
+            (validJSON, Data("[features]\nhooks = false\n[features]\nhooks = true\n".utf8)),
+            (validJSON, Data("secret = 'private-value\n".utf8)),
+            (validJSON, Data([0xff, 0xfe])),
+            (validJSON, Data("features = { hooks = false }\n".utf8)),
+            (validJSON, Data("features.hooks = false\n".utf8)),
+            (Data("{ invalid private-value".utf8), validTOML),
+            (Data("[]".utf8), validTOML),
+            (Data(), validTOML),
+            (Data("{\"hooks\": []}".utf8), validTOML),
+            (Data("{\"hooks\": {\"PreToolUse\": true}}".utf8), validTOML)
+        ]
+        for (json, toml) in fixtures {
+            let home = temporaryHome()
+            defer { try? FileManager.default.removeItem(at: home) }
+            let directory = home.appendingPathComponent(".codex")
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            let jsonPath = directory.appendingPathComponent("hooks.json")
+            let tomlPath = directory.appendingPathComponent("config.toml")
+            try json.write(to: jsonPath)
+            try toml.write(to: tomlPath)
+
+            let report = try XCTUnwrap(AgentHookInstaller(homeDirectory: home).installReportingFailures(targets: [.codex]).first)
+
+            XCTAssertFalse(report.succeeded)
+            XCTAssertFalse(report.changed)
+            XCTAssertFalse(report.error?.contains("private-value") ?? true)
+            XCTAssertTrue(report.error?.contains(directory.path) ?? false)
+            XCTAssertEqual(try Data(contentsOf: jsonPath), json)
+            XCTAssertEqual(try Data(contentsOf: tomlPath), toml)
+        }
+    }
+
+    func testCodexUnreadableInputIsNotTreatedAsEmpty() throws {
+        let home = temporaryHome()
+        defer { try? FileManager.default.removeItem(at: home) }
+        let directory = home.appendingPathComponent(".codex")
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let json = directory.appendingPathComponent("hooks.json")
+        let toml = directory.appendingPathComponent("config.toml")
+        let originalJSON = Data("{ \"keep\": true }\n".utf8)
+        let originalTOML = Data("[features]\nhooks = false\n".utf8)
+        try originalJSON.write(to: json)
+        try originalTOML.write(to: toml)
+        try FileManager.default.setAttributes([.posixPermissions: 0o000], ofItemAtPath: toml.path)
+        defer { try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: toml.path) }
+        guard !FileManager.default.isReadableFile(atPath: toml.path) else {
+            throw XCTSkip("An elevated test runner can read mode-000 files")
+        }
+
+        let report = try XCTUnwrap(AgentHookInstaller(homeDirectory: home).installReportingFailures(targets: [.codex]).first)
+
+        XCTAssertFalse(report.succeeded)
+        XCTAssertEqual(try Data(contentsOf: json), originalJSON)
+        try FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: toml.path)
+        XCTAssertEqual(try Data(contentsOf: toml), originalTOML)
+    }
+
+    func testCodexNonRegularConfigurationIsRefused() throws {
+        for useSymlink in [false, true] {
+            let home = temporaryHome()
+            defer { try? FileManager.default.removeItem(at: home) }
+            let directory = home.appendingPathComponent(".codex")
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            let json = directory.appendingPathComponent("hooks.json")
+            let toml = directory.appendingPathComponent("config.toml")
+            let external = home.appendingPathComponent("external.toml")
+            let original = Data("[features]\nhooks = false\n".utf8)
+            try original.write(to: external)
+            if useSymlink {
+                try FileManager.default.createSymbolicLink(at: toml, withDestinationURL: external)
+            } else {
+                try FileManager.default.createDirectory(at: toml, withIntermediateDirectories: false)
+            }
+            try Data("{}".utf8).write(to: json)
+
+            let report = try XCTUnwrap(AgentHookInstaller(homeDirectory: home).installReportingFailures(targets: [.codex]).first)
+
+            XCTAssertFalse(report.succeeded)
+            XCTAssertEqual(try Data(contentsOf: json), Data("{}".utf8))
+            XCTAssertEqual(try Data(contentsOf: external), original)
+        }
+    }
+
+    func testCodexDetectedInterveningEditDoesNotReplaceEitherFile() throws {
+        for editedName in ["config.toml", "hooks.json"] {
+            let home = temporaryHome()
+            defer { try? FileManager.default.removeItem(at: home) }
+            let directory = home.appendingPathComponent(".codex")
+            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            let json = directory.appendingPathComponent("hooks.json")
+            let toml = directory.appendingPathComponent("config.toml")
+            let originalJSON = Data("{}".utf8)
+            let originalTOML = Data("[features]\nhooks = false\n".utf8)
+            let concurrent = Data((editedName == "config.toml" ? "features.hooks = true\n" : "{\"user_edit\": true}").utf8)
+            try originalJSON.write(to: json)
+            try originalTOML.write(to: toml)
+            var installer = AgentHookInstaller(homeDirectory: home)
+            installer.beforeCodexReplacement = { path in
+                if path.lastPathComponent == "config.toml" {
+                    try concurrent.write(to: directory.appendingPathComponent(editedName))
+                }
+            }
+
+            let report = try XCTUnwrap(installer.installReportingFailures(targets: [.codex]).first)
+
+            XCTAssertFalse(report.succeeded)
+            XCTAssertFalse(report.changed)
+            XCTAssertTrue(report.error?.contains("changed during installation") ?? false)
+            XCTAssertEqual(try Data(contentsOf: json), editedName == "hooks.json" ? concurrent : originalJSON)
+            XCTAssertEqual(try Data(contentsOf: toml), editedName == "config.toml" ? concurrent : originalTOML)
+        }
+    }
+
+    func testCodexPartialReplacementReportsProgressAndRerunPreservesUserEdit() throws {
+        let home = temporaryHome()
+        defer { try? FileManager.default.removeItem(at: home) }
+        let directory = home.appendingPathComponent(".codex")
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let json = directory.appendingPathComponent("hooks.json")
+        let toml = directory.appendingPathComponent("config.toml")
+        try Data("{}".utf8).write(to: json)
+        try Data("[features]\nhooks = false\n".utf8).write(to: toml)
+        let concurrent = Data("{ \"user_edit\": true }".utf8)
+        var installer = AgentHookInstaller(homeDirectory: home)
+        installer.beforeCodexReplacement = { path in
+            if path.lastPathComponent == "hooks.json" { try concurrent.write(to: path) }
+        }
+
+        let report = try XCTUnwrap(installer.installReportingFailures(targets: [.codex]).first)
+
+        XCTAssertFalse(report.succeeded)
+        XCTAssertTrue(report.changed)
+        XCTAssertEqual(report.message, "partially installed")
+        XCTAssertTrue(report.error?.contains("config.toml was updated") ?? false)
+        XCTAssertTrue(try CodexFeatureConfiguration.hooksEnabled(in: String(contentsOf: toml, encoding: .utf8)))
+        XCTAssertEqual(try Data(contentsOf: json), concurrent)
+        installer.beforeCodexReplacement = nil
+        XCTAssertTrue(try XCTUnwrap(installer.install(targets: [.codex]).first).succeeded)
+        XCTAssertEqual(try readJSON(json)["user_edit"] as? Bool, true)
+        XCTAssertFalse(try XCTUnwrap(installer.install(targets: [.codex]).first).changed)
+    }
+
+    func testCodexPermissionsAndExactBytesSurviveIdempotentInstallAndUninstall() throws {
+        let home = temporaryHome()
+        defer { try? FileManager.default.removeItem(at: home) }
+        let directory = home.appendingPathComponent(".codex")
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let json = directory.appendingPathComponent("hooks.json")
+        let toml = directory.appendingPathComponent("config.toml")
+        try Data("{}".utf8).write(to: json)
+        try Data("[features] # keep\r\n'hooks' = false # keep\r\n".utf8).write(to: toml)
+        for path in [json, toml] {
+            try FileManager.default.setAttributes([.posixPermissions: 0o640], ofItemAtPath: path.path)
+        }
+        let installer = AgentHookInstaller(homeDirectory: home)
+        _ = try installer.install(targets: [.codex])
+        // Deliberately use a different valid JSON spelling after hooks are current.
+        let compactJSON = try JSONSerialization.data(withJSONObject: readJSON(json), options: [.sortedKeys])
+        try compactJSON.write(to: json)
+        let featureBytes = try Data(contentsOf: toml)
+        let jsonAttributes = try FileManager.default.attributesOfItem(atPath: json.path)
+        let tomlAttributes = try FileManager.default.attributesOfItem(atPath: toml.path)
+
+        XCTAssertFalse(try XCTUnwrap(installer.install(targets: [.codex]).first).changed)
+
+        XCTAssertEqual(try Data(contentsOf: json), compactJSON)
+        XCTAssertEqual(try Data(contentsOf: toml), featureBytes)
+        for (path, attributes) in [(json, jsonAttributes), (toml, tomlAttributes)] {
+            let current = try FileManager.default.attributesOfItem(atPath: path.path)
+            XCTAssertEqual(current[.posixPermissions] as? NSNumber, 0o640)
+            XCTAssertEqual(current[.systemFileNumber] as? NSNumber, attributes[.systemFileNumber] as? NSNumber)
+        }
+        _ = try installer.uninstall(targets: [.codex])
+        XCTAssertFalse(try XCTUnwrap(installer.uninstall(targets: [.codex]).first).changed)
+        XCTAssertEqual(try Data(contentsOf: toml), featureBytes)
+    }
+
+    func testCodexInspectionRequiresValidEnabledFeatureFlag() throws {
+        let home = temporaryHome()
+        defer { try? FileManager.default.removeItem(at: home) }
+        let installer = AgentHookInstaller(homeDirectory: home)
+        _ = try installer.install(targets: [.codex])
+        let toml = home.appendingPathComponent(".codex/config.toml")
+        for text in ["", "[features]\nhooks = false\n", "[desktop]\nname = 'keep'\n"] {
+            try text.write(to: toml, atomically: true, encoding: .utf8)
+            XCTAssertEqual(try installer.inspect(targets: [.codex]).targets.first?.status, .outdated)
+        }
+        try FileManager.default.removeItem(at: toml)
+        XCTAssertFalse(try installer.inspect(targets: [.codex]).isCurrent)
+        for text in ["features.hooks = true\n", "features = { hooks = true }\n"] {
+            try text.write(to: toml, atomically: true, encoding: .utf8)
+            XCTAssertTrue(try installer.inspect(targets: [.codex]).isCurrent)
+        }
+        try "[features]\nhooks = false\n[features]\nhooks = true\n".write(to: toml, atomically: true, encoding: .utf8)
+        XCTAssertThrowsError(try installer.inspect(targets: [.codex]))
+    }
+
     func testInstallsSharedHookForClaudeCodexGrokAndPi() throws {
         let home = temporaryHome()
         defer {

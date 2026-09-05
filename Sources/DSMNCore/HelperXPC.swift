@@ -57,6 +57,7 @@ public struct DSMNHelperCommandResponse: Codable, Equatable, Sendable {
 
 public enum DSMNHelperClientError: Error, LocalizedError {
     case unavailable(String)
+    case commandFailed(String)
     case invalidResponse(String)
     case timedOut
 
@@ -64,6 +65,8 @@ public enum DSMNHelperClientError: Error, LocalizedError {
         switch self {
         case .unavailable(let message):
             "Helper unavailable: \(message)"
+        case .commandFailed(let message):
+            "Helper command failed: \(message)"
         case .invalidResponse(let message):
             "Invalid helper response: \(message)"
         case .timedOut:
@@ -120,7 +123,9 @@ public final class DSMNHelperXPCClient: @unchecked Sendable {
     }
 
     public func stop() throws -> StatusReport {
-        try request { proxy, reply in
+        // One preceding enable/display transition plus the release, each with
+        // a two-second command budget and bounded termination grace.
+        try request(timeout: max(timeout, 7)) { proxy, reply in
             proxy.stop(withReply: reply)
         }
     }
@@ -138,7 +143,9 @@ public final class DSMNHelperXPCClient: @unchecked Sendable {
     }
 
     public func repair() throws -> StatusReport {
-        try request { proxy, reply in
+        // Repair can additionally discover an unowned live lock outside the
+        // operation lock. Explicit longer client timeouts are still honored.
+        try request(timeout: max(timeout, 9)) { proxy, reply in
             proxy.repair(withReply: reply)
         }
     }
@@ -157,9 +164,10 @@ public final class DSMNHelperXPCClient: @unchecked Sendable {
     }
 
     private func request(
+        timeout requestTimeout: TimeInterval? = nil,
         _ send: (DSMNHelperXPCProtocol, @escaping (String) -> Void) -> Void
     ) throws -> StatusReport {
-        let response = try requestEnvelope(send)
+        let response = try requestEnvelope(timeout: requestTimeout, send)
 
         guard let status = response.status else {
             throw DSMNHelperClientError.invalidResponse("missing status report")
@@ -169,6 +177,7 @@ public final class DSMNHelperXPCClient: @unchecked Sendable {
     }
 
     private func requestEnvelope(
+        timeout requestTimeout: TimeInterval? = nil,
         _ send: (DSMNHelperXPCProtocol, @escaping (String) -> Void) -> Void
     ) throws -> DSMNHelperCommandResponse {
         let connection = NSXPCConnection(machServiceName: machServiceName, options: .privileged)
@@ -188,7 +197,7 @@ public final class DSMNHelperXPCClient: @unchecked Sendable {
         }
 
         guard let proxy = connection.remoteObjectProxyWithErrorHandler({ error in
-            completion.complete(.failure(error))
+            completion.complete(.failure(DSMNHelperClientError.unavailable(error.localizedDescription)))
         }) as? DSMNHelperXPCProtocol else {
             throw DSMNHelperClientError.unavailable("unable to create XPC proxy")
         }
@@ -199,20 +208,25 @@ public final class DSMNHelperXPCClient: @unchecked Sendable {
             })
         }
 
-        return try completion.wait(timeout: timeout)
+        return try completion.wait(timeout: requestTimeout ?? timeout)
     }
 
-    private static func decodeResponse(_ payload: String) throws -> DSMNHelperCommandResponse {
+    static func decodeResponse(_ payload: String) throws -> DSMNHelperCommandResponse {
         guard let data = payload.data(using: .utf8) else {
             throw DSMNHelperClientError.invalidResponse("non-UTF8 payload")
         }
 
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
-        let response = try decoder.decode(DSMNHelperCommandResponse.self, from: data)
+        let response: DSMNHelperCommandResponse
+        do {
+            response = try decoder.decode(DSMNHelperCommandResponse.self, from: data)
+        } catch {
+            throw DSMNHelperClientError.invalidResponse(error.localizedDescription)
+        }
 
         if let error = response.error {
-            throw DSMNHelperClientError.unavailable(error)
+            throw DSMNHelperClientError.commandFailed(error)
         }
 
         return response

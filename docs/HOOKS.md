@@ -63,7 +63,29 @@ local-computer commands, when enabled, are also covered if they run through
 Cursor's agent hook path. Grok Build remains the CLI/`~/.grok` target.
 
 For Codex, it also makes sure the current `features.hooks` flag is enabled in
-`~/.codex/config.toml`.
+`~/.codex/config.toml`. dsmn parses the original and proposed TOML, changes only
+the feature flag, and preserves comments, ordering, unrelated values, and LF or
+CRLF newlines. Ordinary and quoted `[features]` headers may have trailing comments.
+An already-enabled flag is left byte-identical, including dotted-key or inline-table
+forms.
+
+The bounded editor can add a missing `[features]` table or a missing `hooks` key,
+and can change an ordinary or quoted boolean `hooks = false` key inside that
+table. Other valid forms, such as `features = { hooks = false }` or
+`features.hooks = false`, require enabling the flag manually or expressing it as
+a boolean key inside `[features]`. dsmn reports the configuration path and a clear
+error without printing configuration contents. Invalid TOML/JSON, invalid UTF-8,
+unreadable files, symbolic links, and unsupported structures are refused before
+either existing Codex file is replaced.
+
+Both Codex files are prepared first. Replacements preserve file permissions and
+check for an observed intervening edit before each atomic replacement. The two
+files are not one cross-process transaction: if an I/O error or concurrent edit
+occurs after `config.toml` is updated, the error reports the partial installation.
+Resolve the error and rerun installation; dsmn retains unrelated hooks and does
+not roll back over a user edit. Inspection reports Codex current only when its
+JSON hooks are current and valid TOML enables `features.hooks`. Uninstall leaves
+that feature flag unchanged.
 
 For Pi, dsmn installs a native TypeScript extension in Pi's global extension
 directory. Existing Pi sessions may need `/reload` or a restart before they
@@ -132,6 +154,13 @@ lease, but the shared hook throttles the actual `dsmnctl manual` calls so
 tool-heavy sessions do not invoke dsmnctl for every tool event. Hook renewals
 are not additive and never shorten a longer manual timer; dsmn releases the
 lease automatically when activity stops.
+
+The helper's release deadline uses persisted lease intent independently of
+optional process and system diagnostics. A slow or failed probe cannot extend a
+hook lease or block its cleanup attempt. Unknown network data preserves an
+already recorded no-route deadline. Failed power releases retain ownership and
+retry; a bounded attempt does not guarantee that macOS accepted the release.
+Hook events, renewal throttling, and the manual-command timeout are unchanged.
 
 Optional environment overrides:
 

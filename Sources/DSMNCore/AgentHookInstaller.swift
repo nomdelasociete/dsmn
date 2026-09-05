@@ -1,4 +1,5 @@
 import Foundation
+import Darwin
 
 public enum AgentHookTarget: String, CaseIterable, Codable, Hashable, Sendable {
     case claude
@@ -172,6 +173,88 @@ public struct AgentHookSetupInspection: Codable, Equatable, Sendable {
     }
 }
 
+/// A snapshot for one atomic replacement, not a transaction with another process.
+private struct CodexConfigurationFile {
+    struct Failure: LocalizedError {
+        let path: URL
+        let reason: String
+        var errorDescription: String? { "\(path.path): \(reason)" }
+    }
+
+    let path: URL
+    let data: Data?
+    let permissions: UInt16
+    private let fileNumber: UInt64?
+    private let modified: Date?
+
+    init(path: URL) throws {
+        self.path = path
+        let attributes: [FileAttributeKey: Any]
+        do {
+            attributes = try FileManager.default.attributesOfItem(atPath: path.path)
+        } catch let error as CocoaError where error.code == .fileReadNoSuchFile {
+            data = nil
+            permissions = 0o600
+            fileNumber = nil
+            modified = nil
+            return
+        } catch {
+            throw Failure(path: path, reason: "could not read file metadata; configuration was not written")
+        }
+        guard attributes[.type] as? FileAttributeType == .typeRegular else {
+            throw Failure(path: path, reason: "expected a regular configuration file; symbolic links and directories cannot be edited safely")
+        }
+        permissions = (attributes[.posixPermissions] as? NSNumber)?.uint16Value ?? 0o600
+        fileNumber = (attributes[.systemFileNumber] as? NSNumber)?.uint64Value
+        modified = attributes[.modificationDate] as? Date
+        do { data = try Data(contentsOf: path) } catch {
+            throw Failure(path: path, reason: "could not read configuration; existing file was not written")
+        }
+    }
+
+    func text() throws -> String {
+        guard let data else { return "" }
+        guard let text = String(data: data, encoding: .utf8) else {
+            throw Failure(path: path, reason: "configuration is not valid UTF-8; existing file was not written")
+        }
+        return text
+    }
+
+    func verifyUnchanged() throws {
+        let current = try Self(path: path)
+        guard current.data == data, current.fileNumber == fileNumber,
+              current.modified == modified, current.permissions == permissions else {
+            throw Failure(path: path, reason: "configuration changed during installation; rerun after saving your edits")
+        }
+    }
+
+    @discardableResult
+    func replace(with candidate: Data) throws -> Bool {
+        if candidate == data {
+            try verifyUnchanged()
+            return false
+        }
+        let staged = path.deletingLastPathComponent().appendingPathComponent(".dsmn-\(UUID().uuidString).tmp")
+        defer { try? FileManager.default.removeItem(at: staged) }
+        do {
+            // Create privately before writing any potentially sensitive configuration.
+            let descriptor = open(staged.path, O_WRONLY | O_CREAT | O_EXCL, 0o600)
+            guard descriptor >= 0 else { throw Failure(path: path, reason: "could not stage configuration replacement") }
+            close(descriptor)
+            try candidate.write(to: staged)
+            try FileManager.default.setAttributes([.posixPermissions: permissions], ofItemAtPath: staged.path)
+        } catch {
+            throw Failure(path: path, reason: "could not stage configuration replacement; existing file was not written")
+        }
+        try verifyUnchanged()
+        // The final check detects observed edits; it cannot lock out Codex's own writer.
+        guard rename(staged.path, path.path) == 0 else {
+            throw Failure(path: path, reason: "could not replace configuration; existing file was not written")
+        }
+        return true
+    }
+}
+
 public struct AgentHookInstaller: Sendable {
     private static let hookEventNames = [
         "SessionStart",
@@ -190,6 +273,8 @@ public struct AgentHookInstaller: Sendable {
     public var homeDirectory: URL
     public var hookScriptPath: URL
     public var dsmnctlPath: String?
+    // Test seam for a concurrent editor or failure immediately before replacement.
+    var beforeCodexReplacement: (@Sendable (URL) throws -> Void)?
 
     public init(
         homeDirectory: URL = FileManager.default.homeDirectoryForCurrentUser,
@@ -357,17 +442,46 @@ public struct AgentHookInstaller: Sendable {
 
     private func installCodexHook() throws -> AgentHookInstallReport {
         let directory = homeDirectory.appendingPathComponent(".codex", isDirectory: true)
-        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
-
         let path = directory.appendingPathComponent("hooks.json")
-        var root = try readJSONObject(path)
+        let hooksFile = try CodexConfigurationFile(path: path)
+        let featureFile = try CodexConfigurationFile(path: directory.appendingPathComponent("config.toml"))
+        var root = try readCodexJSONObject(hooksFile)
+        let originalFeatureText = try featureFile.text()
+        let featureText: String
+        do {
+            featureText = try CodexFeatureConfiguration.enablingHooks(in: originalFeatureText)
+        } catch {
+            throw CodexConfigurationFile.Failure(path: featureFile.path, reason: error.localizedDescription)
+        }
         let hooksChanged = try installHook(into: &root, target: .codex)
-        try writeJSONObject(root, to: path)
-        let featureChanged = try enableTomlFeature(
-            in: directory.appendingPathComponent("config.toml"),
-            featureName: "hooks"
-        )
+        var hooksData = try JSONSerialization.data(withJSONObject: root, options: [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes])
+        hooksData.append(10)
+        // Keep exact original JSON formatting on an idempotent install.
+        if !hooksChanged, let original = hooksFile.data { hooksData = original }
+        _ = try JSONSerialization.jsonObject(with: hooksData)
+        let featureChanged = featureText != originalFeatureText
         let changed = hooksChanged || featureChanged
+
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        var featureWritten = false
+        do {
+            try beforeCodexReplacement?(featureFile.path)
+            // Preparation errors and observed changes to either file leave both untouched.
+            try hooksFile.verifyUnchanged()
+            try featureFile.verifyUnchanged()
+            featureWritten = try featureFile.replace(with: Data(featureText.utf8))
+            try beforeCodexReplacement?(hooksFile.path)
+            _ = try hooksFile.replace(with: hooksData)
+        } catch {
+            return AgentHookInstallReport(
+                target: AgentHookTarget.codex.rawValue,
+                path: path.path,
+                changed: featureWritten,
+                message: featureWritten ? "partially installed" : "failed",
+                error: (featureWritten ? "config.toml was updated, but hooks.json was not updated; rerun installation after resolving the error. " : "")
+                    + error.localizedDescription
+            )
+        }
 
         return AgentHookInstallReport(
             target: AgentHookTarget.codex.rawValue,
@@ -603,7 +717,25 @@ public struct AgentHookInstaller: Sendable {
         }
 
         switch target {
-        case .claude, .codex, .grok:
+        case .codex:
+            let root = try readCodexJSONObject(CodexConfigurationFile(path: path))
+            let configuration = try CodexConfigurationFile(path: homeDirectory.appendingPathComponent(".codex/config.toml"))
+            let enabled: Bool
+            do {
+                enabled = try CodexFeatureConfiguration.hooksEnabled(in: configuration.text())
+            } catch {
+                throw CodexConfigurationFile.Failure(path: configuration.path, reason: error.localizedDescription)
+            }
+            let status: AgentHookComponentStatus
+            if hasCurrentHookConfiguration(in: root, target: target), enabled {
+                status = .current
+            } else if hookCommands(in: root).contains(where: { $0.contains("dsmn-agent-hook.sh") }) {
+                status = .outdated
+            } else {
+                status = .missing
+            }
+            return AgentHookTargetInspection(target: target, path: path.path, status: status)
+        case .claude, .grok:
             let root = try readJSONObject(path)
             if hasCurrentHookConfiguration(in: root, target: target) {
                 return AgentHookTargetInspection(target: target, path: path.path, status: .current)
@@ -1026,95 +1158,19 @@ public struct AgentHookInstaller: Sendable {
         try payload.write(to: path, atomically: true, encoding: .utf8)
     }
 
-    private func enableTomlFeature(in path: URL, featureName: String) throws -> Bool {
-        let original = (try? String(contentsOf: path, encoding: .utf8)) ?? ""
-        var lines = original.components(separatedBy: "\n")
-        if lines.last == "" {
-            lines.removeLast()
+    private func readCodexJSONObject(_ file: CodexConfigurationFile) throws -> [String: Any] {
+        guard let data = file.data else { return [:] }
+        guard let root = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] else {
+            throw CodexConfigurationFile.Failure(path: file.path, reason: "invalid JSON object; existing configuration was not written")
         }
-
-        guard !lines.isEmpty else {
-            try "[features]\n\(featureName) = true\n".write(to: path, atomically: true, encoding: .utf8)
-            return true
-        }
-
-        let featuresRange = findTomlSection(named: "features", in: lines)
-        guard let featuresRange else {
-            if !lines.isEmpty, lines.last?.isEmpty == false {
-                lines.append("")
-            }
-            lines.append("[features]")
-            lines.append("\(featureName) = true")
-            try writeTomlLines(lines, to: path)
-            return true
-        }
-
-        for index in featuresRange.lowerBound..<featuresRange.upperBound {
-            let line = lines[index]
-            let trimmed = line.trimmingCharacters(in: .whitespaces)
-            let uncommented = trimmed.split(separator: "#", maxSplits: 1, omittingEmptySubsequences: false)
-                .first?
-                .trimmingCharacters(in: .whitespaces) ?? ""
-            guard uncommented.hasPrefix("\(featureName)") else {
-                continue
-            }
-
-            let parts = uncommented.split(separator: "=", maxSplits: 1).map {
-                $0.trimmingCharacters(in: .whitespaces)
-            }
-            guard parts.first == featureName else {
-                continue
-            }
-
-            if parts.count == 2, parts[1] == "true" {
-                return false
-            }
-
-            let indentation = line.prefix { $0 == " " || $0 == "\t" }
-            lines[index] = "\(indentation)\(featureName) = true"
-            try writeTomlLines(lines, to: path)
-            return true
-        }
-
-        lines.insert("\(featureName) = true", at: featuresRange.upperBound)
-        try writeTomlLines(lines, to: path)
-        return true
-    }
-
-    private func findTomlSection(named name: String, in lines: [String]) -> Range<Int>? {
-        var sectionStart: Int?
-        var sectionEnd: Int?
-
-        for (index, line) in lines.enumerated() {
-            let trimmed = line.trimmingCharacters(in: .whitespaces)
-            guard trimmed.hasPrefix("["), trimmed.hasSuffix("]") else {
-                continue
-            }
-
-            if sectionStart == nil, trimmed == "[\(name)]" {
-                sectionStart = index + 1
-                continue
-            }
-
-            if sectionStart != nil {
-                sectionEnd = index
-                break
+        if let value = root["hooks"] {
+            guard let hooks = value as? [String: Any], Self.hookEventNames.allSatisfy({ event in
+                hooks[event] == nil || hooks[event] is [[String: Any]]
+            }) else {
+                throw CodexConfigurationFile.Failure(path: file.path, reason: "unsupported hooks JSON structure; existing configuration was not written")
             }
         }
-
-        guard let sectionStart else {
-            return nil
-        }
-
-        return sectionStart..<(sectionEnd ?? lines.count)
-    }
-
-    private func writeTomlLines(_ lines: [String], to path: URL) throws {
-        try FileManager.default.createDirectory(
-            at: path.deletingLastPathComponent(),
-            withIntermediateDirectories: true
-        )
-        try (lines.joined(separator: "\n") + "\n").write(to: path, atomically: true, encoding: .utf8)
+        return root
     }
 
     private func jsonEquals(_ lhs: [String: Any], _ rhs: [String: Any]) -> Bool {

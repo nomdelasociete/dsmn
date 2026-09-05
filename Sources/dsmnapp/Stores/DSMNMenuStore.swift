@@ -3,6 +3,7 @@ import Foundation
 
 @MainActor
 final class DSMNMenuStore: ObservableObject {
+    let quitCoordinator = AppQuitCoordinator()
     @Published private(set) var report: StatusReport?
     @Published private(set) var errorMessage: String?
     @Published private(set) var isRefreshing = false
@@ -24,11 +25,14 @@ final class DSMNMenuStore: ObservableObject {
     private let helper = HelperServiceClient()
     private let launchAtLogin = LaunchAtLoginService()
     private let setupError: Error?
+    private let stopHelperOverride: (() async throws -> StatusReport)?
+    private var stopFailureMessage: String?
     private var refreshLoopTask: Task<Void, Never>?
     private var helperXPCUnavailableSince: Date?
     private let helperRepairAttentionDelay: TimeInterval = 45
 
     init() {
+        stopHelperOverride = nil
         OnboardingPreferences.migrateLegacyKeysIfNeeded()
 
         do {
@@ -40,6 +44,24 @@ final class DSMNMenuStore: ObservableObject {
             setupError = error
             errorMessage = error.localizedDescription
         }
+    }
+
+    /// Isolated Stop tests bypass preferences and all platform service queries.
+    init(
+        controller: DSMNController,
+        helperStatus: HelperRegistrationStatus,
+        initialReport: StatusReport? = nil,
+        stopHelper: @escaping () async throws -> StatusReport
+    ) {
+        self.controller = controller
+        self.helperStatus = helperStatus
+        report = initialReport
+        setupError = nil
+        stopHelperOverride = stopHelper
+    }
+
+    var hasUnconfirmedStop: Bool {
+        stopFailureMessage != nil
     }
 
     var onboardingWizardDismissed: Bool {
@@ -444,6 +466,11 @@ final class DSMNMenuStore: ObservableObject {
     }
 
     func refresh() async {
+        defer {
+            if let stopFailureMessage {
+                errorMessage = stopFailureMessage
+            }
+        }
         guard let controller else {
             errorMessage = setupError?.localizedDescription
             return
@@ -503,22 +530,49 @@ final class DSMNMenuStore: ObservableObject {
 
     func stop() {
         Task {
-            await stopNow()
+            _ = await stopNow()
         }
     }
 
-    func stopNow() async {
-        await mutate(local: {
-            try $0.stop()
-        }, helper: {
-            try await self.helper.stop()
+    func stopNow() async -> StopOutcome {
+        isRefreshing = true
+        defer { isRefreshing = false }
+
+        // XPC is authoritative even when another app copy makes registration ambiguous.
+        let outcome = await StopRequest.run(helper: {
+            if let stopHelperOverride = self.stopHelperOverride {
+                return try await stopHelperOverride()
+            }
+            return try await self.helper.stop()
+        }, local: {
+            guard let controller = self.controller else {
+                throw self.setupError ?? DSMNError.stateDirectoryUnavailable
+            }
+            return try await Task.detached { try controller.stop() }.value
         })
+
+        if let updatedReport = outcome.report {
+            report = updatedReport
+        }
+        switch outcome {
+        case .helperConfirmed, .unconfirmed(.some, _):
+            helperStatus = .enabled
+            markHelperXPCAvailable()
+        case .localOnly:
+            markHelperXPCUnavailable()
+        case .unconfirmed(.none, _):
+            break
+        }
+        stopFailureMessage = outcome.failureMessage
+        errorMessage = outcome.failureMessage
+        return outcome
     }
 
     private func mutate(
         local localOperation: @escaping @Sendable (DSMNController) throws -> StatusReport,
         helper helperOperation: @escaping () async throws -> StatusReport
     ) async {
+        stopFailureMessage = nil
         guard let controller else {
             errorMessage = setupError?.localizedDescription
             return

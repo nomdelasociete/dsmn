@@ -336,12 +336,12 @@ public struct DSMNState: Codable, Equatable, Sendable {
 
     public mutating func updateNoRouteTracking(snapshot: SystemSnapshot) {
         let now = snapshot.now
-        if manualIsActive(at: now), snapshot.defaultRouteAvailable == false {
+        if !manualIsActive(at: now) || snapshot.defaultRouteAvailable == true {
+            noRouteUnavailableSince = nil
+        } else if snapshot.defaultRouteAvailable == false {
             if noRouteUnavailableSince == nil {
                 noRouteUnavailableSince = now
             }
-        } else {
-            noRouteUnavailableSince = nil
         }
     }
 

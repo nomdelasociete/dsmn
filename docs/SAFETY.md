@@ -21,7 +21,13 @@ forgetting ownership before the system state has been released.
 Quitting the menu bar app is not the same as stopping protection. The app asks
 for an explicit choice when dsmn is active: `Stop & Quit` releases the current
 timer before closing, while `Quit, Keep Running` leaves the helper and hooks in
-their current state.
+their current state. Stop & Quit closes the app only after the authenticated
+helper confirms that its timer is cleared and it no longer owns the power lock.
+If the request fails, times out, or still reports a timer or lock, the app stays
+open and shows the failure. Clearing local fallback state alone cannot confirm
+that the helper stopped. The user can retry or explicitly choose Quit, Keep
+Running. A later hook can start a new timer; Stop is not a persistent pause and
+does not clear other apps' sleep assertions.
 
 ## Activation model
 
@@ -45,6 +51,37 @@ The helper must release sleep prevention when any hard stop applies:
 - helper starts and finds stale ownership state from a previous crash;
 - user runs stop or repair.
 
+Owned-lock cleanup for expired, stopped, or absent leases and recorded no-route
+deadlines runs before optional diagnostics. Process listing, battery/route/lid
+probes, and live-lock discovery never run under the helper's operation lock.
+One single-flight worker collects immutable telemetry for cached status; status
+retains the observation timestamp and labels failed agent listing as unavailable.
+A blocked worker cannot prevent Stop or the one-shot release timer from running.
+Each timer callback reloads current intent, so a renewal cannot be overwritten
+by an older sample or deadline.
+
+Unknown route data preserves a recorded outage while a lease is active. Only a
+confirmed route restoration clears it; an unknown sample without a recorded
+outage creates none. Independent probe failures preserve other valid fields,
+such as a low battery reading when route inspection fails.
+
+After a successful release is saved, a separate single-flight probe gathers new
+battery/lid facts for `sleepnow`. The helper rechecks its mutation generation
+before sleeping; a newer command, including a renewal whose lock acquisition
+failed, cancels that follow-up. It does not use cached closed-lid facts. A
+successful lock acquisition is likewise saved before attempting display sleep,
+so a failed display command cannot erase responsibility for the system lock.
+Display-sleep edges also require a fresh observation. A command can acquire or
+release the system lock immediately using persisted intent, but cached closed-lid
+data cannot turn off the display before current telemetry arrives.
+
+Subprocess execution and output collection have a two-second budget. Both pipes
+are drained together, including when a descendant keeps an output pipe open.
+Timeout cleanup allows 100 ms for termination, then kills and reaps only the
+child created by the runner. A rejected or timed-out power operation remains a
+failed attempt: macOS success is not guaranteed, ownership is retained, and the
+helper rearms the release deadline or short retry independently of diagnostics.
+
 ## Defaults
 
 Initial defaults:
@@ -64,10 +101,34 @@ forces a cleanup path through the privileged helper:
 pmset -a disablesleep 0
 ```
 
-The helper runs `repair` over XPC: it releases `pmset` when dsmn still owns the
-sleep lock, resets persisted state, then reconciles. Raycast and CLI invoke
-`dsmnctl repair`; they never call `pmset` directly. Without a registered helper,
-`dsmnctl repair` only repairs local state (development fallback).
+The helper runs `repair` over XPC. It first persists the end of the manual lease,
+retaining ownership until `pmset` confirms the release. A successful release is
+saved before requesting `pmset sleepnow` when the lid is closed and the machine
+is on battery. Open-lid, AC, and unknown lid or power states do not request sleep.
+
+A nonzero exit, dry-run, or thrown release is a failed Repair. Completed power
+operation results remain in the audit history, and an owned lock stays owned.
+The helper arms a one-shot retry before reporting the failure. Without a manual
+lease, retries have a one-second grace; they also survive another thrown release
+and do not depend on another command or the periodic poll. A dry-run never
+counts as a successful release. Repair can also explicitly release a live lock
+when persisted ownership was lost, but it does not claim ownership of an external
+lock if that attempt fails; that cleanup can be retried explicitly.
+
+Raycast and CLI invoke `dsmnctl repair`; they never call `pmset` directly. A helper
+command failure, invalid response, or ambiguous timeout makes CLI Repair fail.
+Only unavailable helper transport permits the local development fallback, which
+prints an explicit stderr notice that only local state was repaired and the
+system power lock was not changed. Local state repair is not evidence of system
+cleanup.
+
+Stop and Repair use minimum XPC reply budgets of seven and nine seconds,
+respectively. These cover one preceding enable/display transition and the
+release; Repair can additionally perform live-lock discovery. Explicit longer
+client timeouts are honored, while shorter values do not reduce these two
+minimums. Other requests, including hook renewals, retain their existing timeout.
+Additional command contention can still time out, which remains an ambiguous
+failure rather than evidence that cleanup succeeded.
 
 ## XPC client authentication
 

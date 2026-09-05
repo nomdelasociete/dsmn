@@ -200,15 +200,18 @@ struct DSMNMenuView: View {
     // MARK: - Helpers
 
     private func quit() {
-        guard store.isProtectingSleep else {
+        guard store.isProtectingSleep || store.hasUnconfirmedStop else {
             NSApplication.shared.terminate(nil)
             return
         }
 
         let alert = NSAlert()
         alert.messageText = "Quit dsmn?"
+        let activityDescription = store.hasUnconfirmedStop
+            ? "dsmn could not confirm that the helper stopped."
+            : "dsmn is currently keeping the Mac awake."
         alert.informativeText = """
-        dsmn is currently keeping the Mac awake. Quitting only closes the menu bar app; the helper and agent hooks can keep running.
+        \(activityDescription) Quitting only closes the menu bar app; the helper and agent hooks can keep running.
 
         Stop & Quit releases the current dsmn timer first. Active \(AgentHookTarget.joinedDisplayNames(short: true, conjunction: "or")) hooks can start a new timer again later.
         """
@@ -219,14 +222,30 @@ struct DSMNMenuView: View {
 
         switch alert.runModal() {
         case .alertFirstButtonReturn:
-            Task {
-                await store.stopNow()
-                NSApplication.shared.terminate(nil)
-            }
+            requestQuit(.stopAndQuit)
         case .alertSecondButtonReturn:
-            NSApplication.shared.terminate(nil)
+            requestQuit(.keepRunning)
         default:
             break
+        }
+    }
+
+    private func requestQuit(_ choice: AppQuitChoice) {
+        Task {
+            await store.quitCoordinator.request(
+                choice,
+                stop: { await store.stopNow() },
+                terminate: { NSApplication.shared.terminate(nil) },
+                presentFailure: { message in
+                    let alert = NSAlert()
+                    alert.messageText = "Stop was not confirmed"
+                    alert.informativeText = "\(message)\n\ndsmn is still open. You can retry Stop & Quit, or choose Quit, Keep Running."
+                    alert.alertStyle = .warning
+                    alert.addButton(withTitle: "OK")
+                    NSApplication.shared.activate(ignoringOtherApps: true)
+                    alert.runModal()
+                }
+            )
         }
     }
 

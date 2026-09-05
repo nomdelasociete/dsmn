@@ -24,6 +24,7 @@
 		3B1B0405B4D29F02793BD9E2 /* MenuBarIconState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3357CC5A02DEAA80CF0E7714 /* MenuBarIconState.swift */; };
 		3E2C9C782AC7E952FA4A55F1 /* TriggerActivitySummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5DA64BBB8035E795523E90FD /* TriggerActivitySummary.swift */; };
 		3EAAD859F9B5BF895A2D2B7E /* DSMNCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 74B444C620310ADFA67DB8E3 /* DSMNCore.framework */; };
+		44A63173A14964531A93FFC8 /* AppQuitCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C06A4DC70F9BA2B1E497F5E /* AppQuitCoordinator.swift */; };
 		44D1F403292D62A04AB4BEFC /* StatusReport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3619C42C42B624EEF07BA6AC /* StatusReport.swift */; };
 		4666E8007090B6F18D21E4D6 /* com.nomdelasociete.dsmn.helper.plist in CopyFiles */ = {isa = PBXBuildFile; fileRef = 1428E24E9C88059C6735E168 /* com.nomdelasociete.dsmn.helper.plist */; };
 		48B342822DB4A703A252BE4C /* DSMNMenuStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F2C7905739A9F21409A0728 /* DSMNMenuStore.swift */; };
@@ -35,7 +36,9 @@
 		5D7B9BEFC69BD6D1E9D563DA /* SetupMenuPresentation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21DA81E3CA23BA3F88D6E053 /* SetupMenuPresentation.swift */; };
 		6119B41483147AF7FA74C71D /* DSMNCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 74B444C620310ADFA67DB8E3 /* DSMNCore.framework */; };
 		62B192A4636DA4E37DF4DB39 /* OnboardingWindowPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4962B06F89AA1B677EF19DB8 /* OnboardingWindowPresenter.swift */; };
+		66D5703C1DE9B770F9944DA7 /* ControllerTelemetry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D631261B06763D0DC0CC43C /* ControllerTelemetry.swift */; };
 		6F0918E8F5D6C670806C0BC1 /* SystemSnapshotProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = F670FC14F66FBA7A602B5CBE /* SystemSnapshotProvider.swift */; };
+		6F7893D6AEF2B2C4E7287062 /* THIRD_PARTY_NOTICES.txt in Resources */ = {isa = PBXBuildFile; fileRef = 9AA8D2AB8FBD0EA6CE85C610 /* THIRD_PARTY_NOTICES.txt */; };
 		726EF89C354B1FAA841B9DC6 /* DSMNMenuView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 849E36A9D8CE4CD95098D34D /* DSMNMenuView.swift */; };
 		74003DC81175EC8FEB62C795 /* FeedbackWindowPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C80055A7FD5F82CDA2B5E5 /* FeedbackWindowPresenter.swift */; };
 		747BACEB7F74CCE4475116DE /* RepairResultPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA72214C6A7E84F3ED3C83E0 /* RepairResultPresenter.swift */; };
@@ -56,12 +59,14 @@
 		D27626225E4A18ED0785B4EB /* ReconcileSchedule.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9EBDC0E1ED5BD3418A792F0 /* ReconcileSchedule.swift */; };
 		D366B9E2BC191D283E594B97 /* DSMND.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C89A4114361C6F9FACA4919 /* DSMND.swift */; };
 		D5AAB60F45FEDADAAA13104B /* AgentHookInstaller.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22FC037E46E8EBB70D7AB405 /* AgentHookInstaller.swift */; };
+		D88A5BFB42135074FD094F8B /* CodexFeatureConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 160978A282A7BBC4B16EADD8 /* CodexFeatureConfiguration.swift */; };
 		D98AF5874BCF38EA0012AE27 /* CommandRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6D2A8150F5191D00E4A19F5 /* CommandRunner.swift */; };
 		DD2E79C7CF00AE239050EB97 /* SoftwareUpdateController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8AFE3A8A3B77004062353CF /* SoftwareUpdateController.swift */; };
 		DDE66F40FBEDA5D11D38322A /* HelperXPCService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B631CA4B883E9FCF612EA3B6 /* HelperXPCService.swift */; };
 		E1792FA739919FB2B00EA4CA /* StateStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC8C8661F0C29336DF4C864E /* StateStore.swift */; };
 		F1011D2B35C90E2C704D387C /* DSMNCore.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = 74B444C620310ADFA67DB8E3 /* DSMNCore.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		F20391AC430E71BFD5AA3A7C /* dsmn.icns in Resources */ = {isa = PBXBuildFile; fileRef = 88F8B60751F29892A00E5270 /* dsmn.icns */; };
+		FDBBEBE955FDC707A3B34089 /* TOMLKit in Frameworks */ = {isa = PBXBuildFile; productRef = 742ADC718FCD0DB6AAD15674 /* TOMLKit */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -153,11 +158,14 @@
 		0F2C7905739A9F21409A0728 /* DSMNMenuStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DSMNMenuStore.swift; sourceTree = "<group>"; };
 		119D786BB6E6C5D87A9EB778 /* CheckForUpdatesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CheckForUpdatesView.swift; sourceTree = "<group>"; };
 		1428E24E9C88059C6735E168 /* com.nomdelasociete.dsmn.helper.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = com.nomdelasociete.dsmn.helper.plist; sourceTree = "<group>"; };
+		160978A282A7BBC4B16EADD8 /* CodexFeatureConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodexFeatureConfiguration.swift; sourceTree = "<group>"; };
 		171C6E232736EB7D17692DC5 /* DSMNOnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DSMNOnboardingView.swift; sourceTree = "<group>"; };
 		1A393D53B83902538C1B8CB1 /* dsmn.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = dsmn.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		1D631261B06763D0DC0CC43C /* ControllerTelemetry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ControllerTelemetry.swift; sourceTree = "<group>"; };
 		21DA81E3CA23BA3F88D6E053 /* SetupMenuPresentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupMenuPresentation.swift; sourceTree = "<group>"; };
 		22FC037E46E8EBB70D7AB405 /* AgentHookInstaller.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentHookInstaller.swift; sourceTree = "<group>"; };
 		24C77EE9388701AB19E70A0C /* MenuBarCountdownFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarCountdownFormatter.swift; sourceTree = "<group>"; };
+		2C06A4DC70F9BA2B1E497F5E /* AppQuitCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppQuitCoordinator.swift; sourceTree = "<group>"; };
 		3357CC5A02DEAA80CF0E7714 /* MenuBarIconState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarIconState.swift; sourceTree = "<group>"; };
 		3619C42C42B624EEF07BA6AC /* StatusReport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatusReport.swift; sourceTree = "<group>"; };
 		3BE4F8288D3EB6BEB4D058E7 /* SetupTroubleshootingWindowPresenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SetupTroubleshootingWindowPresenter.swift; sourceTree = "<group>"; };
@@ -178,6 +186,7 @@
 		924BDBA13CA2E1D50336D678 /* OnboardingPreferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingPreferences.swift; sourceTree = "<group>"; };
 		962760546B752325FB91A60B /* DoctorReportFormatter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DoctorReportFormatter.swift; sourceTree = "<group>"; };
 		9AA226B952E7EDA56C699658 /* MenuBarMenuPresentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuBarMenuPresentation.swift; sourceTree = "<group>"; };
+		9AA8D2AB8FBD0EA6CE85C610 /* THIRD_PARTY_NOTICES.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = THIRD_PARTY_NOTICES.txt; sourceTree = "<group>"; };
 		9C89A4114361C6F9FACA4919 /* DSMND.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DSMND.swift; sourceTree = "<group>"; };
 		A7489AD4B0CDAEC9E6870B93 /* XPCClientAuthentication.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XPCClientAuthentication.swift; sourceTree = "<group>"; };
 		AAA3593C1FB4896356B24159 /* LaunchAtLoginService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LaunchAtLoginService.swift; sourceTree = "<group>"; };
@@ -218,6 +227,14 @@
 			buildActionMask = 2147483647;
 			files = (
 				3EAAD859F9B5BF895A2D2B7E /* DSMNCore.framework in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		342E16882094B79ECB403FF7 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FDBBEBE955FDC707A3B34089 /* TOMLKit in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -266,6 +283,7 @@
 			isa = PBXGroup;
 			children = (
 				05F227E11F3C8BC6AD1BECA4 /* AboutPanelPresenter.swift */,
+				2C06A4DC70F9BA2B1E497F5E /* AppQuitCoordinator.swift */,
 				F90947A8DA8E6F80381E11E7 /* DoctorWindowPresenter.swift */,
 				E03AF3CD060A3DFA891C3B89 /* FeedbackService.swift */,
 				B2C80055A7FD5F82CDA2B5E5 /* FeedbackWindowPresenter.swift */,
@@ -359,6 +377,7 @@
 			isa = PBXGroup;
 			children = (
 				88F8B60751F29892A00E5270 /* dsmn.icns */,
+				9AA8D2AB8FBD0EA6CE85C610 /* THIRD_PARTY_NOTICES.txt */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -370,7 +389,9 @@
 				22FC037E46E8EBB70D7AB405 /* AgentHookInstaller.swift */,
 				DC102235C1EE46A73C04E17C /* AgentHookLogInspector.swift */,
 				58E9E9A50557171FBF677FEA /* AgentHookSetupPresentation.swift */,
+				160978A282A7BBC4B16EADD8 /* CodexFeatureConfiguration.swift */,
 				F6D2A8150F5191D00E4A19F5 /* CommandRunner.swift */,
+				1D631261B06763D0DC0CC43C /* ControllerTelemetry.swift */,
 				962760546B752325FB91A60B /* DoctorReportFormatter.swift */,
 				61FE22C17B810CA959C3CACA /* HelperXPC.swift */,
 				24C77EE9388701AB19E70A0C /* MenuBarCountdownFormatter.swift */,
@@ -418,6 +439,7 @@
 			buildConfigurationList = 21C7CDDAC5A22CDB88F191E9 /* Build configuration list for PBXNativeTarget "DSMNCore" */;
 			buildPhases = (
 				7E3BEAF5CA31F47C79CC8651 /* Sources */,
+				342E16882094B79ECB403FF7 /* Frameworks */,
 			);
 			buildRules = (
 			);
@@ -425,6 +447,7 @@
 			);
 			name = DSMNCore;
 			packageProductDependencies = (
+				742ADC718FCD0DB6AAD15674 /* TOMLKit */,
 			);
 			productName = DSMNCore;
 			productReference = 74B444C620310ADFA67DB8E3 /* DSMNCore.framework */;
@@ -514,6 +537,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				56BD71EEFE89C98BD32A11F5 /* XCRemoteSwiftPackageReference "Sparkle" */,
+				95BE5877D6CCFE5D2E316D6F /* XCRemoteSwiftPackageReference "TOMLKit" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 7281EFF6967FB7EE9DCDA49C /* Products */;
@@ -522,8 +546,8 @@
 			targets = (
 				6CC9D4F9DB3A5A2B4510C935 /* DSMNCore */,
 				F17EC216A1B2F454F700F588 /* dsmn */,
-				641C59614B1BBB23506B7B01 /* dsmnctl */,
 				C05CA8E306CCA7792D28A714 /* dsmnd */,
+				641C59614B1BBB23506B7B01 /* dsmnctl */,
 			);
 		};
 /* End PBXProject section */
@@ -533,6 +557,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				6F7893D6AEF2B2C4E7287062 /* THIRD_PARTY_NOTICES.txt in Resources */,
 				F20391AC430E71BFD5AA3A7C /* dsmn.icns in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -565,7 +590,9 @@
 				D5AAB60F45FEDADAAA13104B /* AgentHookInstaller.swift in Sources */,
 				81C315970D886B7C9522A1B5 /* AgentHookLogInspector.swift in Sources */,
 				960E906581CD04E8BF3D0638 /* AgentHookSetupPresentation.swift in Sources */,
+				D88A5BFB42135074FD094F8B /* CodexFeatureConfiguration.swift in Sources */,
 				D98AF5874BCF38EA0012AE27 /* CommandRunner.swift in Sources */,
+				66D5703C1DE9B770F9944DA7 /* ControllerTelemetry.swift in Sources */,
 				50060D4334FAE30D324F457A /* DoctorReportFormatter.swift in Sources */,
 				BA4E80D2B6B0BBFDEEA0B2FB /* HelperXPC.swift in Sources */,
 				394D5CF05FEB9D34FB876D9D /* MenuBarCountdownFormatter.swift in Sources */,
@@ -589,6 +616,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				00FE674C813817F2AD92688E /* AboutPanelPresenter.swift in Sources */,
+				44A63173A14964531A93FFC8 /* AppQuitCoordinator.swift in Sources */,
 				497137023785CE2B1A43EC52 /* CheckForUpdatesView.swift in Sources */,
 				0552AC01999A4BA4032DCCD5 /* DSMNApp.swift in Sources */,
 				D08E1EFCB2A514AF84DD5960 /* DSMNDoctorView.swift in Sources */,
@@ -971,9 +999,22 @@
 				minimumVersion = 2.9.2;
 			};
 		};
+		95BE5877D6CCFE5D2E316D6F /* XCRemoteSwiftPackageReference "TOMLKit" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/LebJe/TOMLKit.git";
+			requirement = {
+				kind = exactVersion;
+				version = 0.5.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		742ADC718FCD0DB6AAD15674 /* TOMLKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 95BE5877D6CCFE5D2E316D6F /* XCRemoteSwiftPackageReference "TOMLKit" */;
+			productName = TOMLKit;
+		};
 		9AA42F96CD573113144B9278 /* Sparkle */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 56BD71EEFE89C98BD32A11F5 /* XCRemoteSwiftPackageReference "Sparkle" */;
