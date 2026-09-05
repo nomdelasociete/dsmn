@@ -16,7 +16,7 @@ live lid-close tests were not run as part of the audit or this planning pass.
 | --- | --- | --- | --- | --- | --- | --- |
 | [001](001-preserve-failed-repair-ownership.md) | Failed Repair retains responsibility and reports failure | 2 | P1 | M–L | — | DONE |
 | [002](002-release-despite-diagnostic-failures.md) | Expiry and Stop survive diagnostic failures | 5 | P1 | L | 001 | IN PROGRESS |
-| [003](003-edit-codex-toml-safely.md) | Codex hook installation preserves valid configuration | 3 | P1 | M–L | — | IN PROGRESS |
+| [003](003-edit-codex-toml-safely.md) | Codex hook installation preserves valid configuration | 3 | P1 | M–L | — | DONE |
 | [004](004-retire-helper-before-unregistering.md) | Helper removal/replacement releases safely | 1 | P1 | L | 001, 002 | BLOCKED: legacy migration scope decision |
 | [005](005-confirm-stop-before-quitting.md) | Stop & Quit closes only after confirmed Stop | 4 | P1 | M | 001; integrate with 002 | IN PROGRESS |
 
@@ -135,3 +135,22 @@ signed migration guard is a possible automatic migration design, but expands
 packaging/state scope and still needs signed integration proof. The user has
 been asked whether to include that expansion or finish the other four fixes.
 No lifecycle code has been changed.
+
+### 003 — reviewed and integrated
+
+Executor commits `b240d3e` and `c901b11` on `jb/safe-codex-feature-editing`;
+integrated as `21a991e` and `7006c48`. Reviewer read the complete source,
+manifest, generated project, documentation, and test diffs. The combined suite
+with 001 passed 183 tests; XcodeGen, Debug build, and bundle verification passed.
+Both executor and reviewer also ran a signed universal archive/export and
+verified the exported bundle. The reviewer confirmed x86_64/arm64 framework
+slices, system-only runtime library dependencies, exact CLI/helper signing
+identifiers, and byte-identical bundled third-party notices. Sparkle stayed at
+2.9.2 with its original revision in both lockfiles.
+
+Approved scope addition: `Sources/dsmnapp/Resources/THIRD_PARTY_NOTICES.txt`,
+containing the native parser licenses. Embedded NUL bytes are rejected because
+TOMLKit's C-string parser would otherwise accept only the prefix. Test fixtures
+use temporary homes. Archive preparation read only the installed app's public
+Sparkle key; it did not alter the installed app or actual Codex configuration.
+Release publication remains separate from this implementation.

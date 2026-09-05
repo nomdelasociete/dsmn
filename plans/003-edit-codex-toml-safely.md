@@ -13,7 +13,7 @@
 - Depends on: none
 - Category: bug
 - Planned at: `513b03a`, 2026-09-05; audit finding 3
-- Implementation status: TODO
+- Implementation status: DONE; reviewed on 2026-09-05
 
 ## Why this matters
 
