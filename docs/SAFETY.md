@@ -51,6 +51,34 @@ The helper must release sleep prevention when any hard stop applies:
 - helper starts and finds stale ownership state from a previous crash;
 - user runs stop or repair.
 
+Owned-lock cleanup for expired, stopped, or absent leases and recorded no-route
+deadlines runs before optional diagnostics. Process listing, battery/route/lid
+probes, and live-lock discovery never run under the helper's operation lock.
+One single-flight worker collects immutable telemetry for cached status; status
+retains the observation timestamp and labels failed agent listing as unavailable.
+A blocked worker cannot prevent Stop or the one-shot release timer from running.
+Each timer callback reloads current intent, so a renewal cannot be overwritten
+by an older sample or deadline.
+
+Unknown route data preserves a recorded outage while a lease is active. Only a
+confirmed route restoration clears it; an unknown sample without a recorded
+outage creates none. Independent probe failures preserve other valid fields,
+such as a low battery reading when route inspection fails.
+
+After a successful release is saved, a separate single-flight probe gathers new
+battery/lid facts for `sleepnow`. The helper rechecks its mutation generation
+before sleeping; a newer command, including a renewal whose lock acquisition
+failed, cancels that follow-up. It does not use cached closed-lid facts. A
+successful lock acquisition is likewise saved before attempting display sleep,
+so a failed display command cannot erase responsibility for the system lock.
+
+Subprocess execution and output collection have a two-second budget. Both pipes
+are drained together, including when a descendant keeps an output pipe open.
+Timeout cleanup allows 100 ms for termination, then kills and reaps only the
+child created by the runner. A rejected or timed-out power operation remains a
+failed attempt: macOS success is not guaranteed, ownership is retained, and the
+helper rearms the release deadline or short retry independently of diagnostics.
+
 ## Defaults
 
 Initial defaults:
@@ -90,6 +118,14 @@ Only unavailable helper transport permits the local development fallback, which
 prints an explicit stderr notice that only local state was repaired and the
 system power lock was not changed. Local state repair is not evidence of system
 cleanup.
+
+Stop and Repair use minimum XPC reply budgets of seven and nine seconds,
+respectively. These cover one preceding enable/display transition and the
+release; Repair can additionally perform live-lock discovery. Explicit longer
+client timeouts are honored, while shorter values do not reduce these two
+minimums. Other requests, including hook renewals, retain their existing timeout.
+Additional command contention can still time out, which remains an ambiguous
+failure rather than evidence that cleanup succeeded.
 
 ## XPC client authentication
 
