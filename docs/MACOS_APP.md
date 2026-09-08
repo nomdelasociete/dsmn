@@ -16,12 +16,16 @@ diagnostics use IBM Plex Mono. Font licenses are bundled with the app.
 The menu bar icon changes by state:
 
 - heartbeat: off or loading;
-- heartbeat with a steady activity pixel: a manual timer is active;
+- heartbeat with a steady activity pixel: a manual timer is active; a brief
+  stepped scan repeats every 4.8 seconds while the helper confirms protection;
 - warning triangle: status unavailable, fallback protection, incomplete setup,
   or a sleep lock that the helper has not applied.
 
-The mark stays a template image for menu bar contrast. It has no continuous
-animation, including when Reduce Motion is enabled.
+The mark is a 22 × 16 pt template image for native menu bar sizing and contrast.
+Every scan frame has the same dimensions, keeping the countdown steady. Scanning
+stops when the timer expires, protection is unavailable, or Reduce Motion is
+enabled; the activity pixel remains a static state cue. Animation sleeps between
+scans and reuses cached images instead of running a continuous display timer.
 
 ## Panel and settings
 

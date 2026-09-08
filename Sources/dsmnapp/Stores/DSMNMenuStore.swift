@@ -85,6 +85,15 @@ final class DSMNMenuStore: ObservableObject {
         )
     }
 
+    func menuBarProtectionIsActive(at date: Date) -> Bool {
+        menuBarIconState == .manualActive
+            && helperStatus == .enabled
+            && !helperXPCUnavailable
+            && report?.state.ownsSleepDisable == true
+            && report?.decision.shouldPreventSleep == true
+            && report?.state.manualIsActive(at: date) == true
+    }
+
     var menuBarShowsSetupAttention: Bool {
         onboardingWizardDismissed
             && !setupRemindersSuppressed
