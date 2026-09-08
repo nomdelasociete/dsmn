@@ -6,8 +6,9 @@ as the app's primary menu bar surface.
 
 The 28 × 20 heartbeat is the exact square-capped SVG path from the website.
 `DSMNIdentity` expands that stroke and shares it between the wordmark, template
-menu bar icon, and generated app icon. `Resources/dsmn-pulse.svg` retains the
-source artwork. The `.icns` uses the website's stepped paper tile with transparent
+menu bar icon, and generated app icon. The menu bar renders it into a compact
+22 × 16 pt image with proportionally lighter strokes. `Resources/dsmn-pulse.svg`
+retains the source artwork. The `.icns` uses the website's stepped paper tile with transparent
 macOS margins. Regenerate it with `./scripts/generate_app_icon.sh [output.icns]`.
 The previous crown documents remain in `docs/` as historical source files.
 
@@ -25,8 +26,10 @@ SwiftPM and Xcode builds load the same assets; font registration is process scop
 - Diagnostics remain selectable. Feedback diagnostics remain opt-in. Helper
   updates remain advisory, with Later available. Hook removal stays in About
   with a separate confirmation. Existing Stop & Quit handling is retained.
-- Fonts, button feedback, and window layouts are local; there is no web view,
-  remote font request, or continuous decorative animation.
+- Fonts, button feedback, and window layouts are local; there is no web view or
+  remote font request. Confirmed active protection adds the website's brief
+  heartbeat scan every 4.8 seconds. Idle, warning, and Reduce Motion states stay
+  static. All frames are monochrome template images with fixed dimensions.
 
 ## Review images
 

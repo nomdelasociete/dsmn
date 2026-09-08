@@ -90,6 +90,6 @@ private struct DSMNMenuBarLabel: View {
     }
 
     private var icon: some View {
-        DSMNMenuBarIcon(state: store.menuBarIconState)
+        DSMNMenuBarIcon(state: store.menuBarIconState, protectionIsActive: store.menuBarProtectionIsActive(at: date))
     }
 }

@@ -4,45 +4,94 @@ import SwiftUI
 
 struct DSMNMenuBarIcon: View {
     var state: MenuBarIconState
-    var size: CGFloat = 16
+    var protectionIsActive: Bool
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var scanStep = 0
+
+    private var shouldAnimate: Bool {
+        state == .manualActive && protectionIsActive && !reduceMotion
+    }
 
     var body: some View {
         Group {
             if state == .warning {
                 Image(systemName: "exclamationmark.triangle.fill")
-                    .font(.system(size: size * 0.82, weight: .semibold))
+                    .font(.system(size: 13, weight: .semibold))
             } else {
-                Image(nsImage: DSMNStatusIconImage.image(for: state))
-                    .resizable()
+                Image(nsImage: DSMNStatusIconImage.image(for: state, scanStep: shouldAnimate ? scanStep : 0))
                     .renderingMode(.template)
-                    .interpolation(.none)
             }
         }
-        .frame(width: size * 1.4, height: size)
-        .id(state.rawValue)
+        .frame(width: 22, height: 16)
         .accessibilityHidden(true)
+        .task(id: shouldAnimate) {
+            scanStep = 0
+            guard shouldAnimate else { return }
+            do {
+                while !Task.isCancelled {
+                    // Match the website's 4.8 s cycle: rest, a stepped scan, then fade.
+                    // Sleep between scans rather than running a continuous display timer.
+                    try await Task.sleep(for: .seconds(3.264))
+                    for step in 1...14 {
+                        scanStep = step
+                        try await Task.sleep(for: .seconds(0.96 / 14))
+                    }
+                    for step in 15...22 {
+                        scanStep = step
+                        try await Task.sleep(for: .seconds(0.576 / 8))
+                    }
+                    scanStep = 0
+                }
+            } catch is CancellationError {
+                // State changes, Reduce Motion, and removal cancel the pending sleep.
+            } catch {
+                scanStep = 0
+            }
+        }
     }
 }
 
 enum DSMNStatusIconImage {
-    @MainActor private static var cache: [MenuBarIconState: NSImage] = [:]
+    private struct Key: Hashable {
+        var state: MenuBarIconState
+        var scanStep: Int
+    }
+
+    @MainActor private static var cache: [Key: NSImage] = [:]
 
     @MainActor
-    static func image(for state: MenuBarIconState) -> NSImage {
-        if let image = cache[state] { return image }
-        let image = NSImage(size: NSSize(width: 28, height: 20), flipped: true) { _ in
+    static func image(for state: MenuBarIconState, scanStep: Int = 0) -> NSImage {
+        let step = state == .manualActive ? min(22, max(0, scanStep)) : 0
+        let key = Key(state: state, scanStep: step)
+        if let image = cache[key] { return image }
+        // MenuBarExtra can use NSImage's intrinsic dimensions instead of SwiftUI's frame.
+        // Size the artwork here so both the static mark and every scan frame stay compact.
+        let image = NSImage(size: NSSize(width: 22, height: 16), flipped: true) { _ in
             guard let context = NSGraphicsContext.current?.cgContext else { return false }
-            context.setFillColor(NSColor.black.cgColor)
-            context.addPath(DSMNIdentity.pulsePath(in: CGRect(x: 0, y: 0, width: 28, height: 20)))
+            let bounds = CGRect(x: 0, y: 0, width: 22, height: 16)
+            let path = DSMNIdentity.pulsePath(in: bounds)
+            context.setFillColor(NSColor.black.withAlphaComponent(state == .manualActive ? 0.65 : 1).cgColor)
+            context.addPath(path)
             context.fillPath()
-            // A steady activity pixel keeps the state distinct without continuous animation.
+            if step > 0 {
+                context.saveGState()
+                let progress = min(1, CGFloat(step) / 14)
+                context.clip(to: CGRect(x: 0, y: 0, width: bounds.width * progress, height: bounds.height))
+                let opacity = step <= 14 ? 1 : CGFloat(22 - step) / 8
+                context.setFillColor(NSColor.black.withAlphaComponent(opacity).cgColor)
+                context.addPath(path)
+                context.fillPath()
+                context.restoreGState()
+            }
+            // Retain a steady state cue between scans and when Reduce Motion is enabled.
             if state == .manualActive {
-                context.fill(CGRect(x: 23, y: 2, width: 4, height: 4))
+                context.setFillColor(NSColor.black.cgColor)
+                context.fill(CGRect(x: 18.5, y: 2, width: 2.5, height: 2.5))
             }
             return true
         }
         image.isTemplate = true
-        cache[state] = image
+        cache[key] = image
         return image
     }
 }

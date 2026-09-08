@@ -20,8 +20,33 @@ final class BrandPresentationTests: XCTestCase {
         let active = DSMNStatusIconImage.image(for: .manualActive)
         XCTAssertTrue(idle.isTemplate)
         XCTAssertTrue(active.isTemplate)
-        XCTAssertEqual(idle.size, NSSize(width: 28, height: 20))
+        XCTAssertEqual(idle.size, NSSize(width: 22, height: 16))
         XCTAssertNotEqual(try XCTUnwrap(idle.tiffRepresentation), try XCTUnwrap(active.tiffRepresentation))
+    }
+
+    func testHeartbeatScanKeepsItsSizeAndReturnsToItsRestingImage() throws {
+        let resting = DSMNStatusIconImage.image(for: .manualActive)
+        let scan = DSMNStatusIconImage.image(for: .manualActive, scanStep: 14)
+        let faded = DSMNStatusIconImage.image(for: .manualActive, scanStep: 22)
+        XCTAssertTrue(scan.isTemplate)
+        XCTAssertEqual(scan.size, resting.size)
+        XCTAssertEqual(faded.size, resting.size)
+        XCTAssertNotEqual(try XCTUnwrap(scan.tiffRepresentation), try XCTUnwrap(resting.tiffRepresentation))
+        XCTAssertEqual(try XCTUnwrap(faded.tiffRepresentation), try XCTUnwrap(resting.tiffRepresentation))
+        for state in [MenuBarIconState.off, .loading, .warning] {
+            XCTAssertTrue(DSMNStatusIconImage.image(for: state, scanStep: 14) === DSMNStatusIconImage.image(for: state))
+        }
+    }
+
+    func testHeartbeatOnlyAnimatesDuringConfirmedUnexpiredProtection() throws {
+        let protected = try fixtureStore(ownsLock: true, active: true)
+        let expiry = try XCTUnwrap(protected.report?.state.manualUntil)
+        XCTAssertTrue(protected.menuBarProtectionIsActive(at: expiry.addingTimeInterval(-1)))
+        XCTAssertFalse(protected.menuBarProtectionIsActive(at: expiry))
+        XCTAssertFalse(protected.menuBarProtectionIsActive(at: expiry.addingTimeInterval(1)))
+        XCTAssertFalse(try fixtureStore(ownsLock: false, active: true).menuBarProtectionIsActive(at: Date()))
+        XCTAssertFalse(try fixtureStore(ownsLock: false, active: false).menuBarProtectionIsActive(at: Date()))
+        XCTAssertFalse(try fixtureStore(ownsLock: true, active: true, helperStatus: .notFound).menuBarProtectionIsActive(at: Date()))
     }
 
     func testPanelNeverClaimsProtectionWhenHelperHasNotAppliedLock() throws {
@@ -75,7 +100,7 @@ final class BrandPresentationTests: XCTestCase {
         }
     }
 
-    private func fixtureStore(ownsLock: Bool, active: Bool) throws -> DSMNMenuStore {
+    private func fixtureStore(ownsLock: Bool, active: Bool, helperStatus: HelperRegistrationStatus = .enabled) throws -> DSMNMenuStore {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent("dsmn-brand-test-\(UUID())")
         addTeardownBlock { try? FileManager.default.removeItem(at: directory) }
         let now = Date()
@@ -87,6 +112,6 @@ final class BrandPresentationTests: XCTestCase {
                                   decision: PowerDecision(shouldPreventSleep: active, reasons: [], safetyBlocks: []),
                                   manualRemainingSeconds: active ? 984 : nil)
         return DSMNMenuStore(controller: DSMNController(store: StateStore(directory: directory)),
-                             helperStatus: .enabled, initialReport: report, stopHelper: { report })
+                             helperStatus: helperStatus, initialReport: report, stopHelper: { report })
     }
 }
