@@ -165,25 +165,42 @@ public enum PowerSource: String, Codable, Sendable {
     case unknown
 }
 
+public enum ThermalCondition: String, Codable, Sendable, CaseIterable {
+    case nominal, fair, serious, critical, unknown
+
+    public static var current: ThermalCondition {
+        switch ProcessInfo.processInfo.thermalState {
+        case .nominal: .nominal
+        case .fair: .fair
+        case .serious: .serious
+        case .critical: .critical
+        @unknown default: .unknown
+        }
+    }
+}
+
 public struct SystemSnapshot: Codable, Equatable, Sendable {
     public var now: Date
     public var powerSource: PowerSource
     public var batteryPercent: Int?
     public var defaultRouteAvailable: Bool?
     public var lidClosed: Bool?
+    public var thermalCondition: ThermalCondition?
 
     public init(
         now: Date = Date(),
         powerSource: PowerSource = .unknown,
         batteryPercent: Int? = nil,
         defaultRouteAvailable: Bool? = nil,
-        lidClosed: Bool? = nil
+        lidClosed: Bool? = nil,
+        thermalCondition: ThermalCondition? = nil
     ) {
         self.now = now
         self.powerSource = powerSource
         self.batteryPercent = batteryPercent
         self.defaultRouteAvailable = defaultRouteAvailable
         self.lidClosed = lidClosed
+        self.thermalCondition = thermalCondition
     }
 }
 

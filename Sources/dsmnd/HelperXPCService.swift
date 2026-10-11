@@ -5,6 +5,9 @@ final class DSMNHelperXPCService: NSObject, DSMNHelperXPCProtocol, @unchecked Se
     private let controller: DSMNController
     private let powerManager: any PowerManaging
     private let liveSleepDisabledProvider: @Sendable () -> Bool?
+    private let thermalConditionProvider: @Sendable () -> ThermalCondition
+    private let thermalNotificationCenter: NotificationCenter
+    private var thermalObserver: NSObjectProtocol?
     private let operationLock = NSLock()
     private let timerQueue = DispatchQueue(label: "com.nomdelasociete.dsmn.helper.reconcile")
     private let telemetryQueue = DispatchQueue(label: "com.nomdelasociete.dsmn.helper.telemetry")
@@ -25,14 +28,25 @@ final class DSMNHelperXPCService: NSObject, DSMNHelperXPCProtocol, @unchecked Se
     init(
         controller: DSMNController = DSMNController(store: StateStore.daemonStore()),
         powerManager: any PowerManaging = PMSetPowerManager(dryRun: DSMNHelperXPCService.shouldDryRunPowerChanges()),
-        liveSleepDisabledProvider: @escaping @Sendable () -> Bool? = DSMNHelperXPCService.defaultLiveSleepDisabled
+        liveSleepDisabledProvider: @escaping @Sendable () -> Bool? = DSMNHelperXPCService.defaultLiveSleepDisabled,
+        thermalConditionProvider: @escaping @Sendable () -> ThermalCondition = { .current },
+        thermalNotificationCenter: NotificationCenter = .default
     ) {
         self.controller = controller
         self.powerManager = powerManager
         self.liveSleepDisabledProvider = liveSleepDisabledProvider
+        self.thermalConditionProvider = thermalConditionProvider
+        self.thermalNotificationCenter = thermalNotificationCenter
+        super.init()
+        thermalObserver = thermalNotificationCenter.addObserver(
+            forName: ProcessInfo.thermalStateDidChangeNotification, object: nil, queue: nil
+        ) { [weak self] _ in
+            self?.reconcileSilently()
+        }
     }
 
     deinit {
+        if let thermalObserver { thermalNotificationCenter.removeObserver(thermalObserver) }
         periodicReconcileTimer?.cancel()
         sleepReleaseTimer?.cancel()
     }
@@ -214,9 +228,15 @@ final class DSMNHelperXPCService: NSObject, DSMNHelperXPCProtocol, @unchecked Se
                     stateChanged: false
                 )
             }
+            let base = mandatory ? ControllerTelemetry.unavailable(at: now) : telemetry
+            var snapshot = base.snapshot
+            // Read directly on every command/deadline/event, independent of blocked probes.
+            snapshot.thermalCondition = thermalConditionProvider()
+            let safetyTelemetry = ControllerTelemetry(snapshot: snapshot, agents: base.agents,
+                                                       diagnosticErrors: base.diagnosticErrors)
             report = try controller.reconcile(
                 powerManager: powerManager,
-                telemetry: mandatory ? .unavailable(at: now) : telemetry,
+                telemetry: safetyTelemetry,
                 liveSleepDisabled: mandatory ? nil : cachedLiveSleepDisabled,
                 updateTracking: updateTracking && !mandatory,
                 now: now

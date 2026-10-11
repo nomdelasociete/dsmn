@@ -66,6 +66,13 @@ Failed releases retain the marker and retry. This covers process crashes; it is
 not a guarantee against permanent storage or launchd failure. Existing state files
 without the marker decode as false. The helper must be updated for this behavior.
 
+The helper reads macOS thermal state on every reconciliation and observes thermal
+change notifications independently of the app and slower system probes. Critical
+heat cancels the manual lease and releases the owned lock on AC or battery, with
+either lid state. Cooling does not restart the cancelled lease. Hooks cannot arm
+protection while heat remains critical. Serious heat is reported in snapshot JSON
+but does not change Low Power Mode. Older snapshots may omit `thermalCondition`.
+
 The helper must release sleep prevention when any hard stop applies:
 
 - manual timer expired;

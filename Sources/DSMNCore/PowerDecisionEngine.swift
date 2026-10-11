@@ -69,6 +69,10 @@ public struct PowerDecisionEngine: Sendable {
     private func safetyBlocks(state: DSMNState, snapshot: SystemSnapshot) -> [String] {
         var blocks: [String] = []
 
+        if snapshot.thermalCondition == .critical {
+            blocks.append("thermal_critical")
+        }
+
         if snapshot.powerSource == .battery,
            let batteryPercent = snapshot.batteryPercent,
            batteryPercent <= policy.minimumBatteryPercent {

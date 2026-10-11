@@ -335,6 +335,13 @@ public struct DSMNController: Sendable {
             evaluatedState.lastStopReason = "interrupted_acquisition"
         }
 
+        // A critical thermal event ends the lease; cooling down must not restart it.
+        if snapshot.thermalCondition == .critical {
+            evaluatedState.manualUntil = nil
+            evaluatedState.lastStopReason = "thermal_critical"
+            if evaluatedState != originalState { try store.save(evaluatedState) }
+        }
+
         if let manualUntil = evaluatedState.manualUntil, manualUntil <= now {
             evaluatedState.manualUntil = nil
             evaluatedState.lastStopReason = "manual_expired"
