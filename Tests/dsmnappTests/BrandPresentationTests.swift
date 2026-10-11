@@ -74,6 +74,7 @@ final class BrandPresentationTests: XCTestCase {
             ("panel-active", AnyView(DSMNMenuView(store: store))),
             ("panel-idle", AnyView(DSMNMenuView(store: try fixtureStore(ownsLock: false, active: false)))),
             ("panel-warning", AnyView(DSMNMenuView(store: try fixtureStore(ownsLock: false, active: true)))),
+            ("custom-duration", AnyView(CustomDurationView(store: store, action: .replace, onClose: {}))),
             ("onboarding", AnyView(DSMNOnboardingView(store: store, onSkip: {}, onDone: {}))),
             ("setup", AnyView(DSMNSetupTroubleshootingView(store: store, onClose: {}).frame(width: 740, height: 700))),
             ("doctor", AnyView(DSMNDoctorView(report: "Status source: helper\nPower lock: on\nmacOS SleepDisabled: on", onClose: {}).frame(width: 620, height: 620))),

@@ -176,6 +176,7 @@ struct DSMNSetupTroubleshootingView: View {
     private var preferencesSection: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Make it yours").font(DSMNBrand.display(24))
+            DurationSettingsView()
             Toggle("Show countdown in menu bar", isOn: $showMenuBarCountdown)
                 .toggleStyle(.checkbox)
 

@@ -177,6 +177,43 @@ final class StopOutcomeTests: XCTestCase {
         XCTAssertTrue(store.errorMessage?.contains("injected release failure") == true)
     }
 
+    func testAppliedAddNoticeClearsAfterConfirmedStop() async throws {
+        let stopped = stoppedReport()
+        let store = DSMNMenuStore(controller: try temporaryController(), helperStatus: .enabled,
+                                  stopHelper: { stopped })
+        var added = stopped
+        added.state.manualUntil = added.generatedAt.addingTimeInterval(1800)
+        store.recordManualTimerWarning(report: added, action: .add)
+        let notice = store.manualTimerWarning
+        XCTAssertNotNil(notice)
+        XCTAssertEqual(store.menuBarIconState, .warning)
+        _ = await store.stopNow()
+        XCTAssertNil(store.errorMessage)
+        XCTAssertNil(store.manualTimerWarning)
+    }
+
+    func testAppliedAddNoticeSurvivesFailedStopAndClearsOnProtectedCommand() async throws {
+        for action in [ManualTimerAction.add, .replace] {
+            var added = stoppedReport()
+            added.state.manualUntil = added.generatedAt.addingTimeInterval(1800)
+            let store = DSMNMenuStore(controller: try temporaryController(), helperStatus: .enabled,
+                                      initialReport: added,
+                                      stopHelper: { added })
+            store.recordManualTimerWarning(report: added, action: .add)
+            let notice = store.manualTimerWarning
+            XCTAssertEqual(store.menuBarIconState, .warning)
+            _ = await store.stopNow()
+            XCTAssertNotNil(notice)
+            XCTAssertEqual(store.manualTimerWarning, notice)
+            store.recordManualTimerWarning(report: added, action: .replace)
+            XCTAssertEqual(store.manualTimerWarning, notice)
+            added.state.ownsSleepDisable = true
+            added.decision.shouldPreventSleep = true
+            store.recordManualTimerWarning(report: added, action: action)
+            XCTAssertNil(store.manualTimerWarning)
+        }
+    }
+
     private func temporaryController() throws -> DSMNController {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent("dsmn-stop-test-\(UUID())")
         addTeardownBlock { try? FileManager.default.removeItem(at: directory) }

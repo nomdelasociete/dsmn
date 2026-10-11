@@ -31,14 +31,36 @@ scans and reuses cached images instead of running a continuous display timer.
 
 | Surface | Actions and information |
 |---------|-------------------------|
-| Compact panel | Status, live countdown, power lock, last requester, 12-hour activity, 30m / 90m / Custom, Stop, Refresh, Setup, Why Awake, About, Quit |
-| Setup & Troubleshooting | Helper install/update/approval/repair, agent hooks, launch at login, Doctor, Repair, countdown preference, software updates, feedback, Setup Guide |
+| Compact panel | Status, live countdown, power lock, last requester, 12-hour activity, configurable timer presets / Custom, Start / Replace or Add time, Stop, Refresh, Setup, Why Awake, About, Quit |
+| Setup & Troubleshooting | Helper install/update/approval/repair, agent hooks, launch at login, Doctor, Repair, timer presets, countdown preference, software updates, feedback, Setup Guide |
 | About | Version, credits, website, and confirmed removal of agent hooks |
 
 Actions remain direct buttons; there are no nested SwiftUI menus. Stop remains
-available even when helper registration is unavailable. Shortcuts are preserved:
-⌘3 / ⌘9 for timers, ⌘. for Stop, ⌘R for Refresh, and ⌘Q for Quit.
-Custom duration uses the existing floating native alert and accepts 1–720 minutes.
+available even when helper registration is unavailable. ⌘3 and ⌘9 activate the
+30- and 90-minute presets when those durations are in the saved list, using the
+selected Start / Replace or Add time action. ⌘. stops the timer, ⌘R refreshes,
+and ⌘Q quits.
+Custom duration opens a floating Hours / Minutes window. It accepts 1–480 minutes
+(8 hours), matching `SafetyPolicy.maxManualDurationMinutes`. Invalid input and
+helper failures remain visible in the window. Replacement closes after confirmed
+protection. An acknowledged Add closes once the helper reports the saved active
+timer, even if protection is blocked; the panel warns that time was added but
+protection is not confirmed, so the user does not retry an already applied Add.
+This notice survives status refreshes and marks the menu bar icon as a warning.
+It clears on **Dismiss notice**, a helper-confirmed Stop, or a later timer command
+that confirms active protection.
+The last applied custom duration is saved across app launches.
+
+The panel and Custom window distinguish **Start / Replace** (duration from now)
+from **Add time** (duration added to the helper's current deadline). Adding to an
+expired timer starts from now. Add rejects totals above 8 hours without changing
+the existing timer; it does not silently clamp or replace it. Older helpers still
+support replacement and show an explicit Update Helper instruction for Add.
+
+Setup & Troubleshooting → Make it yours → Timer presets accepts 1–6 comma-separated
+durations, such as `30m, 1h30m, 2h`. Presets are validated and saved locally; menu
+buttons update immediately. The initial presets remain 30 and 90 minutes. Their
+⌘3 / ⌘9 shortcuts remain available when those durations are in the saved list.
 
 **Show countdown in menu bar** and **Launch at Login** live in the setup window.
 Launch at Login uses `SMAppService.mainApp` and may require approval in System
@@ -193,6 +215,28 @@ Still required for a production install:
 - copy the archived app to `/Applications`;
 - notarize the app before relying on LaunchDaemon registration;
 - approve the helper in System Settings when macOS requests it.
+
+## Interactive timer checks
+
+Run `./scripts/e2e_menu_setup.sh` in an unlocked desktop session with Accessibility
+enabled for the invoking terminal. It tests Custom validation and cancellation,
+the Add/Replace selection, invalid and valid settings presets, updated menu
+buttons, and persistence after restarting the app. Duration preferences use a
+temporary, Debug-only UserDefaults suite; the installed app is restored afterward.
+The default run does not submit a valid timer or press Stop.
+
+For an actual helper-confirmed Custom submission, run
+`E2E_TEST_LIVE_TIMER=1 ./scripts/e2e_menu_setup.sh`. This requires an existing
+protected timer and an open lid. It rounds the current remaining time up to the
+next minute and verifies that protection and the prior deadline are preserved.
+It also checks that adding eight hours is rejected (or requests Update Helper
+on an older helper). Successful additive commands are covered by helper tests.
+
+On the macOS 27 test desktop, AXPress alone did not open the SwiftUI menu panel.
+The test driver clicks the status item's current accessibility coordinates with
+an explicit single-click count, including on screens with negative coordinates.
+Text fields are focused and read back before submission; cancellation uses the
+Cancel button because Escape can be consumed by field editing.
 
 ## Xcode project
 

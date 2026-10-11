@@ -83,6 +83,13 @@ final class HelperServiceClient {
         }.value
     }
 
+    func addManualTime(minutes: Int) async throws -> StatusReport {
+        let client = helperClient
+        return try await Task.detached {
+            try client.addManualTime(minutes: minutes)
+        }.value
+    }
+
     func repair() async throws -> StatusReport {
         let client = helperClient
         return try await Task.detached {

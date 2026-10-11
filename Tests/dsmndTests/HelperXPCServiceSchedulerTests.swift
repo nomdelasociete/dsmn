@@ -3,6 +3,38 @@ import XCTest
 @testable import dsmnd
 
 final class HelperXPCServiceSchedulerTests: XCTestCase {
+    func testAddAdvertisesCapabilityAndSerializesConcurrentAdditions() throws {
+        let store = try makeStore()
+        let until = Date(timeIntervalSince1970: floor(Date().timeIntervalSince1970) + 3600)
+        try store.save(DSMNState(manualUntil: until, ownsSleepDisable: true))
+        let power = RecordingPowerManager(dryRun: false)
+        let service = DSMNHelperXPCService(
+            controller: DSMNController(store: store, processListing: StaticProcessListing([]),
+                snapshotProvider: StaticSystemSnapshotProvider(SystemSnapshot(now: Date(), powerSource: .ac, defaultRouteAvailable: true, lidClosed: false))),
+            powerManager: power, liveSleepDisabledProvider: { nil }
+        )
+        var statusPayload = ""
+        service.status { statusPayload = $0 }
+        let status = try XCTUnwrap(decode(statusPayload).status)
+        XCTAssertEqual(status.supportsAddManualTime, true)
+        XCTAssertEqual(status.manualDurationLimitMinutes, 480)
+
+        DispatchQueue.concurrentPerform(iterations: 6) { _ in
+            service.addManualTime(minutes: 1) { _ in }
+        }
+        XCTAssertEqual(try store.load().manualUntil, until.addingTimeInterval(360))
+        XCTAssertEqual(try store.load().lastRequester?.context, "menu")
+        var failed = ""
+        service.addManualTime(minutes: 480) { failed = $0 }
+        XCTAssertNotNil(try decode(failed).error)
+        XCTAssertEqual(try store.load().manualUntil, until.addingTimeInterval(360))
+
+        service.stop { _ in }
+        XCTAssertFalse(try store.load().ownsSleepDisable)
+        XCTAssertNil(try store.load().manualUntil)
+        XCTAssertEqual(power.snapshot(), [false])
+    }
+
     func testCachedClosedLidDoesNotSleepDisplayAfterStopAndFreshOpenRenewal() throws {
         try assertRenewalDisplayUsesFreshSample(lidClosed: false)
     }
