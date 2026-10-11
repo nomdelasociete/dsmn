@@ -56,7 +56,16 @@ Safety blocks still apply; accepting the saved deadline does not claim protectio
 
 ## Release conditions
 
+The helper reads macOS thermal state on every reconciliation and observes thermal
+change notifications independently of the app and slower system probes. Critical
+heat cancels the manual lease and releases the owned lock on AC or battery, with
+either lid state. Cooling does not restart the cancelled lease. Hooks cannot arm
+protection while heat remains critical. Serious heat is reported in snapshot JSON
+but does not change Low Power Mode. Older snapshots may omit `thermalCondition`.
+
 The helper must release sleep prevention when any hard stop applies:
+
+- macOS thermal state becomes critical; cancel the lease so cooling cannot restart it;
 
 - manual timer expired;
 - no manual timer is active;
