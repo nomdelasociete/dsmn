@@ -3,6 +3,26 @@ import XCTest
 @testable import dsmnd
 
 final class HelperXPCServiceSchedulerTests: XCTestCase {
+    func testRestartRecoversPendingAcquisitionWithoutClientAndRetriesFailedRelease() throws {
+        let store = try makeStore()
+        var state = DSMNState(manualUntil: Date().addingTimeInterval(600))
+        state.sleepDisablePending = true
+        try store.save(state)
+        let power = RecordingPowerManager(dryRun: false, outcomes: [.exit(1), .exit(0)])
+        let service = DSMNHelperXPCService(
+            controller: DSMNController(store: store, processListing: StaticProcessListing([]),
+                snapshotProvider: StaticSystemSnapshotProvider(SystemSnapshot())),
+            powerManager: power, liveSleepDisabledProvider: { nil })
+        service.startPeriodicReconcile(interval: 3600)
+        XCTAssertEqual(power.snapshot().first, false)
+        let deadline = Date().addingTimeInterval(4)
+        while try store.load().sleepDisablePending, Date() < deadline { pump(for: 0.02) }
+        XCTAssertFalse(try store.load().sleepDisablePending)
+        XCTAssertNil(try store.load().manualUntil)
+        XCTAssertFalse(try store.load().ownsSleepDisable)
+        XCTAssertGreaterThanOrEqual(power.snapshot().count, 2)
+        XCTAssertFalse(power.snapshot().contains(true))
+    }
     func testAddAdvertisesCapabilityAndSerializesConcurrentAdditions() throws {
         let store = try makeStore()
         let until = Date(timeIntervalSince1970: floor(Date().timeIntervalSince1970) + 3600)
@@ -164,7 +184,7 @@ final class HelperXPCServiceSchedulerTests: XCTestCase {
         defer { gate.open() }
         let store = try makeStore()
         try store.save(DSMNState(manualUntil: Date().addingTimeInterval(300)))
-        let power = RecordingPowerManager(dryRun: false, defaultExitCode: 1)
+        let power = RecordingPowerManager(dryRun: false)
         let service = DSMNHelperXPCService(
             controller: makeController(store: store), powerManager: power,
             liveSleepDisabledProvider: { gate.wait(); return true }
@@ -342,14 +362,15 @@ final class HelperXPCServiceSchedulerTests: XCTestCase {
         XCTAssertEqual(power.snapshot(), [false])
 
         service.enableManual(minutes: 20) { _ in }
-        XCTAssertNotNil(try store.load().manualUntil)
+        XCTAssertTrue(try store.load().sleepDisablePending)
         XCTAssertFalse(try store.load().ownsSleepDisable)
         gate.open()
         wait(for: [returned], timeout: 1)
         pump(for: 0.2)
 
         XCTAssertEqual(power.sleepCount, 0)
-        XCTAssertNotNil(try store.load().manualUntil)
+        XCTAssertNil(try store.load().manualUntil, "Uncertain acquisition is cancelled during recovery")
+        XCTAssertTrue(try store.load().sleepDisablePending, "Failed releases must retain responsibility")
         XCTAssertFalse(try store.load().ownsSleepDisable)
         withExtendedLifetime(service) {}
     }

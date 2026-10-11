@@ -11,6 +11,8 @@ final class HelperPackagingTests: XCTestCase {
         )
 
         XCTAssertEqual(plist["Label"] as? String, "com.nomdelasociete.dsmn.helper")
+        XCTAssertEqual(plist["RunAtLoad"] as? Bool, true)
+        XCTAssertEqual(plist["KeepAlive"] as? Bool, true)
         XCTAssertEqual(plist["BundleProgram"] as? String, "Contents/Library/LaunchServices/dsmnd")
 
         let arguments = try XCTUnwrap(plist["ProgramArguments"] as? [String])

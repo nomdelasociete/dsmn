@@ -263,7 +263,7 @@ public struct DSMNController: Sendable {
         try store.save(nextState)
 
         var operations: [PowerOperationResult] = []
-        if originalState.ownsSleepDisable || liveSleepDisabled == true {
+        if originalState.ownsSleepDisable || originalState.sleepDisablePending || liveSleepDisabled == true {
             operations = try releaseSleepDisable(
                 powerManager: powerManager,
                 state: &nextState,
@@ -305,7 +305,7 @@ public struct DSMNController: Sendable {
 
     public func needsMandatoryRelease(now: Date = Date()) throws -> Bool {
         let state = try store.load()
-        return state.ownsSleepDisable && (
+        return state.sleepDisablePending || state.ownsSleepDisable && (
             !state.manualIsActive(at: now)
                 || state.noRouteGraceRemainingSeconds(at: now, graceSeconds: decisionEngine.policy.noRouteGraceSeconds) == 0
         )
@@ -328,6 +328,13 @@ public struct DSMNController: Sendable {
         var evaluatedState = originalState
         if updateTracking { evaluatedState.syncSnapshotTracking(with: telemetry.snapshot) }
 
+        if originalState.sleepDisablePending {
+            // The process may have died after pmset succeeded but before ownership
+            // was saved. Release conservatively before accepting another lease.
+            evaluatedState.manualUntil = nil
+            evaluatedState.lastStopReason = "interrupted_acquisition"
+        }
+
         if let manualUntil = evaluatedState.manualUntil, manualUntil <= now {
             evaluatedState.manualUntil = nil
             evaluatedState.lastStopReason = "manual_expired"
@@ -341,6 +348,9 @@ public struct DSMNController: Sendable {
         var operations: [PowerOperationResult] = []
 
         if decision.shouldPreventSleep && !originalState.ownsSleepDisable {
+            nextState.sleepDisablePending = true
+            nextState.updatedAt = now
+            try store.save(nextState)
             operation = try powerManager.setSleepDisabled(true)
             if let operation {
                 operations.append(operation)
@@ -352,6 +362,7 @@ public struct DSMNController: Sendable {
             }
             if operation?.succeeded == true {
                 nextState.ownsSleepDisable = true
+                nextState.sleepDisablePending = false
                 nextState.lastActivationReason = decision.reasons.joined(separator: ",")
                 nextState.lastStopReason = nil
                 // The following display operation may fail or time out. Keep
@@ -364,7 +375,7 @@ public struct DSMNController: Sendable {
             originalState: originalState,
             liveSleepDisabled: liveSleepDisabled
         ) {
-            let stopReason = ["manual_expired", "repair"].contains(nextState.lastStopReason ?? "")
+            let stopReason = ["manual_expired", "repair", "interrupted_acquisition"].contains(nextState.lastStopReason ?? "")
                 ? nextState.lastStopReason
                 : decision.stopReason
             operations = try releaseSleepDisable(
@@ -444,6 +455,7 @@ public struct DSMNController: Sendable {
         state.recordPowerOperation(release, at: now, reason: reason)
         if release.succeeded {
             state.ownsSleepDisable = false
+            state.sleepDisablePending = false
             state.lastStopReason = stopReason
         }
         state.updatedAt = now
@@ -519,7 +531,7 @@ public struct DSMNController: Sendable {
             return false
         }
 
-        if originalState.ownsSleepDisable {
+        if originalState.ownsSleepDisable || originalState.sleepDisablePending {
             return true
         }
 

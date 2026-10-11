@@ -56,6 +56,16 @@ Safety blocks still apply; accepting the saved deadline does not claim protectio
 
 ## Release conditions
 
+The registered helper starts at load and launchd restarts it after exit, so its
+release deadline is rearmed without another app or hook command. Before acquiring
+the power lock, the helper atomically saves `sleepDisablePending`. Successful
+acquisition replaces that marker with confirmed ownership. On interruption or an
+ambiguous command failure, the next reconcile ends the lease and releases the
+possibly acquired lock before accepting more work, without waiting for probes.
+Failed releases retain the marker and retry. This covers process crashes; it is
+not a guarantee against permanent storage or launchd failure. Existing state files
+without the marker decode as false. The helper must be updated for this behavior.
+
 The helper must release sleep prevention when any hard stop applies:
 
 - manual timer expired;
