@@ -2,6 +2,20 @@ import XCTest
 @testable import DSMNCore
 
 final class DaemonReconcileTests: XCTestCase {
+    func testCriticalHeatWithoutLeasePreservesPreviousStopReason() throws {
+        let now = Date()
+        for reason in ["user_stop", "repair", "manual_expired"] {
+            let store = try makeStore()
+            try store.save(DSMNState(lastStopReason: reason))
+            let controller = DSMNController(store: store)
+            let power = RecordingPowerManager(dryRun: false)
+            let telemetry = ControllerTelemetry(snapshot: SystemSnapshot(now: now, thermalCondition: .critical),
+                                                 agents: [], diagnosticErrors: [])
+            _ = try controller.reconcile(powerManager: power, telemetry: telemetry, now: now)
+            XCTAssertEqual(try store.load().lastStopReason, reason)
+            XCTAssertTrue(power.requests.isEmpty)
+        }
+    }
     func testThrownDisplaySleepPreservesSuccessfulAcquisitionAndAudit() throws {
         let now = Date(timeIntervalSince1970: 1_000)
         let store = try makeStore()
