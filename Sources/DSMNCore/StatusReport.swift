@@ -367,6 +367,11 @@ public struct DSMNController: Sendable {
                     reason: powerOperationReason(prefix: "enable", decision: decision, state: nextState)
                 )
             }
+            if operation?.dryRun == true {
+                // A completed simulation cannot have changed the system lock.
+                // Clear only this acquisition's journal, without claiming ownership.
+                nextState.sleepDisablePending = false
+            }
             if operation?.succeeded == true {
                 nextState.ownsSleepDisable = true
                 nextState.sleepDisablePending = false

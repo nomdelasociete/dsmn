@@ -2,6 +2,41 @@ import XCTest
 @testable import DSMNCore
 
 final class AcquisitionRecoveryTests: XCTestCase {
+    func testRepeatedDryRunAcquisitionsPreserveLeaseWithoutPendingRecovery() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let store = StateStore(directory: directory)
+        let now = Date(timeIntervalSince1970: 1_800_000_000)
+        let deadline = now.addingTimeInterval(600)
+        try store.save(DSMNState(manualUntil: deadline))
+        for offset in 0..<3 {
+            let tick = now.addingTimeInterval(Double(offset))
+            let controller = DSMNController(store: store)
+            let report = try controller.reconcile(powerManager: NoopPowerManager(),
+                                                  telemetry: .unavailable(at: tick), now: tick)
+            XCTAssertEqual(report.operation?.requestedSleepDisabled, true)
+            XCTAssertEqual(report.operation?.dryRun, true)
+            let state = try store.load()
+            XCTAssertEqual(state.manualUntil, deadline)
+            XCTAssertFalse(state.sleepDisablePending)
+            XCTAssertFalse(state.ownsSleepDisable)
+            XCTAssertFalse(try controller.needsMandatoryRelease(now: tick))
+        }
+    }
+
+    func testDryRunReleaseDoesNotDiscardRealPendingAcquisition() throws {
+        let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
+        defer { try? FileManager.default.removeItem(at: directory) }
+        let store = StateStore(directory: directory)
+        var state = DSMNState()
+        state.sleepDisablePending = true
+        try store.save(state)
+        let controller = DSMNController(store: store)
+        _ = try controller.reconcile(powerManager: NoopPowerManager(), telemetry: .unavailable(at: Date()))
+        XCTAssertTrue(try store.load().sleepDisablePending)
+        XCTAssertTrue(try controller.needsMandatoryRelease())
+    }
+
     func testInterruptedAcquisitionIsJournaledBeforePowerChangeAndRecovered() throws {
         try assertRecovery(failOwnershipSave: false)
     }
