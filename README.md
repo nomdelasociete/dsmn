@@ -57,6 +57,18 @@ publishing creates both a Sparkle zip and a drag-and-drop DMG.
 
 ## Local development
 
+Pull requests and main pushes run **macOS tests and bundle** in GitHub Actions:
+Swift tests, XcodeGen, a Debug build signed ad hoc, and bundle verification.
+No signing secrets or helper installation are needed. Validation logs are retained
+for seven days. The check is intentionally optional during its initial rollout:
+runner/toolchain reliability has not yet been established across multiple PRs.
+This avoids making an unproven infrastructure check a merge blocker; an
+administrator should require **macOS tests and bundle** once that baseline is
+established. This is not a known test failure or a waiver to merge failing code;
+a green AI review does not replace this check. Interactive menu tests
+(`./scripts/e2e_menu_setup.sh`, documented in [macOS app validation](docs/MACOS_APP.md#interactive-timer-checks))
+still require a local unlocked desktop with Accessibility permission.
+
 ```sh
 swift test
 swift run dsmn-app
