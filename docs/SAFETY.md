@@ -75,6 +75,8 @@ but does not change Low Power Mode. Older snapshots may omit `thermalCondition`.
 
 The helper must release sleep prevention when any hard stop applies:
 
+- macOS thermal state becomes critical; cancel the lease so cooling cannot restart it;
+
 - manual timer expired;
 - no manual timer is active;
 - battery is at or below the configured threshold while not on AC power;
