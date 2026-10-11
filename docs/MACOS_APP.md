@@ -31,13 +31,15 @@ scans and reuses cached images instead of running a continuous display timer.
 
 | Surface | Actions and information |
 |---------|-------------------------|
-| Compact panel | Status, live countdown, power lock, last requester, 12-hour activity, 30m / 90m / Custom, Stop, Refresh, Setup, Why Awake, About, Quit |
-| Setup & Troubleshooting | Helper install/update/approval/repair, agent hooks, launch at login, Doctor, Repair, countdown preference, software updates, feedback, Setup Guide |
+| Compact panel | Status, live countdown, power lock, last requester, 12-hour activity, configurable timer presets / Custom, Start / Replace or Add time, Stop, Refresh, Setup, Why Awake, About, Quit |
+| Setup & Troubleshooting | Helper install/update/approval/repair, agent hooks, launch at login, Doctor, Repair, timer presets, countdown preference, software updates, feedback, Setup Guide |
 | About | Version, credits, website, and confirmed removal of agent hooks |
 
 Actions remain direct buttons; there are no nested SwiftUI menus. Stop remains
-available even when helper registration is unavailable. Shortcuts are preserved:
-⌘3 / ⌘9 for timers, ⌘. for Stop, ⌘R for Refresh, and ⌘Q for Quit.
+available even when helper registration is unavailable. ⌘3 and ⌘9 activate the
+30- and 90-minute presets when those durations are in the saved list, using the
+selected Start / Replace or Add time action. ⌘. stops the timer, ⌘R refreshes,
+and ⌘Q quits.
 Custom duration opens a floating Hours / Minutes window. It accepts 1–480 minutes
 (8 hours), matching `SafetyPolicy.maxManualDurationMinutes`. Invalid input and
 helper failures remain visible in the window; it closes only after confirmed
