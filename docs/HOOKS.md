@@ -1,8 +1,8 @@
 # Hooks
 
 The helper rejects protection at critical macOS thermal state and cancels the
-lease. Repeated hook renewals cannot bypass this block; cooling does not resume
-the old lease, though a later hook event can request a new one.
+lease. Repeated hook renewals cannot bypass this block. Cooling does not resume
+the old lease; a later hook may arm a new one only after heat is no longer critical.
 
 Use `dsmnctl` from hooks instead of spawning long stacks of `caffeinate`
 processes. The hook is agent-agnostic: Claude Code, Cursor, Codex, Grok Build, Pi, or
