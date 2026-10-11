@@ -57,6 +57,32 @@ final class ManualTimerRequestTests: XCTestCase {
         } catch {}
     }
 
+    func testCommittedAddReturnsReportWithWarningWhenProtectionIsBlocked() async throws {
+        for ownsLock in [false, true] {
+            var report = protectedReport()
+            report.state.ownsSleepDisable = ownsLock
+            report.decision.shouldPreventSleep = false
+            report.decision.safetyBlocks = ["low_battery"]
+            var calls = 0
+            let result = try await ManualTimerRequest.run(minutes: 30, action: .add,
+                replace: { _ in XCTFail("Must not replace a committed Add"); return report },
+                add: { _ in calls += 1; return report })
+            XCTAssertEqual(calls, 1)
+            XCTAssertEqual(result, report)
+            XCTAssertTrue(ManualTimerRequest.appliedWarning(for: result, action: .add)?.contains("Time was added") == true)
+            XCTAssertTrue(ManualTimerRequest.appliedWarning(for: result, action: .add)?.contains("low_battery") == true)
+        }
+    }
+
+    func testCommittedAddWithoutPowerLockStillWarns() async throws {
+        var report = protectedReport()
+        report.state.ownsSleepDisable = false
+        let result = try await ManualTimerRequest.run(minutes: 30, action: .add,
+            replace: { _ in XCTFail(); return report }, add: { _ in report })
+        XCTAssertNotNil(ManualTimerRequest.appliedWarning(for: result, action: .add))
+        XCTAssertNil(ManualTimerRequest.appliedWarning(for: protectedReport(), action: .add))
+    }
+
     private func protectedReport() -> StatusReport {
         let now = Date()
         return StatusReport(generatedAt: now,

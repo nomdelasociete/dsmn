@@ -42,8 +42,11 @@ selected Start / Replace or Add time action. ⌘. stops the timer, ⌘R refreshe
 and ⌘Q quits.
 Custom duration opens a floating Hours / Minutes window. It accepts 1–480 minutes
 (8 hours), matching `SafetyPolicy.maxManualDurationMinutes`. Invalid input and
-helper failures remain visible in the window; it closes only after confirmed
-protection. The last successful custom duration is saved across app launches.
+helper failures remain visible in the window. Replacement closes after confirmed
+protection. An acknowledged Add closes once the helper reports the saved active
+timer, even if protection is blocked; the panel warns that time was added but
+protection is not confirmed, so the user does not retry an already applied Add.
+The last applied custom duration is saved across app launches.
 
 The panel and Custom window distinguish **Start / Replace** (duration from now)
 from **Add time** (duration added to the helper's current deadline). Adding to an

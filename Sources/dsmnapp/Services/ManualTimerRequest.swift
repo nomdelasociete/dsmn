@@ -2,7 +2,7 @@ import DSMNCore
 import Foundation
 
 enum ManualTimerRequest {
-    /// Only a helper-confirmed power lock is a successful timer request.
+    /// An acknowledged Add is already committed, even when protection is blocked.
     @MainActor
     static func run(
         minutes: Int, action: ManualTimerAction,
@@ -11,6 +11,9 @@ enum ManualTimerRequest {
     ) async throws -> StatusReport {
         _ = try ManualDuration.validate(minutes)
         let report = try await (action == .add ? add(minutes) : replace(minutes))
+        if action == .add, report.state.manualIsActive(at: report.generatedAt) {
+            return report
+        }
         guard report.state.ownsSleepDisable, report.decision.shouldPreventSleep,
               report.state.manualIsActive(at: report.generatedAt) else {
             let reasons = report.decision.safetyBlocks.joined(separator: ", ")
@@ -20,5 +23,13 @@ enum ManualTimerRequest {
             )
         }
         return report
+    }
+
+    static func appliedWarning(for report: StatusReport, action: ManualTimerAction) -> String? {
+        guard action == .add,
+              !report.state.ownsSleepDisable || !report.decision.shouldPreventSleep else { return nil }
+        let reasons = report.decision.safetyBlocks.joined(separator: ", ")
+        return "Time was added, but protection is not confirmed. Do not add the same duration again."
+            + (reasons.isEmpty ? " Refresh status to check protection." : " Safety blocks: \(reasons).")
     }
 }

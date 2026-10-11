@@ -548,7 +548,7 @@ final class DSMNMenuStore: ObservableObject {
             report = confirmed
             stopFailureMessage = nil
             markHelperXPCAvailable()
-            errorMessage = nil
+            errorMessage = ManualTimerRequest.appliedWarning(for: confirmed, action: action)
         } catch {
             errorMessage = error.localizedDescription
             throw error

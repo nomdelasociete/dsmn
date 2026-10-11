@@ -49,6 +49,10 @@ the deadline relative to now, even if that shortens an existing timer. Add is ne
 retried automatically after a timeout or emulated with a client-side read/replace.
 Status advertises this capability; an old helper continues to support replacement
 and requires an explicit helper update only for the new additive action.
+An acknowledged Add with a saved active deadline is already applied even if
+reconciliation cannot acquire the power lock. The app accepts that timer update
+and warns that protection is not confirmed instead of inviting a duplicate Add.
+Safety blocks still apply; accepting the saved deadline does not claim protection.
 
 ## Release conditions
 
