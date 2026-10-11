@@ -329,7 +329,7 @@ public struct DSMNController: Sendable {
         if updateTracking { evaluatedState.syncSnapshotTracking(with: telemetry.snapshot) }
 
         // A critical thermal event ends the lease; cooling down must not restart it.
-        if snapshot.thermalCondition == .critical {
+        if snapshot.thermalCondition == .critical, evaluatedState.manualIsActive(at: now) {
             evaluatedState.manualUntil = nil
             evaluatedState.lastStopReason = "thermal_critical"
             if evaluatedState != originalState { try store.save(evaluatedState) }
