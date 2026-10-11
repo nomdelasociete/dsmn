@@ -59,7 +59,7 @@ publishing creates both a Sparkle zip and a drag-and-drop DMG.
 
 Pull requests and main pushes run **macOS tests and bundle** in GitHub Actions:
 Swift tests, XcodeGen, a Debug build signed ad hoc, and bundle verification.
-No signing secrets or helper installation are needed. Failure logs are retained
+No signing secrets or helper installation are needed. Validation logs are retained
 for seven days. The check is advisory until a repository administrator adds it
 to branch protection; a green AI review does not replace this check. Interactive
 menu tests still require a local unlocked desktop with Accessibility permission.
