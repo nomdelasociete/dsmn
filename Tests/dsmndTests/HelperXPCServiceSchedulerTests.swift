@@ -3,6 +3,29 @@ import XCTest
 @testable import dsmnd
 
 final class HelperXPCServiceSchedulerTests: XCTestCase {
+    func testCriticalThermalNotificationReleasesWithoutPollAndCancelsLease() throws {
+        let store = try makeStore()
+        try store.save(DSMNState(manualUntil: Date().addingTimeInterval(600), ownsSleepDisable: true))
+        let power = RecordingPowerManager(dryRun: false)
+        let center = NotificationCenter()
+        let controller = DSMNController(store: store, processListing: StaticProcessListing([]),
+            snapshotProvider: StaticSystemSnapshotProvider(SystemSnapshot()))
+        let service = DSMNHelperXPCService(controller: controller, powerManager: power,
+            liveSleepDisabledProvider: { nil }, thermalConditionProvider: { .critical },
+            thermalNotificationCenter: center)
+        center.post(name: ProcessInfo.thermalStateDidChangeNotification, object: nil)
+        XCTAssertEqual(power.snapshot(), [false])
+        XCTAssertNil(try store.load().manualUntil)
+        XCTAssertFalse(try store.load().ownsSleepDisable)
+        XCTAssertEqual(try store.load().lastStopReason, "thermal_critical")
+        let cooled = DSMNHelperXPCService(controller: controller, powerManager: power,
+            liveSleepDisabledProvider: { nil }, thermalConditionProvider: { .nominal })
+        cooled.reconcile { _ in }
+        XCTAssertEqual(power.snapshot(), [false], "Cooling must not reactivate an ended lease")
+        service.enableManual(minutes: 20) { _ in }
+        XCTAssertNil(try store.load().manualUntil, "Hooks must not bypass critical heat")
+        XCTAssertEqual(power.snapshot(), [false])
+    }
     func testAddAdvertisesCapabilityAndSerializesConcurrentAdditions() throws {
         let store = try makeStore()
         let until = Date(timeIntervalSince1970: floor(Date().timeIntervalSince1970) + 3600)

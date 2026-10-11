@@ -26,7 +26,8 @@ public struct MacSystemSnapshotProvider: SystemSnapshotProviding {
             powerSource: battery?.powerSource ?? .unknown,
             batteryPercent: battery?.batteryPercent,
             defaultRouteAvailable: routeAvailable,
-            lidClosed: lidClosed
+            lidClosed: lidClosed,
+            thermalCondition: .current
         )
     }
 
@@ -37,7 +38,8 @@ public struct MacSystemSnapshotProvider: SystemSnapshotProviding {
             now: now,
             powerSource: battery?.powerSource ?? .unknown,
             batteryPercent: battery?.batteryPercent,
-            lidClosed: lidClosed
+            lidClosed: lidClosed,
+            thermalCondition: .current
         )
     }
 
