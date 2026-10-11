@@ -79,7 +79,8 @@ final class DSMNMenuStore: ObservableObject {
     }
 
     var menuBarIconState: MenuBarIconState {
-        MenuBarIconState.resolve(
+        if manualTimerWarning != nil { return .warning }
+        return MenuBarIconState.resolve(
             report: report,
             errorMessage: errorMessage,
             hookFallbackActive: hookFallbackNeedsAttention,
@@ -561,6 +562,9 @@ final class DSMNMenuStore: ObservableObject {
         // Refresh and unrelated operations must not erase an unacknowledged Add.
         if let warning = ManualTimerRequest.appliedWarning(for: report, action: action) {
             manualTimerWarning = warning
+        } else if report.state.ownsSleepDisable, report.decision.shouldPreventSleep,
+                  report.state.manualIsActive(at: report.generatedAt) {
+            manualTimerWarning = nil
         }
     }
 
@@ -605,6 +609,7 @@ final class DSMNMenuStore: ObservableObject {
         }
         stopFailureMessage = outcome.failureMessage
         errorMessage = outcome.failureMessage
+        if outcome.isHelperConfirmed { manualTimerWarning = nil }
         return outcome
     }
 

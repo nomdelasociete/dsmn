@@ -177,7 +177,7 @@ final class StopOutcomeTests: XCTestCase {
         XCTAssertTrue(store.errorMessage?.contains("injected release failure") == true)
     }
 
-    func testAppliedAddNoticeSurvivesOtherStatusUpdatesUntilDismissed() async throws {
+    func testAppliedAddNoticeClearsAfterConfirmedStop() async throws {
         let stopped = stoppedReport()
         let store = DSMNMenuStore(controller: try temporaryController(), helperStatus: .enabled,
                                   stopHelper: { stopped })
@@ -186,14 +186,32 @@ final class StopOutcomeTests: XCTestCase {
         store.recordManualTimerWarning(report: added, action: .add)
         let notice = store.manualTimerWarning
         XCTAssertNotNil(notice)
-        // A subsequent successful operation replaces the report and clears transient errors.
+        XCTAssertEqual(store.menuBarIconState, .warning)
         _ = await store.stopNow()
         XCTAssertNil(store.errorMessage)
-        XCTAssertEqual(store.manualTimerWarning, notice)
-        store.recordManualTimerWarning(report: stopped, action: .replace)
-        XCTAssertEqual(store.manualTimerWarning, notice)
-        store.dismissManualTimerWarning()
         XCTAssertNil(store.manualTimerWarning)
+    }
+
+    func testAppliedAddNoticeSurvivesFailedStopAndClearsOnProtectedCommand() async throws {
+        for action in [ManualTimerAction.add, .replace] {
+            var added = stoppedReport()
+            added.state.manualUntil = added.generatedAt.addingTimeInterval(1800)
+            let store = DSMNMenuStore(controller: try temporaryController(), helperStatus: .enabled,
+                                      initialReport: added,
+                                      stopHelper: { added })
+            store.recordManualTimerWarning(report: added, action: .add)
+            let notice = store.manualTimerWarning
+            XCTAssertEqual(store.menuBarIconState, .warning)
+            _ = await store.stopNow()
+            XCTAssertNotNil(notice)
+            XCTAssertEqual(store.manualTimerWarning, notice)
+            store.recordManualTimerWarning(report: added, action: .replace)
+            XCTAssertEqual(store.manualTimerWarning, notice)
+            added.state.ownsSleepDisable = true
+            added.decision.shouldPreventSleep = true
+            store.recordManualTimerWarning(report: added, action: action)
+            XCTAssertNil(store.manualTimerWarning)
+        }
     }
 
     private func temporaryController() throws -> DSMNController {

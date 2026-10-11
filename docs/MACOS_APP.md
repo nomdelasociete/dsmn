@@ -46,7 +46,9 @@ helper failures remain visible in the window. Replacement closes after confirmed
 protection. An acknowledged Add closes once the helper reports the saved active
 timer, even if protection is blocked; the panel warns that time was added but
 protection is not confirmed, so the user does not retry an already applied Add.
-This notice survives status refreshes until the user chooses **Dismiss notice**.
+This notice survives status refreshes and marks the menu bar icon as a warning.
+It clears on **Dismiss notice**, a helper-confirmed Stop, or a later timer command
+that confirms active protection.
 The last applied custom duration is saved across app launches.
 
 The panel and Custom window distinguish **Start / Replace** (duration from now)
