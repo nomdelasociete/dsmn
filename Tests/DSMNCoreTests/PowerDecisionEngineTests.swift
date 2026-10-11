@@ -19,7 +19,9 @@ final class PowerDecisionEngineTests: XCTestCase {
     }
 
     func testLegacySnapshotWithoutThermalFieldStillDecodes() throws {
-        let data = try JSONEncoder().encode(SystemSnapshot())
+        // Literal pre-thermal payload: synthesized Codable uses decodeIfPresent
+        // for Optional properties, so no custom decoder is needed.
+        let data = Data(#"{"now":0,"powerSource":"unknown"}"#.utf8)
         XCTAssertNil(try JSONDecoder().decode(SystemSnapshot.self, from: data).thermalCondition)
     }
     func testUnknownRoutePreservesKnownOutageUntilConfirmedRestoration() {

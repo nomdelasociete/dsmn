@@ -278,6 +278,27 @@ final class DaemonReconcileTests: XCTestCase {
         XCTAssertEqual(state.lastPowerOperation?.reason, "closed_lid_release")
     }
 
+    func testSafetyReleaseSleepsClosedLidOnBatteryDespiteUnexpiredTimer() throws {
+        for lowBattery in [true, false] {
+            let now = Date(timeIntervalSince1970: 1_000)
+            let store = try makeStore()
+            try store.save(DSMNState(
+                manualUntil: now.addingTimeInterval(600), ownsSleepDisable: true,
+                noRouteUnavailableSince: lowBattery ? nil : now.addingTimeInterval(-1_000)))
+            let power = RecordingPowerManager(dryRun: false)
+            let controller = DSMNController(
+                store: store, processListing: StaticProcessListing([]),
+                snapshotProvider: StaticSystemSnapshotProvider(SystemSnapshot(
+                    now: now, powerSource: .battery, batteryPercent: lowBattery ? 1 : 80,
+                    defaultRouteAvailable: lowBattery, lidClosed: true)))
+            let report = try controller.reconcile(powerManager: power, now: now)
+            XCTAssertEqual(power.requests, [false])
+            XCTAssertEqual(power.sleepNowRequests, 1)
+            XCTAssertEqual(report.operations.map(\.action), [.enableSleep, .sleepNow])
+            XCTAssertTrue(try store.load().manualIsActive(at: now))
+        }
+    }
+
     func testReconcileDoesNotRequestSleepNowAfterReleaseWhenLidIsOpen() throws {
         let now = Date(timeIntervalSince1970: 1_000)
         let store = try makeStore()
