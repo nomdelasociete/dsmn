@@ -4,6 +4,8 @@ import SwiftUI
 
 struct DSMNMenuView: View {
     @ObservedObject var store: DSMNMenuStore
+    @ObservedObject private var durations = DurationPreferences.shared
+    @State private var timerAction: ManualTimerAction = .replace
     var updateController: SoftwareUpdateController?
     @Environment(\.openWindow) private var openWindow
 
@@ -91,23 +93,37 @@ struct DSMNMenuView: View {
             }
 
             Section {
-                HStack(spacing: 0) {
-                    Button("30 min") { store.keepAwake(minutes: 30) }
-                        .keyboardShortcut("3")
-                        .accessibilityLabel("Keep Awake for 30 Minutes")
-                    Rectangle().fill(DSMNBrand.panelRule).frame(width: 1)
-                    Button("90 min") { store.keepAwake(minutes: 90) }
-                        .keyboardShortcut("9")
-                        .accessibilityLabel("Keep Awake for 90 Minutes")
-                    Rectangle().fill(DSMNBrand.panelRule).frame(width: 1)
-                    Button("Custom…") { requestCustomDuration() }
+                Picker("Timer action", selection: $timerAction) {
+                    Text("Start / Replace").tag(ManualTimerAction.replace)
+                    Text("Add time").tag(ManualTimerAction.add)
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .padding(.top, 20)
+
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 4), count: 3), spacing: 4) {
+                    ForEach(durations.presets, id: \.self) { minutes in
+                        Button(ManualDuration.label(minutes)) {
+                            store.keepAwake(minutes: minutes, action: timerAction)
+                        }
+                        .keyboardShortcut(presetShortcut(minutes))
+                        .accessibilityLabel("\(timerAction == .add ? "Add" : "Keep Awake for") \(minutes) minutes")
+                    }
+                    Button("Custom…") {
+                        CustomDurationWindowPresenter.show(store: store, action: timerAction)
+                    }
                         .accessibilityLabel("Custom Duration")
+                        .accessibilityIdentifier("panel.custom-duration")
                 }
                 .buttonStyle(PanelDurationStyle())
-                .disabled(!store.canRunAwakeCommands)
-                .frame(height: 38)
+                .disabled(!store.canRunAwakeCommands || store.isChangingTimer)
                 .overlay(RoundedRectangle(cornerRadius: 6).strokeBorder(DSMNBrand.panelRule))
-                .padding(.top, 24)
+                .padding(.top, 8)
+
+                Text(timerAction == .add ? "Adds to the remaining time (up to \(ManualDuration.label(ManualDuration.maximumMinutes)))." : "Starts from now; replaces remaining time.")
+                    .font(.system(size: 11))
+                    .foregroundStyle(DSMNBrand.panelMuted)
+                    .padding(.top, 8)
 
                 Button { store.stop() } label: {
                     Label("Stop keeping awake", systemImage: "stop.fill")
@@ -173,6 +189,14 @@ struct DSMNMenuView: View {
 
     // MARK: - Helpers
 
+    private func presetShortcut(_ minutes: Int) -> KeyboardShortcut? {
+        switch minutes {
+        case 30: KeyboardShortcut("3")
+        case 90: KeyboardShortcut("9")
+        default: nil
+        }
+    }
+
     private func quit() {
         guard store.isProtectingSleep || store.hasUnconfirmedStop else {
             NSApplication.shared.terminate(nil)
@@ -223,34 +247,6 @@ struct DSMNMenuView: View {
         }
     }
 
-    private func requestCustomDuration() {
-        NSApplication.shared.activate(ignoringOtherApps: true)
-
-        let input = NSTextField(string: "45")
-        input.frame = NSRect(x: 0, y: 0, width: 160, height: 24)
-        input.alignment = .right
-        input.placeholderString = "Minutes"
-
-        let alert = NSAlert()
-        alert.messageText = "Keep Awake"
-        alert.informativeText = "Enter a duration between 1 and 720 minutes."
-        alert.accessoryView = input
-        alert.addButton(withTitle: "Start Timer")
-        alert.addButton(withTitle: "Cancel")
-        alert.window.level = .floating
-
-        guard alert.runModal() == .alertFirstButtonReturn else {
-            return
-        }
-
-        let minutes = Int(input.stringValue.trimmingCharacters(in: .whitespacesAndNewlines)) ?? 0
-        guard (1...720).contains(minutes) else {
-            return
-        }
-
-        store.keepAwake(minutes: minutes)
-    }
-
 }
 
 private struct PanelDurationStyle: ButtonStyle {
@@ -261,7 +257,8 @@ private struct PanelDurationStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.system(size: 12))
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .frame(maxWidth: .infinity)
+            .frame(height: 38)
             .background(configuration.isPressed || isHovered ? Color(hex: 0x484D40) : .clear)
             .overlay(RoundedRectangle(cornerRadius: 4).strokeBorder(DSMNBrand.panelGreen, lineWidth: isFocused ? 2 : 0))
             .contentShape(Rectangle())

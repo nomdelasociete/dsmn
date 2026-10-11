@@ -85,6 +85,17 @@ final class DSMNHelperXPCService: NSObject, DSMNHelperXPCProtocol, @unchecked Se
         })
     }
 
+    func addManualTime(minutes: Int, withReply reply: @escaping (String) -> Void) {
+        defer { requestTelemetryRefresh() }
+        reply(encode {
+            .success(run: try mutate {
+                try controller.addManualTimeIntent(
+                    minutes: minutes, requester: ActivationRequester(name: "dsmn", context: "menu")
+                )
+            })
+        })
+    }
+
     func reconcile(withReply reply: @escaping (String) -> Void) {
         defer { requestTelemetryRefresh() }
         reply(encode {
@@ -334,12 +345,16 @@ final class DSMNHelperXPCService: NSObject, DSMNHelperXPCProtocol, @unchecked Se
     }
 
     private func encode(_ operation: () throws -> DSMNHelperCommandResponse) -> String {
-        let response: DSMNHelperCommandResponse
+        var response: DSMNHelperCommandResponse
         do {
             response = try operation()
         } catch {
             response = .failure(error)
         }
+        response.status?.supportsAddManualTime = true
+        response.status?.manualDurationLimitMinutes = controller.decisionEngine.policy.maxManualDurationMinutes
+        response.run?.status.supportsAddManualTime = true
+        response.run?.status.manualDurationLimitMinutes = controller.decisionEngine.policy.maxManualDurationMinutes
 
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601

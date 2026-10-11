@@ -7,6 +7,7 @@ final class DSMNMenuStore: ObservableObject {
     @Published private(set) var report: StatusReport?
     @Published private(set) var errorMessage: String?
     @Published private(set) var isRefreshing = false
+    @Published private(set) var isChangingTimer = false
     @Published private(set) var helperStatus: HelperRegistrationStatus = .notFound
     @Published private(set) var helperRuntimeInfo: HelperRuntimeInfo?
     @Published private(set) var helperXPCUnavailable = false
@@ -526,14 +527,31 @@ final class DSMNMenuStore: ObservableObject {
         }
     }
 
-    func keepAwake(minutes: Int) {
+    func keepAwake(minutes: Int, action: ManualTimerAction = .replace) {
         Task {
-            let requester = ActivationRequester(name: "dsmn", context: "menu")
-            await mutate(local: {
-                try $0.enableManual(minutes: minutes, requester: requester)
-            }, helper: {
-                try await self.helper.enableManual(minutes: minutes, requester: requester)
+            try? await setManualTimer(minutes: minutes, action: action)
+        }
+    }
+
+    func setManualTimer(minutes: Int, action: ManualTimerAction) async throws {
+        guard !isChangingTimer else {
+            throw DSMNHelperClientError.commandFailed("A timer request is already in progress.")
+        }
+        isChangingTimer = true
+        defer { isChangingTimer = false }
+        do {
+            let confirmed = try await ManualTimerRequest.run(minutes: minutes, action: action, replace: {
+                try await self.helper.enableManual(minutes: $0, requester: ActivationRequester(name: "dsmn", context: "menu"))
+            }, add: {
+                try await self.helper.addManualTime(minutes: $0)
             })
+            report = confirmed
+            stopFailureMessage = nil
+            markHelperXPCAvailable()
+            errorMessage = nil
+        } catch {
+            errorMessage = error.localizedDescription
+            throw error
         }
     }
 
@@ -575,47 +593,6 @@ final class DSMNMenuStore: ObservableObject {
         stopFailureMessage = outcome.failureMessage
         errorMessage = outcome.failureMessage
         return outcome
-    }
-
-    private func mutate(
-        local localOperation: @escaping @Sendable (DSMNController) throws -> StatusReport,
-        helper helperOperation: @escaping () async throws -> StatusReport
-    ) async {
-        stopFailureMessage = nil
-        guard let controller else {
-            errorMessage = setupError?.localizedDescription
-            return
-        }
-
-        isRefreshing = true
-        defer {
-            isRefreshing = false
-        }
-
-        do {
-            helperStatus = helper.registrationStatus
-            if helperStatus == .enabled {
-                do {
-                    report = try await helperOperation()
-                    markHelperXPCAvailable()
-                    errorMessage = nil
-                } catch {
-                    markHelperXPCUnavailable()
-                    report = try await Task.detached {
-                        try localOperation(controller)
-                    }.value
-                    errorMessage = helperUnavailableMessage
-                }
-            } else {
-                report = try await Task.detached {
-                    try localOperation(controller)
-                }.value
-                markHelperXPCAvailable()
-                errorMessage = nil
-            }
-        } catch {
-            errorMessage = error.localizedDescription
-        }
     }
 
     func installHelper() {

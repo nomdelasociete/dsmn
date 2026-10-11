@@ -38,7 +38,21 @@ scans and reuses cached images instead of running a continuous display timer.
 Actions remain direct buttons; there are no nested SwiftUI menus. Stop remains
 available even when helper registration is unavailable. Shortcuts are preserved:
 ⌘3 / ⌘9 for timers, ⌘. for Stop, ⌘R for Refresh, and ⌘Q for Quit.
-Custom duration uses the existing floating native alert and accepts 1–720 minutes.
+Custom duration opens a floating Hours / Minutes window. It accepts 1–480 minutes
+(8 hours), matching `SafetyPolicy.maxManualDurationMinutes`. Invalid input and
+helper failures remain visible in the window; it closes only after confirmed
+protection. The last successful custom duration is saved across app launches.
+
+The panel and Custom window distinguish **Start / Replace** (duration from now)
+from **Add time** (duration added to the helper's current deadline). Adding to an
+expired timer starts from now. Add rejects totals above 8 hours without changing
+the existing timer; it does not silently clamp or replace it. Older helpers still
+support replacement and show an explicit Update Helper instruction for Add.
+
+Setup & Troubleshooting → Make it yours → Timer presets accepts 1–6 comma-separated
+durations, such as `30m, 1h30m, 2h`. Presets are validated and saved locally; menu
+buttons update immediately. The initial presets remain 30 and 90 minutes. Their
+⌘3 / ⌘9 shortcuts remain available when those durations are in the saved list.
 
 **Show countdown in menu bar** and **Launch at Login** live in the setup window.
 Launch at Login uses `SMAppService.mainApp` and may require approval in System

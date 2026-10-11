@@ -27,6 +27,7 @@ public protocol DSMNHelperXPCProtocol {
         withReply reply: @escaping (String) -> Void
     )
     func stop(withReply reply: @escaping (String) -> Void)
+    func addManualTime(minutes: Int, withReply reply: @escaping (String) -> Void)
     func reconcile(withReply reply: @escaping (String) -> Void)
     func repair(withReply reply: @escaping (String) -> Void)
 }
@@ -127,6 +128,17 @@ public final class DSMNHelperXPCClient: @unchecked Sendable {
         // a two-second command budget and bounded termination grace.
         try request(timeout: max(timeout, 7)) { proxy, reply in
             proxy.stop(withReply: reply)
+        }
+    }
+
+    public func addManualTime(minutes: Int) throws -> StatusReport {
+        // Capability discovery uses the existing status selector, safe with old helpers.
+        guard try status().supportsAddManualTime == true else {
+            throw DSMNHelperClientError.commandFailed("Update Helper in Setup & Troubleshooting to add time. Replacing the timer is still available.")
+        }
+        // Add is not idempotent: never retry it or fall back to replacement/local state.
+        return try request(timeout: max(timeout, 7)) { proxy, reply in
+            proxy.addManualTime(minutes: minutes, withReply: reply)
         }
     }
 

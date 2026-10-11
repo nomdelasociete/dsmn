@@ -9,6 +9,9 @@ public struct StatusReport: Codable, Equatable, Sendable {
     public var manualRemainingSeconds: Int?
     public var noRouteGraceRemainingSeconds: Int?
     public var diagnosticErrors: [String]?
+    /// Absent on helpers predating additive timer commands.
+    public var supportsAddManualTime: Bool?
+    public var manualDurationLimitMinutes: Int?
 
     public init(
         generatedAt: Date,
@@ -163,6 +166,32 @@ public struct DSMNController: Sendable {
         } else {
             state.lastRequester = nil
         }
+        state.lastStopReason = nil
+        state.updatedAt = now
+        try store.save(state)
+        return state
+    }
+
+    /// Called under the helper's operation lock, so concurrent hooks cannot be lost.
+    @discardableResult
+    public func addManualTimeIntent(
+        minutes: Int,
+        now: Date = Date(),
+        requester: ActivationRequester? = nil
+    ) throws -> DSMNState {
+        let maximum = decisionEngine.policy.maxManualDurationMinutes
+        _ = try ManualDuration.validate(minutes, maximum: maximum)
+        var state = try store.load()
+        let wasActive = state.manualIsActive(at: now)
+        let base = max(now, state.manualUntil ?? now)
+        let until = base.addingTimeInterval(TimeInterval(minutes * 60))
+        guard until <= now.addingTimeInterval(TimeInterval(maximum * 60)) else {
+            throw DSMNError.invalidDuration("Adding this duration would exceed \(ManualDuration.label(maximum)) remaining. Choose less time or replace the timer.")
+        }
+        if !wasActive { state.noRouteUnavailableSince = nil }
+        state.manualUntil = until
+        state.lastActivationReason = "manual_timer"
+        if let requester { state.recordRequester(requester, at: now) }
         state.lastStopReason = nil
         state.updatedAt = now
         try store.save(state)

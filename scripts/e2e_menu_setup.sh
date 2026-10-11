@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 DERIVED_DATA_PATH="${DERIVED_DATA_PATH:-"$ROOT_DIR/DerivedData"}"
-APP_PATH="$DERIVED_DATA_PATH/Build/Products/Debug/dsmn.app"
+APP_PATH="${E2E_APP_PATH:-"$DERIVED_DATA_PATH/Build/Products/Debug/dsmn.app"}"
 APP_PID=""
 INSTALLED_PID="$(pgrep -f '^/Applications/dsmn.app/Contents/MacOS/dsmn$' || true)"
 
@@ -27,10 +27,26 @@ current_build="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleVersion' "$APP_PATH/
 # Process-only overrides preserve preferences. Avoid duplicate bundle IDs during AX testing.
 if [[ -n "$INSTALLED_PID" ]]; then kill "$INSTALLED_PID"; fi
 "$APP_PATH/Contents/MacOS/dsmn" -onboardingWizardDismissed YES \
-  -deferredHelperUpdateBuild "$current_build" -setupRemindersSuppressed YES >/dev/null 2>&1 &
+  -deferredHelperUpdateBuild "$current_build" -setupRemindersSuppressed YES \
+  -lastCustomMinutes 125 >/dev/null 2>&1 &
 APP_PID="$!"
 
 osascript - "$APP_PID" <<'APPLESCRIPT'
+on firstElementIdentified(elementIdentifier, containerElement)
+    tell application "System Events"
+        repeat with currentElement in (UI elements of containerElement)
+            try
+                if value of attribute "AXIdentifier" of currentElement is elementIdentifier then return currentElement
+            end try
+            try
+                set nestedElement to my firstElementIdentified(elementIdentifier, currentElement)
+                if nestedElement is not missing value then return nestedElement
+            end try
+        end repeat
+    end tell
+    return missing value
+end firstElementIdentified
+
 on firstButtonIdentified(buttonIdentifier, containerElement)
     tell application "System Events"
         repeat with currentElement in (UI elements of containerElement)
@@ -83,9 +99,49 @@ on run arguments
             if setupButton is not missing value then exit repeat
             delay 0.25
         end repeat
-        if setupButton is missing value then error "Compact panel is missing Setup & Troubleshooting."
+        if setupButton is missing value then
+            log ("Status item position: " & (position of statusItem as text))
+            log ("App windows: " & (name of windows of targetProcess as text))
+            error "Compact panel is missing Setup & Troubleshooting."
+        end if
         if stopButton is missing value then error "Compact panel is missing Stop."
         if enabled of stopButton is false then error "Stop must remain available."
+
+        -- Invalid input must stay in Custom and must not issue a real timer command.
+        set customButton to missing value
+        repeat with currentWindow in windows of targetProcess
+            set customButton to my firstButtonIdentified("panel.custom-duration", currentWindow)
+            if customButton is not missing value then exit repeat
+        end repeat
+        if customButton is missing value then error "Compact panel is missing Custom."
+        click customButton
+        repeat 40 times
+            if exists window "Keep Awake" of targetProcess then exit repeat
+            delay 0.1
+        end repeat
+        set durationWindow to window "Keep Awake" of targetProcess
+        set hoursField to my firstElementIdentified("duration.hours", durationWindow)
+        set minutesField to my firstElementIdentified("duration.minutes", durationWindow)
+        if value of hoursField is not "2" then error "Custom did not restore saved hours."
+        if value of minutesField is not "5" then error "Custom did not restore saved minutes."
+        click hoursField
+        keystroke "a" using command down
+        keystroke "8"
+        click minutesField
+        keystroke "a" using command down
+        keystroke "1"
+        click my firstButtonIdentified("duration.submit", durationWindow)
+        delay 0.3
+        if not (exists window "Keep Awake" of targetProcess) then error "Invalid duration dismissed Custom."
+        if my firstElementIdentified("duration.error", durationWindow) is missing value then error "Invalid duration has no visible error."
+        key code 53
+        delay 0.2
+        perform action "AXPress" of statusItem
+        delay 0.3
+        repeat with currentWindow in windows of targetProcess
+            set setupButton to my firstButtonIdentified("panel.setup", currentWindow)
+            if setupButton is not missing value then exit repeat
+        end repeat
         click setupButton
 
         repeat 60 times

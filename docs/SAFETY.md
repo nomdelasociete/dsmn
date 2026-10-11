@@ -40,6 +40,16 @@ call renews the current lease up to the configured maximum; renewals are not
 additive and never shorten a longer timer already in effect. When tool activity
 stops, the timer expires and the helper releases the power lock.
 
+The menu's **Add time** is a separate, additive operation. The helper reads the
+current persisted deadline and adds the requested duration while holding its
+operation lock, so concurrent hook renewals are not lost. The resulting remaining
+time must stay within the maximum manual duration (8 hours by default); a rejected
+addition leaves the previous timer intact. **Start / Replace** intentionally sets
+the deadline relative to now, even if that shortens an existing timer. Add is never
+retried automatically after a timeout or emulated with a client-side read/replace.
+Status advertises this capability; an old helper continues to support replacement
+and requires an explicit helper update only for the new additive action.
+
 ## Release conditions
 
 The helper must release sleep prevention when any hard stop applies:
