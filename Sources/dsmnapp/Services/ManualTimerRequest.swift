@@ -29,7 +29,7 @@ enum ManualTimerRequest {
         guard action == .add,
               !report.state.ownsSleepDisable || !report.decision.shouldPreventSleep else { return nil }
         let reasons = report.decision.safetyBlocks.joined(separator: ", ")
-        return "Time was added, but protection is not confirmed. Do not add the same duration again."
+        return "Time was added, but the helper did not confirm protection. Do not add the same duration again."
             + (reasons.isEmpty ? " Refresh status to check protection." : " Safety blocks: \(reasons).")
     }
 }

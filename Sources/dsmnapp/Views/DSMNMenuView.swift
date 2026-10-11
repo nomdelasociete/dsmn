@@ -81,6 +81,18 @@ struct DSMNMenuView: View {
                     .padding(.top, 12)
                 }
 
+                if let warning = store.manualTimerWarning {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Label(warning, systemImage: "exclamationmark.circle")
+                            .fixedSize(horizontal: false, vertical: true)
+                        Button("Dismiss notice") { store.dismissManualTimerWarning() }
+                            .accessibilityIdentifier("panel.dismiss-timer-warning")
+                    }
+                    .font(.system(size: 12))
+                    .foregroundStyle(Color(hex: 0xF49B7E))
+                    .padding(.top, 10)
+                }
+
                 if let warning = store.errorMessage ?? store.menuSetupIncompleteStatusTitle {
                     Label(warning, systemImage: "exclamationmark.circle")
                         .font(.system(size: 12))

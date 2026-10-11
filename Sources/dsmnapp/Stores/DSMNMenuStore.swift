@@ -6,6 +6,7 @@ final class DSMNMenuStore: ObservableObject {
     let quitCoordinator = AppQuitCoordinator()
     @Published private(set) var report: StatusReport?
     @Published private(set) var errorMessage: String?
+    @Published private(set) var manualTimerWarning: String?
     @Published private(set) var isRefreshing = false
     @Published private(set) var isChangingTimer = false
     @Published private(set) var helperStatus: HelperRegistrationStatus = .notFound
@@ -548,11 +549,23 @@ final class DSMNMenuStore: ObservableObject {
             report = confirmed
             stopFailureMessage = nil
             markHelperXPCAvailable()
-            errorMessage = ManualTimerRequest.appliedWarning(for: confirmed, action: action)
+            errorMessage = nil
+            recordManualTimerWarning(report: confirmed, action: action)
         } catch {
             errorMessage = error.localizedDescription
             throw error
         }
+    }
+
+    func recordManualTimerWarning(report: StatusReport, action: ManualTimerAction) {
+        // Refresh and unrelated operations must not erase an unacknowledged Add.
+        if let warning = ManualTimerRequest.appliedWarning(for: report, action: action) {
+            manualTimerWarning = warning
+        }
+    }
+
+    func dismissManualTimerWarning() {
+        manualTimerWarning = nil
     }
 
     func stop() {

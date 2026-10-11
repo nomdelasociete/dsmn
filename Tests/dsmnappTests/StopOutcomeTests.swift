@@ -177,6 +177,25 @@ final class StopOutcomeTests: XCTestCase {
         XCTAssertTrue(store.errorMessage?.contains("injected release failure") == true)
     }
 
+    func testAppliedAddNoticeSurvivesOtherStatusUpdatesUntilDismissed() async throws {
+        let stopped = stoppedReport()
+        let store = DSMNMenuStore(controller: try temporaryController(), helperStatus: .enabled,
+                                  stopHelper: { stopped })
+        var added = stopped
+        added.state.manualUntil = added.generatedAt.addingTimeInterval(1800)
+        store.recordManualTimerWarning(report: added, action: .add)
+        let notice = store.manualTimerWarning
+        XCTAssertNotNil(notice)
+        // A subsequent successful operation replaces the report and clears transient errors.
+        _ = await store.stopNow()
+        XCTAssertNil(store.errorMessage)
+        XCTAssertEqual(store.manualTimerWarning, notice)
+        store.recordManualTimerWarning(report: stopped, action: .replace)
+        XCTAssertEqual(store.manualTimerWarning, notice)
+        store.dismissManualTimerWarning()
+        XCTAssertNil(store.manualTimerWarning)
+    }
+
     private func temporaryController() throws -> DSMNController {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent("dsmn-stop-test-\(UUID())")
         addTeardownBlock { try? FileManager.default.removeItem(at: directory) }
