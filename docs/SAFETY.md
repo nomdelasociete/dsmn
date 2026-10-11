@@ -62,7 +62,10 @@ the power lock, the helper atomically saves `sleepDisablePending`. Successful
 acquisition replaces that marker with confirmed ownership. On interruption or an
 ambiguous command failure, the next reconcile ends the lease and releases the
 possibly acquired lock before accepting more work, without waiting for probes.
-Failed releases retain the marker and retry. This covers process crashes; it is
+Failed releases retain the marker and retry. New manual, add-time, and hook
+requests recover that pending lock before committing a new lease. If recovery
+fails, the request returns an error instead of accepting a deadline it cannot keep.
+This covers process crashes; it is
 not a guarantee against permanent storage or launchd failure. Existing state files
 without the marker decode as false. The helper must be updated for this behavior.
 

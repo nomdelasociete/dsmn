@@ -148,6 +148,9 @@ public struct DSMNController: Sendable {
 
         var state = try store.load()
         let requestedUntil = now.addingTimeInterval(TimeInterval(minutes * 60))
+        guard !state.sleepDisablePending else {
+            throw DSMNError.invalidCommand("Power lock recovery is pending; retry after recovery completes.")
+        }
         if extendOnly, let manualUntil = state.manualUntil, manualUntil > requestedUntil {
             if let requester {
                 state.recordRequester(requester, at: now)
@@ -182,6 +185,9 @@ public struct DSMNController: Sendable {
         let maximum = decisionEngine.policy.maxManualDurationMinutes
         _ = try ManualDuration.validate(minutes, maximum: maximum)
         var state = try store.load()
+        guard !state.sleepDisablePending else {
+            throw DSMNError.invalidCommand("Power lock recovery is pending; retry after recovery completes.")
+        }
         let wasActive = state.manualIsActive(at: now)
         let base = max(now, state.manualUntil ?? now)
         let until = base.addingTimeInterval(TimeInterval(minutes * 60))

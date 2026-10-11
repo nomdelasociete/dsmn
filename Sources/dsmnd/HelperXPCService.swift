@@ -84,7 +84,7 @@ final class DSMNHelperXPCService: NSObject, DSMNHelperXPCProtocol, @unchecked Se
             let requester = requesterName.map {
                 ActivationRequester(name: $0, context: requesterContext, event: requesterEvent)
             }
-            return .success(run: try mutate {
+            return .success(run: try mutate(recoverPendingAcquisition: true) {
                 _ = try controller.enableManualIntent(minutes: minutes, extendOnly: extendOnly, requester: requester)
             })
         })
@@ -102,7 +102,7 @@ final class DSMNHelperXPCService: NSObject, DSMNHelperXPCProtocol, @unchecked Se
     func addManualTime(minutes: Int, withReply reply: @escaping (String) -> Void) {
         defer { requestTelemetryRefresh() }
         reply(encode {
-            .success(run: try mutate {
+            .success(run: try mutate(recoverPendingAcquisition: true) {
                 try controller.addManualTimeIntent(
                     minutes: minutes, requester: ActivationRequester(name: "dsmn", context: "menu")
                 )
@@ -144,10 +144,15 @@ final class DSMNHelperXPCService: NSObject, DSMNHelperXPCProtocol, @unchecked Se
         })
     }
 
-    private func mutate(_ intent: () throws -> Void) throws -> DaemonRunReport {
+    private func mutate(recoverPendingAcquisition: Bool = false, _ intent: () throws -> Void) throws -> DaemonRunReport {
         try locked {
             mutationEpoch &+= 1
             do {
+                // Recover the old uncertain lock before committing a new lease.
+                // The intent rejects requests if release still failed.
+                if recoverPendingAcquisition, try controller.store.load().sleepDisablePending {
+                    _ = try reconcileLocked()
+                }
                 try intent()
                 return try reconcileLocked()
             } catch {

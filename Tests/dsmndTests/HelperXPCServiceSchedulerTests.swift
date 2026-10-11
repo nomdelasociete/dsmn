@@ -3,6 +3,54 @@ import XCTest
 @testable import dsmnd
 
 final class HelperXPCServiceSchedulerTests: XCTestCase {
+    func testNewManualRequestsRecoverOldPendingLockBeforeCommittingLease() throws {
+        for command in ["replace", "add", "hook"] {
+            let store = try makeStore()
+            var state = DSMNState(manualUntil: Date().addingTimeInterval(3600))
+            state.sleepDisablePending = true
+            try store.save(state)
+            let power = RecordingPowerManager(dryRun: false)
+            let service = DSMNHelperXPCService(
+                controller: DSMNController(store: store, processListing: StaticProcessListing([]),
+                    snapshotProvider: StaticSystemSnapshotProvider(SystemSnapshot())),
+                powerManager: power, liveSleepDisabledProvider: { nil }, thermalConditionProvider: { .nominal })
+            var payload = ""
+            if command == "add" {
+                service.addManualTime(minutes: 10) { payload = $0 }
+            } else {
+                service.enableManualV2(minutes: 10, extendOnly: command == "hook",
+                    requesterName: nil, requesterContext: nil, requesterEvent: nil) { payload = $0 }
+            }
+            XCTAssertNil(try decode(payload).error)
+            XCTAssertEqual(Array(power.snapshot().prefix(2)), [false, true])
+            let saved = try store.load()
+            XCTAssertTrue(saved.ownsSleepDisable)
+            XCTAssertFalse(saved.sleepDisablePending)
+            XCTAssertEqual(try XCTUnwrap(saved.manualUntil).timeIntervalSinceNow, 600, accuracy: 3)
+        }
+    }
+
+    func testFailedRecoveryRejectsNewManualRequests() throws {
+        for add in [false, true] {
+            let store = try makeStore()
+            var state = DSMNState(manualUntil: Date().addingTimeInterval(3600))
+            state.sleepDisablePending = true
+            try store.save(state)
+            let power = RecordingPowerManager(dryRun: false, defaultExitCode: 1)
+            let service = DSMNHelperXPCService(
+                controller: DSMNController(store: store, processListing: StaticProcessListing([]),
+                    snapshotProvider: StaticSystemSnapshotProvider(SystemSnapshot())),
+                powerManager: power, liveSleepDisabledProvider: { nil })
+            var payload = ""
+            if add { service.addManualTime(minutes: 10) { payload = $0 } }
+            else { service.enableManual(minutes: 10) { payload = $0 } }
+            XCTAssertNotNil(try decode(payload).error)
+            XCTAssertTrue(try store.load().sleepDisablePending)
+            XCTAssertNil(try store.load().manualUntil)
+            XCTAssertFalse(power.snapshot().contains(true))
+        }
+    }
+
     func testRestartRecoversPendingAcquisitionWithoutClientAndRetriesFailedRelease() throws {
         let store = try makeStore()
         var state = DSMNState(manualUntil: Date().addingTimeInterval(600))
