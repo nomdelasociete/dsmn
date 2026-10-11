@@ -490,7 +490,9 @@ public struct DSMNController: Sendable {
         now: Date = Date()
     ) throws -> PowerOperationResult? {
         var state = try store.load()
-        guard !state.ownsSleepDisable, snapshot.lidClosed == true, snapshot.powerSource == .battery else { return nil }
+        guard !state.ownsSleepDisable, !state.sleepDisablePending,
+              !state.manualIsActive(at: now),
+              snapshot.lidClosed == true, snapshot.powerSource == .battery else { return nil }
         let sleep = try powerManager.requestSleepNow()
         state.recordPowerOperation(sleep, at: now, reason: "closed_lid_release")
         state.updatedAt = now

@@ -3,6 +3,49 @@ import XCTest
 @testable import dsmnd
 
 final class HelperXPCServiceSchedulerTests: XCTestCase {
+    func testStopReportsFailedPendingReleaseAndKeepsRecoveryResponsibility() throws {
+        let store = try makeStore()
+        var state = DSMNState(manualUntil: Date().addingTimeInterval(600))
+        state.sleepDisablePending = true
+        try store.save(state)
+        let power = RecordingPowerManager(dryRun: false, defaultExitCode: 1)
+        let service = DSMNHelperXPCService(
+            controller: DSMNController(store: store, processListing: StaticProcessListing([]),
+                snapshotProvider: StaticSystemSnapshotProvider(SystemSnapshot())),
+            powerManager: power, liveSleepDisabledProvider: { nil })
+        var payload = ""
+        service.stop { payload = $0 }
+        XCTAssertNotNil(try decode(payload).error)
+        XCTAssertNil(try store.load().manualUntil)
+        XCTAssertTrue(try store.load().sleepDisablePending)
+        XCTAssertFalse(power.snapshot().contains(true))
+    }
+
+    func testRecoveryProbeCannotSleepUncertainRenewalInSameCommand() throws {
+        let entered = expectation(description: "recovery sleep probe entered")
+        let returned = expectation(description: "recovery sleep probe returned")
+        let gate = ProbeGate(entered: entered)
+        defer { gate.open() }
+        let store = try makeStore()
+        var state = DSMNState(manualUntil: Date().addingTimeInterval(600))
+        state.sleepDisablePending = true
+        try store.save(state)
+        let power = RecordingPowerManager(dryRun: false, outcomes: [.exit(0)], defaultExitCode: 1)
+        let service = DSMNHelperXPCService(
+            controller: DSMNController(store: store, processListing: StaticProcessListing([]),
+                snapshotProvider: GatedSleepSnapshotProvider(gate: gate, returned: returned)),
+            powerManager: power, liveSleepDisabledProvider: { nil }, thermalConditionProvider: { .nominal })
+        service.enableManual(minutes: 20) { _ in }
+        wait(for: [entered], timeout: 1)
+        XCTAssertEqual(Array(power.snapshot().prefix(2)), [false, true])
+        XCTAssertTrue(try store.load().sleepDisablePending)
+        gate.open()
+        wait(for: [returned], timeout: 1)
+        pump(for: 0.2)
+        XCTAssertEqual(power.sleepCount, 0)
+        withExtendedLifetime(service) {}
+    }
+
     func testNewManualRequestsRecoverOldPendingLockBeforeCommittingLease() throws {
         for command in ["replace", "add", "hook"] {
             let store = try makeStore()

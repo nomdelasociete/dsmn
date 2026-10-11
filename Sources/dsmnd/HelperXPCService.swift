@@ -93,9 +93,13 @@ final class DSMNHelperXPCService: NSObject, DSMNHelperXPCProtocol, @unchecked Se
     func stop(withReply reply: @escaping (String) -> Void) {
         defer { requestTelemetryRefresh() }
         reply(encode {
-            return .success(run: try mutate {
+            let report = try mutate {
                 _ = try controller.stopIntent()
-            })
+            }
+            guard !report.status.state.ownsSleepDisable, !report.status.state.sleepDisablePending else {
+                throw DSMNError.invalidCommand("Stop could not confirm power lock release; recovery will retry.")
+            }
+            return .success(run: report)
         })
     }
 
@@ -154,6 +158,9 @@ final class DSMNHelperXPCService: NSObject, DSMNHelperXPCProtocol, @unchecked Se
                     _ = try reconcileLocked()
                 }
                 try intent()
+                // An accepted renewal supersedes even a recovery release that
+                // happened earlier in this same command.
+                mutationEpoch &+= 1
                 return try reconcileLocked()
             } catch {
                 rearmSleepReleaseFromSavedState()
