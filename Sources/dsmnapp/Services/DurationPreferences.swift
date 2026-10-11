@@ -3,7 +3,17 @@ import Foundation
 
 @MainActor
 final class DurationPreferences: ObservableObject {
-    static let shared = DurationPreferences()
+    static let shared: DurationPreferences = {
+        #if DEBUG
+        // UI tests exercise persistence without changing the user's preferences.
+        if let suite = ProcessInfo.processInfo.environment["DSMN_DURATION_TEST_SUITE"],
+           suite.hasPrefix("com.nomdelasociete.dsmn.e2e."),
+           let defaults = UserDefaults(suiteName: suite) {
+            return DurationPreferences(defaults: defaults)
+        }
+        #endif
+        return DurationPreferences()
+    }()
     @Published private(set) var presets: [Int]
     @Published private(set) var lastCustomMinutes: Int
     private let defaults: UserDefaults

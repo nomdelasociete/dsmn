@@ -31,6 +31,7 @@ struct DurationSettingsView: View {
             }
             if let feedback {
                 Text(feedback).font(.caption).foregroundStyle(hasError ? .red : .secondary)
+                    .accessibilityIdentifier("settings.duration-feedback")
             }
             Text("Custom remembers your last successful duration: \(ManualDuration.label(preferences.lastCustomMinutes)).")
                 .font(.caption).foregroundStyle(.secondary)

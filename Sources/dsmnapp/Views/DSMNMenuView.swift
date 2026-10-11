@@ -108,6 +108,7 @@ struct DSMNMenuView: View {
                         }
                         .keyboardShortcut(presetShortcut(minutes))
                         .accessibilityLabel("\(timerAction == .add ? "Add" : "Keep Awake for") \(minutes) minutes")
+                        .accessibilityIdentifier("panel.preset.\(minutes)")
                     }
                     Button("Custom…") {
                         CustomDurationWindowPresenter.show(store: store, action: timerAction)

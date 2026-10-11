@@ -208,6 +208,28 @@ Still required for a production install:
 - notarize the app before relying on LaunchDaemon registration;
 - approve the helper in System Settings when macOS requests it.
 
+## Interactive timer checks
+
+Run `./scripts/e2e_menu_setup.sh` in an unlocked desktop session with Accessibility
+enabled for the invoking terminal. It tests Custom validation and cancellation,
+the Add/Replace selection, invalid and valid settings presets, updated menu
+buttons, and persistence after restarting the app. Duration preferences use a
+temporary, Debug-only UserDefaults suite; the installed app is restored afterward.
+The default run does not submit a valid timer or press Stop.
+
+For an actual helper-confirmed Custom submission, run
+`E2E_TEST_LIVE_TIMER=1 ./scripts/e2e_menu_setup.sh`. This requires an existing
+protected timer and an open lid. It rounds the current remaining time up to the
+next minute and verifies that protection and the prior deadline are preserved.
+It also checks that adding eight hours is rejected (or requests Update Helper
+on an older helper). Successful additive commands are covered by helper tests.
+
+On the macOS 27 test desktop, AXPress alone did not open the SwiftUI menu panel.
+The test driver clicks the status item's current accessibility coordinates with
+an explicit single-click count, including on screens with negative coordinates.
+Text fields are focused and read back before submission; cancellation uses the
+Cancel button because Escape can be consumed by field editing.
+
 ## Xcode project
 
 `project.yml` is the source of truth for the Xcode project. Regenerate with:

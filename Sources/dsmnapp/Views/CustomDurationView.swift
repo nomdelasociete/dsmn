@@ -50,6 +50,7 @@ struct CustomDurationView: View {
             }
             HStack {
                 Button("Cancel", action: onClose).keyboardShortcut(.cancelAction)
+                    .accessibilityIdentifier("duration.cancel")
                 Spacer()
                 Button(submitting ? "Applying…" : action == .add ? "Add Time" : "Start / Replace Timer") {
                     submit()
