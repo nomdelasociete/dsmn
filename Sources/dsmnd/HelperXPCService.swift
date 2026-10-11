@@ -5,6 +5,9 @@ final class DSMNHelperXPCService: NSObject, DSMNHelperXPCProtocol, @unchecked Se
     private let controller: DSMNController
     private let powerManager: any PowerManaging
     private let liveSleepDisabledProvider: @Sendable () -> Bool?
+    private let thermalConditionProvider: @Sendable () -> ThermalCondition
+    private let thermalNotificationCenter: NotificationCenter
+    private var thermalObserver: NSObjectProtocol?
     private let operationLock = NSLock()
     private let timerQueue = DispatchQueue(label: "com.nomdelasociete.dsmn.helper.reconcile")
     private let telemetryQueue = DispatchQueue(label: "com.nomdelasociete.dsmn.helper.telemetry")
@@ -25,14 +28,25 @@ final class DSMNHelperXPCService: NSObject, DSMNHelperXPCProtocol, @unchecked Se
     init(
         controller: DSMNController = DSMNController(store: StateStore.daemonStore()),
         powerManager: any PowerManaging = PMSetPowerManager(dryRun: DSMNHelperXPCService.shouldDryRunPowerChanges()),
-        liveSleepDisabledProvider: @escaping @Sendable () -> Bool? = DSMNHelperXPCService.defaultLiveSleepDisabled
+        liveSleepDisabledProvider: @escaping @Sendable () -> Bool? = DSMNHelperXPCService.defaultLiveSleepDisabled,
+        thermalConditionProvider: @escaping @Sendable () -> ThermalCondition = { .current },
+        thermalNotificationCenter: NotificationCenter = .default
     ) {
         self.controller = controller
         self.powerManager = powerManager
         self.liveSleepDisabledProvider = liveSleepDisabledProvider
+        self.thermalConditionProvider = thermalConditionProvider
+        self.thermalNotificationCenter = thermalNotificationCenter
+        super.init()
+        thermalObserver = thermalNotificationCenter.addObserver(
+            forName: ProcessInfo.thermalStateDidChangeNotification, object: nil, queue: nil
+        ) { [weak self] _ in
+            self?.reconcileSilently()
+        }
     }
 
     deinit {
+        if let thermalObserver { thermalNotificationCenter.removeObserver(thermalObserver) }
         periodicReconcileTimer?.cancel()
         sleepReleaseTimer?.cancel()
     }
@@ -70,7 +84,7 @@ final class DSMNHelperXPCService: NSObject, DSMNHelperXPCProtocol, @unchecked Se
             let requester = requesterName.map {
                 ActivationRequester(name: $0, context: requesterContext, event: requesterEvent)
             }
-            return .success(run: try mutate {
+            return .success(run: try mutate(recoverPendingAcquisition: true) {
                 _ = try controller.enableManualIntent(minutes: minutes, extendOnly: extendOnly, requester: requester)
             })
         })
@@ -79,16 +93,20 @@ final class DSMNHelperXPCService: NSObject, DSMNHelperXPCProtocol, @unchecked Se
     func stop(withReply reply: @escaping (String) -> Void) {
         defer { requestTelemetryRefresh() }
         reply(encode {
-            return .success(run: try mutate {
+            let report = try mutate {
                 _ = try controller.stopIntent()
-            })
+            }
+            guard !report.status.state.ownsSleepDisable, !report.status.state.sleepDisablePending else {
+                throw DSMNError.invalidCommand("Stop could not confirm power lock release; recovery will retry.")
+            }
+            return .success(run: report)
         })
     }
 
     func addManualTime(minutes: Int, withReply reply: @escaping (String) -> Void) {
         defer { requestTelemetryRefresh() }
         reply(encode {
-            .success(run: try mutate {
+            .success(run: try mutate(recoverPendingAcquisition: true) {
                 try controller.addManualTimeIntent(
                     minutes: minutes, requester: ActivationRequester(name: "dsmn", context: "menu")
                 )
@@ -130,11 +148,19 @@ final class DSMNHelperXPCService: NSObject, DSMNHelperXPCProtocol, @unchecked Se
         })
     }
 
-    private func mutate(_ intent: () throws -> Void) throws -> DaemonRunReport {
+    private func mutate(recoverPendingAcquisition: Bool = false, _ intent: () throws -> Void) throws -> DaemonRunReport {
         try locked {
             mutationEpoch &+= 1
             do {
+                // Recover the old uncertain lock before committing a new lease.
+                // The intent rejects requests if release still failed.
+                if recoverPendingAcquisition, try controller.store.load().sleepDisablePending {
+                    _ = try reconcileLocked()
+                }
                 try intent()
+                // An accepted renewal supersedes even a recovery release that
+                // happened earlier in this same command.
+                mutationEpoch &+= 1
                 return try reconcileLocked()
             } catch {
                 rearmSleepReleaseFromSavedState()
@@ -214,9 +240,15 @@ final class DSMNHelperXPCService: NSObject, DSMNHelperXPCProtocol, @unchecked Se
                     stateChanged: false
                 )
             }
+            let base = mandatory ? ControllerTelemetry.unavailable(at: now) : telemetry
+            var snapshot = base.snapshot
+            // Read directly on every command/deadline/event, independent of blocked probes.
+            snapshot.thermalCondition = thermalConditionProvider()
+            let safetyTelemetry = ControllerTelemetry(snapshot: snapshot, agents: base.agents,
+                                                       diagnosticErrors: base.diagnosticErrors)
             report = try controller.reconcile(
                 powerManager: powerManager,
-                telemetry: mandatory ? .unavailable(at: now) : telemetry,
+                telemetry: safetyTelemetry,
                 liveSleepDisabled: mandatory ? nil : cachedLiveSleepDisabled,
                 updateTracking: updateTracking && !mandatory,
                 now: now

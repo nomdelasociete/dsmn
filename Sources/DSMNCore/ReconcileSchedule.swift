@@ -11,7 +11,7 @@ public struct ReconcileSchedule: Equatable, Sendable {
         for report: StatusReport,
         graceSeconds: TimeInterval = 1
     ) -> ReconcileSchedule {
-        guard report.state.ownsSleepDisable || report.decision.shouldPreventSleep else {
+        guard report.state.ownsSleepDisable || report.state.sleepDisablePending || report.decision.shouldPreventSleep else {
             return ReconcileSchedule(deadline: nil)
         }
 
@@ -30,7 +30,7 @@ public struct ReconcileSchedule: Equatable, Sendable {
         noRouteGraceSeconds: Int = SafetyPolicy().noRouteGraceSeconds,
         graceSeconds: TimeInterval = 1
     ) -> ReconcileSchedule {
-        guard state.ownsSleepDisable else {
+        guard state.ownsSleepDisable || state.sleepDisablePending else {
             return ReconcileSchedule(deadline: nil)
         }
 
@@ -48,6 +48,9 @@ public struct ReconcileSchedule: Equatable, Sendable {
         noRouteGraceRemainingSeconds: Int?,
         graceSeconds: TimeInterval
     ) -> ReconcileSchedule {
+        if state.sleepDisablePending {
+            return ReconcileSchedule(deadline: now.addingTimeInterval(graceSeconds))
+        }
         if state.ownsSleepDisable, state.manualUntil == nil {
             return ReconcileSchedule(deadline: now.addingTimeInterval(graceSeconds))
         }

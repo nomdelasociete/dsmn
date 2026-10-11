@@ -2,6 +2,20 @@ import XCTest
 @testable import DSMNCore
 
 final class DaemonReconcileTests: XCTestCase {
+    func testCriticalHeatWithoutLeasePreservesPreviousStopReason() throws {
+        let now = Date()
+        for reason in ["user_stop", "repair", "manual_expired"] {
+            let store = try makeStore()
+            try store.save(DSMNState(lastStopReason: reason))
+            let controller = DSMNController(store: store)
+            let power = RecordingPowerManager(dryRun: false)
+            let telemetry = ControllerTelemetry(snapshot: SystemSnapshot(now: now, thermalCondition: .critical),
+                                                 agents: [], diagnosticErrors: [])
+            _ = try controller.reconcile(powerManager: power, telemetry: telemetry, now: now)
+            XCTAssertEqual(try store.load().lastStopReason, reason)
+            XCTAssertTrue(power.requests.isEmpty)
+        }
+    }
     func testThrownDisplaySleepPreservesSuccessfulAcquisitionAndAudit() throws {
         let now = Date(timeIntervalSince1970: 1_000)
         let store = try makeStore()
@@ -262,6 +276,27 @@ final class DaemonReconcileTests: XCTestCase {
         XCTAssertNil(report.status.state.manualUntil)
         XCTAssertEqual(state.lastPowerOperation?.action, .sleepNow)
         XCTAssertEqual(state.lastPowerOperation?.reason, "closed_lid_release")
+    }
+
+    func testSafetyReleaseSleepsClosedLidOnBatteryDespiteUnexpiredTimer() throws {
+        for lowBattery in [true, false] {
+            let now = Date(timeIntervalSince1970: 1_000)
+            let store = try makeStore()
+            try store.save(DSMNState(
+                manualUntil: now.addingTimeInterval(600), ownsSleepDisable: true,
+                noRouteUnavailableSince: lowBattery ? nil : now.addingTimeInterval(-1_000)))
+            let power = RecordingPowerManager(dryRun: false)
+            let controller = DSMNController(
+                store: store, processListing: StaticProcessListing([]),
+                snapshotProvider: StaticSystemSnapshotProvider(SystemSnapshot(
+                    now: now, powerSource: .battery, batteryPercent: lowBattery ? 1 : 80,
+                    defaultRouteAvailable: lowBattery, lidClosed: true)))
+            let report = try controller.reconcile(powerManager: power, now: now)
+            XCTAssertEqual(power.requests, [false])
+            XCTAssertEqual(power.sleepNowRequests, 1)
+            XCTAssertEqual(report.operations.map(\.action), [.enableSleep, .sleepNow])
+            XCTAssertTrue(try store.load().manualIsActive(at: now))
+        }
     }
 
     func testReconcileDoesNotRequestSleepNowAfterReleaseWhenLidIsOpen() throws {

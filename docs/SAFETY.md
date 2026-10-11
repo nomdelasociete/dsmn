@@ -56,7 +56,29 @@ Safety blocks still apply; accepting the saved deadline does not claim protectio
 
 ## Release conditions
 
+The registered helper starts at load and launchd restarts it after exit, so its
+release deadline is rearmed without another app or hook command. Before acquiring
+the power lock, the helper atomically saves `sleepDisablePending`. Successful
+acquisition replaces that marker with confirmed ownership. On interruption or an
+ambiguous command failure, the next reconcile ends the lease and releases the
+possibly acquired lock before accepting more work, without waiting for probes.
+Failed releases retain the marker and retry. New manual, add-time, and hook
+requests recover that pending lock before committing a new lease. If recovery
+fails, the request returns an error instead of accepting a deadline it cannot keep.
+This covers process crashes; it is
+not a guarantee against permanent storage or launchd failure. Existing state files
+without the marker decode as false. The helper must be updated for this behavior.
+
+The helper reads macOS thermal state on every reconciliation and observes thermal
+change notifications independently of the app and slower system probes. Critical
+heat cancels the manual lease and releases the owned lock on AC or battery, with
+either lid state. Cooling does not restart the cancelled lease. Hooks cannot arm
+protection while heat remains critical. Serious heat is reported in snapshot JSON
+but does not block or release sleep prevention. Older snapshots may omit `thermalCondition`.
+
 The helper must release sleep prevention when any hard stop applies:
+
+- macOS thermal state becomes critical; cancel the lease so cooling cannot restart it;
 
 - manual timer expired;
 - no manual timer is active;

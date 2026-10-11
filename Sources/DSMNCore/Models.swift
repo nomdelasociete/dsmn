@@ -165,25 +165,42 @@ public enum PowerSource: String, Codable, Sendable {
     case unknown
 }
 
+public enum ThermalCondition: String, Codable, Sendable, CaseIterable {
+    case nominal, fair, serious, critical, unknown
+
+    public static var current: ThermalCondition {
+        switch ProcessInfo.processInfo.thermalState {
+        case .nominal: .nominal
+        case .fair: .fair
+        case .serious: .serious
+        case .critical: .critical
+        @unknown default: .unknown
+        }
+    }
+}
+
 public struct SystemSnapshot: Codable, Equatable, Sendable {
     public var now: Date
     public var powerSource: PowerSource
     public var batteryPercent: Int?
     public var defaultRouteAvailable: Bool?
     public var lidClosed: Bool?
+    public var thermalCondition: ThermalCondition?
 
     public init(
         now: Date = Date(),
         powerSource: PowerSource = .unknown,
         batteryPercent: Int? = nil,
         defaultRouteAvailable: Bool? = nil,
-        lidClosed: Bool? = nil
+        lidClosed: Bool? = nil,
+        thermalCondition: ThermalCondition? = nil
     ) {
         self.now = now
         self.powerSource = powerSource
         self.batteryPercent = batteryPercent
         self.defaultRouteAvailable = defaultRouteAvailable
         self.lidClosed = lidClosed
+        self.thermalCondition = thermalCondition
     }
 }
 
@@ -209,6 +226,8 @@ public struct SafetyPolicy: Codable, Equatable, Sendable {
 public struct DSMNState: Codable, Equatable, Sendable {
     public var manualUntil: Date?
     public var ownsSleepDisable: Bool
+    /// Written before attempting acquisition; cleared only after confirmed outcome.
+    public var sleepDisablePending: Bool = false
     public var lastActivationReason: String?
     public var lastStopReason: String?
     public var lastRequester: ActivationRequester?
@@ -262,6 +281,7 @@ public struct DSMNState: Codable, Equatable, Sendable {
     private enum CodingKeys: String, CodingKey {
         case manualUntil
         case ownsSleepDisable
+        case sleepDisablePending
         case lastActivationReason
         case lastStopReason
         case lastRequester
@@ -282,6 +302,7 @@ public struct DSMNState: Codable, Equatable, Sendable {
 
         manualUntil = try container.decodeIfPresent(Date.self, forKey: .manualUntil)
         ownsSleepDisable = try container.decodeIfPresent(Bool.self, forKey: .ownsSleepDisable) ?? false
+        sleepDisablePending = try container.decodeIfPresent(Bool.self, forKey: .sleepDisablePending) ?? false
         lastActivationReason = try container.decodeIfPresent(String.self, forKey: .lastActivationReason)
         lastStopReason = try container.decodeIfPresent(String.self, forKey: .lastStopReason)
         lastRequester = try container.decodeIfPresent(ActivationRequester.self, forKey: .lastRequester)
@@ -314,6 +335,7 @@ public struct DSMNState: Codable, Equatable, Sendable {
 
         try container.encodeIfPresent(manualUntil, forKey: .manualUntil)
         try container.encode(ownsSleepDisable, forKey: .ownsSleepDisable)
+        try container.encode(sleepDisablePending, forKey: .sleepDisablePending)
         try container.encodeIfPresent(lastActivationReason, forKey: .lastActivationReason)
         try container.encodeIfPresent(lastStopReason, forKey: .lastStopReason)
         try container.encodeIfPresent(lastRequester, forKey: .lastRequester)

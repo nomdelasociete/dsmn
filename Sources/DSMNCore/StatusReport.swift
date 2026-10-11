@@ -148,6 +148,9 @@ public struct DSMNController: Sendable {
 
         var state = try store.load()
         let requestedUntil = now.addingTimeInterval(TimeInterval(minutes * 60))
+        guard !state.sleepDisablePending else {
+            throw DSMNError.invalidCommand("Power lock recovery is pending; retry after recovery completes.")
+        }
         if extendOnly, let manualUntil = state.manualUntil, manualUntil > requestedUntil {
             if let requester {
                 state.recordRequester(requester, at: now)
@@ -182,6 +185,9 @@ public struct DSMNController: Sendable {
         let maximum = decisionEngine.policy.maxManualDurationMinutes
         _ = try ManualDuration.validate(minutes, maximum: maximum)
         var state = try store.load()
+        guard !state.sleepDisablePending else {
+            throw DSMNError.invalidCommand("Power lock recovery is pending; retry after recovery completes.")
+        }
         let wasActive = state.manualIsActive(at: now)
         let base = max(now, state.manualUntil ?? now)
         let until = base.addingTimeInterval(TimeInterval(minutes * 60))
@@ -263,7 +269,7 @@ public struct DSMNController: Sendable {
         try store.save(nextState)
 
         var operations: [PowerOperationResult] = []
-        if originalState.ownsSleepDisable || liveSleepDisabled == true {
+        if originalState.ownsSleepDisable || originalState.sleepDisablePending || liveSleepDisabled == true {
             operations = try releaseSleepDisable(
                 powerManager: powerManager,
                 state: &nextState,
@@ -305,7 +311,7 @@ public struct DSMNController: Sendable {
 
     public func needsMandatoryRelease(now: Date = Date()) throws -> Bool {
         let state = try store.load()
-        return state.ownsSleepDisable && (
+        return state.sleepDisablePending || state.ownsSleepDisable && (
             !state.manualIsActive(at: now)
                 || state.noRouteGraceRemainingSeconds(at: now, graceSeconds: decisionEngine.policy.noRouteGraceSeconds) == 0
         )
@@ -328,6 +334,20 @@ public struct DSMNController: Sendable {
         var evaluatedState = originalState
         if updateTracking { evaluatedState.syncSnapshotTracking(with: telemetry.snapshot) }
 
+        if originalState.sleepDisablePending {
+            // The process may have died after pmset succeeded but before ownership
+            // was saved. Release conservatively before accepting another lease.
+            evaluatedState.manualUntil = nil
+            evaluatedState.lastStopReason = "interrupted_acquisition"
+        }
+
+        // A critical thermal event ends the lease; cooling down must not restart it.
+        if snapshot.thermalCondition == .critical, evaluatedState.manualIsActive(at: now) {
+            evaluatedState.manualUntil = nil
+            evaluatedState.lastStopReason = "thermal_critical"
+            if evaluatedState != originalState { try store.save(evaluatedState) }
+        }
+
         if let manualUntil = evaluatedState.manualUntil, manualUntil <= now {
             evaluatedState.manualUntil = nil
             evaluatedState.lastStopReason = "manual_expired"
@@ -341,6 +361,9 @@ public struct DSMNController: Sendable {
         var operations: [PowerOperationResult] = []
 
         if decision.shouldPreventSleep && !originalState.ownsSleepDisable {
+            nextState.sleepDisablePending = true
+            nextState.updatedAt = now
+            try store.save(nextState)
             operation = try powerManager.setSleepDisabled(true)
             if let operation {
                 operations.append(operation)
@@ -350,8 +373,14 @@ public struct DSMNController: Sendable {
                     reason: powerOperationReason(prefix: "enable", decision: decision, state: nextState)
                 )
             }
+            if operation?.dryRun == true {
+                // A completed simulation cannot have changed the system lock.
+                // Clear only this acquisition's journal, without claiming ownership.
+                nextState.sleepDisablePending = false
+            }
             if operation?.succeeded == true {
                 nextState.ownsSleepDisable = true
+                nextState.sleepDisablePending = false
                 nextState.lastActivationReason = decision.reasons.joined(separator: ",")
                 nextState.lastStopReason = nil
                 // The following display operation may fail or time out. Keep
@@ -364,7 +393,7 @@ public struct DSMNController: Sendable {
             originalState: originalState,
             liveSleepDisabled: liveSleepDisabled
         ) {
-            let stopReason = ["manual_expired", "repair"].contains(nextState.lastStopReason ?? "")
+            let stopReason = ["manual_expired", "repair", "interrupted_acquisition"].contains(nextState.lastStopReason ?? "")
                 ? nextState.lastStopReason
                 : decision.stopReason
             operations = try releaseSleepDisable(
@@ -444,6 +473,7 @@ public struct DSMNController: Sendable {
         state.recordPowerOperation(release, at: now, reason: reason)
         if release.succeeded {
             state.ownsSleepDisable = false
+            state.sleepDisablePending = false
             state.lastStopReason = stopReason
         }
         state.updatedAt = now
@@ -460,7 +490,8 @@ public struct DSMNController: Sendable {
         now: Date = Date()
     ) throws -> PowerOperationResult? {
         var state = try store.load()
-        guard !state.ownsSleepDisable, snapshot.lidClosed == true, snapshot.powerSource == .battery else { return nil }
+        guard !state.ownsSleepDisable, !state.sleepDisablePending,
+              snapshot.lidClosed == true, snapshot.powerSource == .battery else { return nil }
         let sleep = try powerManager.requestSleepNow()
         state.recordPowerOperation(sleep, at: now, reason: "closed_lid_release")
         state.updatedAt = now
@@ -519,7 +550,7 @@ public struct DSMNController: Sendable {
             return false
         }
 
-        if originalState.ownsSleepDisable {
+        if originalState.ownsSleepDisable || originalState.sleepDisablePending {
             return true
         }
 

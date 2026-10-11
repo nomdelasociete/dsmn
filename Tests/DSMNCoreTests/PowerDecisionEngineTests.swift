@@ -2,6 +2,28 @@ import XCTest
 @testable import DSMNCore
 
 final class PowerDecisionEngineTests: XCTestCase {
+    func testCriticalThermalBlocksOnBatteryAndACRegardlessOfLid() {
+        for source in [PowerSource.ac, .battery] {
+            for closed in [false, true] {
+                let now = Date()
+                let state = DSMNState(manualUntil: now.addingTimeInterval(600))
+                for thermal in ThermalCondition.allCases {
+                    let snapshot = SystemSnapshot(now: now, powerSource: source, batteryPercent: 80,
+                        defaultRouteAvailable: true, lidClosed: closed, thermalCondition: thermal)
+                    let decision = PowerDecisionEngine().evaluate(state: state, agents: [], snapshot: snapshot)
+                    XCTAssertEqual(decision.shouldPreventSleep, thermal != .critical)
+                    XCTAssertEqual(decision.safetyBlocks, thermal == .critical ? ["thermal_critical"] : [])
+                }
+            }
+        }
+    }
+
+    func testLegacySnapshotWithoutThermalFieldStillDecodes() throws {
+        // Literal pre-thermal payload: synthesized Codable uses decodeIfPresent
+        // for Optional properties, so no custom decoder is needed.
+        let data = Data(#"{"now":0,"powerSource":"unknown"}"#.utf8)
+        XCTAssertNil(try JSONDecoder().decode(SystemSnapshot.self, from: data).thermalCondition)
+    }
     func testUnknownRoutePreservesKnownOutageUntilConfirmedRestoration() {
         let now = Date(timeIntervalSince1970: 2_000)
         var state = DSMNState(manualUntil: now.addingTimeInterval(300), noRouteUnavailableSince: now.addingTimeInterval(-1_000))

@@ -21,7 +21,9 @@
 		<string>serve</string>
 	</array>
 	<key>RunAtLoad</key>
-	<false/>
+	<true/>
+	<key>KeepAlive</key>
+	<true/>
 	<key>UserName</key>
 	<string>root</string>
 </dict>
