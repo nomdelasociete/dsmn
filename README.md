@@ -65,8 +65,9 @@ runner/toolchain reliability has not yet been established across multiple PRs.
 This avoids making an unproven infrastructure check a merge blocker; an
 administrator should require **macOS tests and bundle** once that baseline is
 established. This is not a known test failure or a waiver to merge failing code;
-a green AI review does not replace this check. Interactive
-menu tests still require a local unlocked desktop with Accessibility permission.
+a green AI review does not replace this check. Interactive menu tests
+(`./scripts/e2e_menu_setup.sh`, documented in [macOS app validation](docs/MACOS_APP.md#interactive-timer-checks))
+still require a local unlocked desktop with Accessibility permission.
 
 ```sh
 swift test
