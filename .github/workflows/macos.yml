@@ -1,0 +1,49 @@
+name: macOS CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: macos-${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: macOS tests and bundle
+    runs-on: macos-15
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Test
+        run: |
+          set -o pipefail
+          swift --version
+          swift test 2>&1 | tee swift-test.log
+      - name: Build signed test bundle
+        run: |
+          set -o pipefail
+          xcodegen generate
+          xcodebuild -project dsmn.xcodeproj -scheme dsmn -configuration Debug \
+            -destination 'platform=macOS' -derivedDataPath DerivedData \
+            CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= \
+            build 2>&1 | tee xcodebuild.log
+      - name: Verify bundle
+        run: ./scripts/verify_bundle.sh DerivedData/Build/Products/Debug/dsmn.app
+      - name: Keep validation logs
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: macos-validation-logs
+          path: |
+            swift-test.log
+            xcodebuild.log
+          retention-days: 7
