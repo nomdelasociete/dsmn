@@ -34,7 +34,7 @@ jobs:
           xcodegen generate
           xcodebuild -project dsmn.xcodeproj -scheme dsmn -configuration Debug \
             -destination 'platform=macOS' -derivedDataPath DerivedData \
-            CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= \
+            CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= ENABLE_HARDENED_RUNTIME=NO \
             build 2>&1 | tee xcodebuild.log
       - name: Verify bundle
         run: ./scripts/verify_bundle.sh DerivedData/Build/Products/Debug/dsmn.app
