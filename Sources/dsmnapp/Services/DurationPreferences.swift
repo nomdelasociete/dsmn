@@ -36,4 +36,9 @@ final class DurationPreferences: ObservableObject {
         defaults.set(validated, forKey: "lastCustomMinutes")
         lastCustomMinutes = validated
     }
+
+    func savePresets(_ rows: [PresetDraft]) throws {
+        let values = try PresetDraft.validatedMinutes(rows)
+        try savePresets(values.map(String.init).joined(separator: ","))
+    }
 }

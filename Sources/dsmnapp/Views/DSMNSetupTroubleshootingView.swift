@@ -7,7 +7,6 @@ struct DSMNSetupTroubleshootingView: View {
     @Environment(\.dsmnRefreshOnAppear) private var refreshOnAppear
     var updateController: SoftwareUpdateController?
     var onClose: () -> Void
-    @AppStorage("showMenuBarCountdown") private var showMenuBarCountdown = true
     @Environment(\.openWindow) private var openWindow
 
     var body: some View {
@@ -49,21 +48,6 @@ struct DSMNSetupTroubleshootingView: View {
                     }
 
                     DSMNSettingsRow(
-                        systemImage: store.launchAtLoginEnabled ? "checkmark.circle.fill" : "power",
-                        title: "Launch with your Mac",
-                        detail: "Optional. Start dsmn automatically when you log in.",
-                        status: store.launchAtLoginStatus.displayName,
-                        isComplete: store.launchAtLoginEnabled,
-                        isOptional: true
-                    ) {
-                        Toggle("Launch at Login", isOn: Binding(
-                            get: { store.launchAtLoginEnabled },
-                            set: { store.setLaunchAtLogin($0) }
-                        ))
-                        .toggleStyle(.switch)
-                    }
-
-                    DSMNSettingsRow(
                         systemImage: "stethoscope",
                         title: "Troubleshooting",
                         detail: troubleshootingDetail,
@@ -92,7 +76,11 @@ struct DSMNSetupTroubleshootingView: View {
                         }
                     }
 
-                    preferencesSection
+                    Button("Settings…") {
+                        PreferencesWindowPresenter.show(store: store, updateController: updateController)
+                    }
+                    .accessibilityIdentifier("setup.settings")
+                    .padding(.vertical, 16)
 
                     if let errorMessage = store.errorMessage {
                         Label {
@@ -127,8 +115,8 @@ struct DSMNSetupTroubleshootingView: View {
 
     private var header: some View {
         DSMNPageHeader(
-            eyebrow: "SETTINGS",
-            title: "Make yourself at home.",
+            eyebrow: "SETUP & TROUBLESHOOTING",
+            title: "Keep everything connected.",
             detail: statusSummary
         )
         .padding(.bottom, 16)
@@ -171,23 +159,6 @@ struct DSMNSetupTroubleshootingView: View {
             }
             .accessibilityIdentifier("setup.helper-update-now")
         }
-    }
-
-    private var preferencesSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Make it yours").font(DSMNBrand.display(24))
-            DurationSettingsView()
-            Toggle("Show countdown in menu bar", isOn: $showMenuBarCountdown)
-                .toggleStyle(.checkbox)
-
-            HStack(spacing: 12) {
-                CheckForUpdatesView(updateController: updateController)
-                Button("Send Feedback") { FeedbackWindowPresenter.show(store: store) }
-                Spacer()
-            }
-            .buttonStyle(DSMNActionStyle())
-        }
-        .padding(.vertical, 20)
     }
 
     private var footer: some View {
@@ -244,7 +215,7 @@ struct DSMNSetupTroubleshootingView: View {
             return "Helper and agent hooks are ready."
         }
 
-        return "Review helper, hooks, launch at login, and diagnostics in one place."
+        return "Review helper, hooks, and diagnostics in one place."
     }
 
     private var helperDetail: String {
