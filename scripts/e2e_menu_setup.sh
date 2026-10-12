@@ -11,6 +11,10 @@ PREFERENCE_SUITE="com.nomdelasociete.dsmn.e2e.$(uuidgen)"
 INSTALLED_PID="$(pgrep -f '^/Applications/dsmn.app/Contents/MacOS/dsmn$' || true)"
 
 cleanup() {
+  if [[ "$?" != "0" ]]; then
+    defaults read "$PREFERENCE_SUITE" durationPresets 2>/dev/null || true
+    tail -n 60 "$TEST_DIR/app.log" 2>/dev/null || true
+  fi
   if [[ -n "$APP_PID" ]]; then
     kill "$APP_PID" >/dev/null 2>&1 || true
     wait "$APP_PID" 2>/dev/null || true
@@ -50,7 +54,7 @@ fi
 # Process-only overrides preserve preferences. Avoid duplicate bundle IDs during AX testing.
 if [[ -n "$INSTALLED_PID" ]]; then kill "$INSTALLED_PID"; fi
 DSMN_DURATION_TEST_SUITE="$PREFERENCE_SUITE" "$APP_PATH/Contents/MacOS/dsmn" -onboardingWizardDismissed YES \
-  -deferredHelperUpdateBuild "$current_build" -setupRemindersSuppressed YES >/dev/null 2>&1 &
+  -deferredHelperUpdateBuild "$current_build" -setupRemindersSuppressed YES >"$TEST_DIR/app.log" 2>&1 &
 APP_PID="$!"
 
 cat > "$TEST_DIR/driver.applescript" <<'APPLESCRIPT'
@@ -101,7 +105,7 @@ on openPanel(targetProcess, statusItem, clickTool)
         end repeat
     end tell
     -- A relaunched status item can still be moving into place when AX exposes it.
-    repeat 2 times
+    repeat 3 times
         delay 0.3
         my openStatusItem(statusItem, clickTool)
         tell application "System Events"
@@ -124,6 +128,19 @@ on fillField(fieldElement, fieldText)
         if value of fieldElement is not fieldText then error "Text input did not reach the intended field."
     end tell
 end fillField
+
+on selectSettingsTab(tabTitle, settingsWindow)
+    tell application "System Events"
+        set settingsElements to entire contents of settingsWindow
+        repeat with element in settingsElements
+            if role of element is "AXRadioButton" and description of element is tabTitle then
+                click element
+                return
+            end if
+        end repeat
+    end tell
+    error "Missing Settings tab: " & tabTitle
+end selectSettingsTab
 
 on run arguments
     set targetPID to (item 1 of arguments) as integer
@@ -242,24 +259,59 @@ on run arguments
         if my firstButtonIdentified("setup.guide", setupWindow) is missing value then error "Setup window is missing Setup Guide."
         if my firstButtonIdentified("setup.done", setupWindow) is missing value then error "Setup window is missing Done."
 
-        set presetsField to my firstElementIdentified("settings.duration-presets", setupWindow)
-        if presetsField is missing value then error "Settings are missing timer presets."
-        my fillField(presetsField, "12h")
-        click my firstButtonIdentified("settings.save-duration-presets", setupWindow)
+        click my firstButtonIdentified("setup.settings", setupWindow)
+        delay 0.4
+        set settingsWindow to window "Settings" of targetProcess
+        my selectSettingsTab("Durations", settingsWindow)
+        delay 0.3
+        set hoursField to my firstElementIdentified("settings.preset.0.hours", settingsWindow)
+        log "e2e duration tab opened"
+        my fillField(hoursField, "12")
+        click my firstButtonIdentified("settings.save-duration-presets", settingsWindow)
         delay 0.2
-        set feedback to my firstElementIdentified("settings.duration-feedback", setupWindow)
+        set feedback to my firstElementIdentified("settings.duration-feedback", settingsWindow)
         if value of feedback does not contain "Invalid duration" then error "Invalid presets were not rejected."
-        my fillField(presetsField, "15m, 1h, 2h, 8h")
-        click my firstButtonIdentified("settings.save-duration-presets", setupWindow)
+        log "e2e invalid preset rejected"
+        click my firstButtonIdentified("settings.revert-presets", settingsWindow)
+        click my firstButtonIdentified("settings.preset.1.remove", settingsWindow)
+        repeat 3 times
+            click my firstButtonIdentified("settings.add-preset", settingsWindow)
+        end repeat
+        set rowIndex to 0
+        repeat with presetMinutes in {15, 60, 120, 480}
+            my fillField(my firstElementIdentified("settings.preset." & rowIndex & ".hours", settingsWindow), ((presetMinutes div 60) as text))
+            my fillField(my firstElementIdentified("settings.preset." & rowIndex & ".minutes", settingsWindow), ((presetMinutes mod 60) as text))
+            set rowIndex to rowIndex + 1
+        end repeat
+        click my firstButtonIdentified("settings.save-duration-presets", settingsWindow)
         delay 0.2
-        set feedback to my firstElementIdentified("settings.duration-feedback", setupWindow)
+        set feedback to my firstElementIdentified("settings.duration-feedback", settingsWindow)
         if value of feedback does not contain "Saved" then error "Valid presets were not saved."
+        log "e2e edited presets saved"
+        click my firstButtonIdentified("settings.done", settingsWindow)
         click my firstButtonIdentified("setup.done", setupWindow)
+        log "e2e settings and setup closed"
+        set panelWindow to my openPanel(targetProcess, statusItem, clickTool)
+        click my firstButtonIdentified("panel.settings", panelWindow)
+        delay 0.3
+        set settingsWindow to window "Settings" of targetProcess
+        my selectSettingsTab("Protection", settingsWindow)
+        my selectSettingsTab("General", settingsWindow)
+        my selectSettingsTab("Durations", settingsWindow)
+        delay 0.2
+        set minutesField to my firstElementIdentified("settings.preset.0.minutes", settingsWindow)
+        if value of minutesField is not "15" then error "Saved editor rows did not reload."
+        my fillField(minutesField, "22")
+        click my firstButtonIdentified("settings.done", settingsWindow)
         set panelWindow to my openPanel(targetProcess, statusItem, clickTool)
         set customButton to my firstButtonIdentified("panel.custom-duration", panelWindow)
         if customButton is missing value then error "Could not reopen updated preset menu."
         -- Labels come from the saved durations, not the old hard-coded buttons.
         repeat with presetMinutes in {15, 60, 120, 480}
+            repeat 20 times
+                if my firstButtonIdentified("panel.preset." & presetMinutes, panelWindow) is not missing value then exit repeat
+                delay 0.1
+            end repeat
             if my firstButtonIdentified("panel.preset." & presetMinutes, panelWindow) is missing value then error "Saved preset missing from menu: " & presetMinutes
         end repeat
         click customButton
@@ -302,7 +354,7 @@ osascript "$TEST_DIR/driver.applescript" "$APP_PID" "$TEST_DIR/click-status-item
 kill "$APP_PID"
 wait "$APP_PID" 2>/dev/null || true
 DSMN_DURATION_TEST_SUITE="$PREFERENCE_SUITE" "$APP_PATH/Contents/MacOS/dsmn" -onboardingWizardDismissed YES \
-  -deferredHelperUpdateBuild "$current_build" -setupRemindersSuppressed YES >/dev/null 2>&1 &
+  -deferredHelperUpdateBuild "$current_build" -setupRemindersSuppressed YES >"$TEST_DIR/app.log" 2>&1 &
 APP_PID="$!"
 osascript "$TEST_DIR/driver.applescript" "$APP_PID" "$TEST_DIR/click-status-item" "$LIVE_MINUTES" reload
 

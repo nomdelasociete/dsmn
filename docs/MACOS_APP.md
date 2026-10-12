@@ -32,7 +32,8 @@ scans and reuses cached images instead of running a continuous display timer.
 | Surface | Actions and information |
 |---------|-------------------------|
 | Compact panel | Status, live countdown, power lock, last requester, 12-hour activity, configurable timer presets / Custom, Start / Replace or Add time, Stop, Refresh, Setup, Why Awake, About, Quit |
-| Setup & Troubleshooting | Helper install/update/approval/repair, agent hooks, launch at login, Doctor, Repair, timer presets, countdown preference, software updates, feedback, Setup Guide |
+| Settings (⌘,) | General: launch at login, countdown, updates, feedback. Durations: preset editor and preview. Protection: automatic safety rules. |
+| Setup & Troubleshooting | Helper install/update/approval/repair, agent hooks, Doctor, Repair, Setup Guide, link to Settings |
 | About | Version, credits, website, and confirmed removal of agent hooks |
 
 Actions remain direct buttons; there are no nested SwiftUI menus. Stop remains
@@ -57,12 +58,15 @@ expired timer starts from now. Add rejects totals above 8 hours without changing
 the existing timer; it does not silently clamp or replace it. Older helpers still
 support replacement and show an explicit Update Helper instruction for Add.
 
-Setup & Troubleshooting → Make it yours → Timer presets accepts 1–6 comma-separated
-durations, such as `30m, 1h30m, 2h`. Presets are validated and saved locally; menu
+Settings → Durations edits 1–6 presets using individual hours/minutes fields.
+Add or remove rows, preview the panel shortcuts, then choose **Save Presets**.
+Duplicate, empty, and out-of-range durations are rejected without changing saved
+preferences. **Revert Changes** reloads saved values; closing discards unsaved edits.
+Presets are validated and saved locally; menu
 buttons update immediately. The initial presets remain 30 and 90 minutes. Their
 ⌘3 / ⌘9 shortcuts remain available when those durations are in the saved list.
 
-**Show countdown in menu bar** and **Launch at Login** live in the setup window.
+**Show countdown in menu bar** and **Launch at Login** live in Settings → General.
 Launch at Login uses `SMAppService.mainApp` and may require approval in System
 Settings > General > Login Items.
 

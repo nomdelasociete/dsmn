@@ -177,6 +177,11 @@ struct DSMNMenuView: View {
 
             Section {
                 HStack {
+                    Button("Settings…") {
+                        PreferencesWindowPresenter.show(store: store, updateController: updateController)
+                    }
+                    .keyboardShortcut(",")
+                    .accessibilityIdentifier("panel.settings")
                     Button("Why Awake?") {
                         NSApplication.shared.activate(ignoringOtherApps: true)
                         openWindow(id: "why-awake")
