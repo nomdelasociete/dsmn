@@ -209,10 +209,15 @@ Do not treat a local archive as proof that a release is good. For any
 release-bearing fix, publish the release and verify the public artifacts that a
 real user or Sparkle will download.
 
-After a merge or push to `main`, use the project slash command
+For merges changing the native app or its distributed resources, use the project slash command
 `/release-dsmn [version] [build]` to run the full version bump, publish, and
 public artifact verification flow. The command lives at
 `.claude/commands/release-dsmn.md`.
+
+Website-only merges deploy through Railway and do not require a macOS version bump
+or release. For `website/` changes, run `npm ci --prefix website`,
+`npm test --prefix website`, and `npm run build --prefix website`.
+Railway source, watch paths, and cutover checks are documented in `website/DEPLOYMENT.md`.
 
 Publishing a release does not automatically update the maintainer machine. If a
 release changed hook installation or helper behavior, also check the local

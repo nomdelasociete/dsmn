@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-WEBSITE_DIR="${DSMN_WEBSITE_DIR:-/Users/jb/Documents/Github/NomDeLaSociete/dsmn-website}"
+WEBSITE_DIR="${DSMN_WEBSITE_DIR:-$ROOT_DIR/website}"
 NOTARY_PROFILE="${AC_NOTARY_PROFILE:-dsmn-notary}"
 SPARKLE_KEY_ACCOUNT="${SPARKLE_KEY_ACCOUNT:-nomdelasociete-dsmn}"
 PUBLIC_KEY="${DSMN_SPARKLE_PUBLIC_ED_KEY:-}"

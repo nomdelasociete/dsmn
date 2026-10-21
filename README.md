@@ -61,6 +61,10 @@ measurements. [Privacy details](PRIVACY.md).
 
 ## Contributing
 
+The website and its feedback/download backend live in [website/](website/README.md).
+Website deployment is independent of macOS releases; see the
+[Railway deployment guide](website/DEPLOYMENT.md).
+
 Bug reports, ideas, documentation, and fixes are welcome. Discuss substantial
 changes in an issue first; small corrections can go straight to a PR.
 [CONTRIBUTING.md](CONTRIBUTING.md) explains the workflow and checks.

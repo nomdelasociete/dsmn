@@ -94,11 +94,23 @@ ticket to the app, validates the stapled ticket, then runs `spctl`.
 
 ## Generate Appcast
 
-After notarization, create the zip used by Sparkle and regenerate the appcast:
+After app notarization, create a matching versioned ZIP and notarized DMG.
+Read version metadata from the exported app that will actually ship:
 
 ```sh
-ditto -c -k --keepParent dist/export/dsmn.app dist/dsmn-notarized.zip
-./scripts/generate_appcast.sh dist/dsmn-notarized.zip
+app=dist/export/dsmn.app
+version="$(plutil -extract CFBundleShortVersionString raw -o - "$app/Contents/Info.plist")"
+build="$(plutil -extract CFBundleVersion raw -o - "$app/Contents/Info.plist")"
+archive_path="dist/dsmn-${version}-${build}.zip"
+dmg_path="dist/dsmn-${version}-${build}.dmg"
+ditto -c -k --keepParent "$app" "$archive_path"
+APP_PATH="$app" DMG_PATH="$dmg_path" ./scripts/create_dmg.sh
+xcrun notarytool submit "$dmg_path" --keychain-profile dsmn-notary --wait
+xcrun stapler staple "$dmg_path"
+xcrun stapler validate "$dmg_path"
+rm -rf dist/updates
+./scripts/generate_appcast.sh "$archive_path"
+cp "$dmg_path" dist/updates/
 ```
 
 This copies the archive into `dist/updates/` and runs Sparkle's
@@ -106,12 +118,18 @@ This copies the archive into `dist/updates/` and runs Sparkle's
 `https://dsmn.app/appcast.xml` and archive URLs under
 `https://dsmn.app/download/`.
 
-Upload `dist/updates/` through the website repo so the Railway service can serve
+Upload `dist/updates/` through `website/` so the Railway service can serve
 the files from its bucket-backed release routes:
 
+The uploader rejects unversioned or mismatched ZIP/DMG names before uploading,
+including when `--zip` and `--dmg` explicitly select the files. The signed
+appcast is uploaded last, after the matching artifacts and latest aliases.
+
 ```sh
-cd /Users/jb/Documents/Github/NomDeLaSociete/dsmn-website
-railway run npm run upload:release -- --dir /Users/jb/Documents/Github/NomDeLaSociete/dsmn/dist/updates
+cd website
+npm ci
+railway link --project 'DSMN Website' --environment production --service dsmn-website
+railway run npm run upload:release -- --dir ../dist/updates
 ```
 
 Override `DSMN_UPDATE_FEED_URL` and `DSMN_UPDATE_BASE_URL` only if the public
