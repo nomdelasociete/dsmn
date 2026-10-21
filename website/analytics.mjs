@@ -1,6 +1,8 @@
 import { appendFile, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import pg from 'pg';
+import { createHash, timingSafeEqual } from 'node:crypto';
+import { createMaintenance, createSerialQueue, PRUNE_INTERVAL_MS } from './maintenance.mjs';
 
 const { Pool } = pg;
 
@@ -14,12 +16,14 @@ export function createAnalytics() {
   const filePath = process.env.DSMN_ANALYTICS_FILE ?? join(process.cwd(), '.analytics', 'events.jsonl');
   const storage = databaseUrl ? 'postgres' : 'file';
   const pool = databaseUrl ? new Pool({ connectionString: databaseUrl }) : null;
-  let setupPromise;
-  let prunePromise;
+  const fileQueue = createSerialQueue();
+  const ensureDatabase = createMaintenance(setupDatabase);
+  const pruneDatabaseOnce = createMaintenance(pruneDatabase, { intervalMs: PRUNE_INTERVAL_MS });
+  const pruneFileOnce = createMaintenance(pruneFile, { intervalMs: PRUNE_INTERVAL_MS });
 
-  async function ensureDatabase() {
+  async function setupDatabase() {
     if (!pool) return;
-    setupPromise ??= pool.query(`
+    await pool.query(`
       create table if not exists analytics_events (
         id bigserial primary key,
         occurred_at timestamptz not null default now(),
@@ -37,7 +41,6 @@ export function createAnalytics() {
       create index if not exists analytics_events_event_name_idx
         on analytics_events (event_name);
     `);
-    await setupPromise;
   }
 
   async function record(input) {
@@ -67,9 +70,11 @@ export function createAnalytics() {
         return;
       }
 
-      await pruneFileOnce();
-      await mkdir(dirname(filePath), { recursive: true });
-      await appendFile(filePath, `${JSON.stringify({ ...event, occurredAt: new Date().toISOString() })}\n`);
+      await fileQueue(async () => {
+        await pruneFileOnce();
+        await mkdir(dirname(filePath), { recursive: true });
+        await appendFile(filePath, `${JSON.stringify({ ...event, occurredAt: new Date().toISOString() })}\n`);
+      });
     } catch (error) {
       console.error('analytics record failed', error);
     }
@@ -82,23 +87,23 @@ export function createAnalytics() {
       return databaseMetrics(pool);
     }
 
-    await pruneFileOnce();
-    return fileMetrics(filePath);
+    return fileQueue(async () => {
+      await pruneFileOnce();
+      return fileMetrics(filePath);
+    });
   }
 
-  async function pruneDatabaseOnce() {
+  async function pruneDatabase() {
     if (!pool) return;
-    prunePromise ??= pool.query(
+    await pool.query(
       `delete from analytics_events where occurred_at < now() - ($1::int * interval '1 day')`,
       [ANALYTICS_RETENTION_DAYS]
     );
-    await prunePromise;
   }
 
-  async function pruneFileOnce() {
+  async function pruneFile() {
     if (storage !== 'file') return;
-    prunePromise ??= pruneJsonlFile(filePath, 'occurredAt', ANALYTICS_RETENTION_DAYS);
-    await prunePromise;
+    await pruneJsonlFile(filePath, 'occurredAt', ANALYTICS_RETENTION_DAYS);
   }
 
   function session() {
@@ -153,21 +158,16 @@ export function normalizeClientEvent(payload, request, sessionId) {
   });
 }
 
-function authorizeMetricsRequest(requestUrl, headers) {
+function authorizeMetricsRequest(headers) {
   const expectedToken = process.env.DSMN_METRICS_TOKEN;
   if (!expectedToken) return false;
 
   const authorization = headers.authorization ?? '';
   const bearer = authorization.startsWith('Bearer ') ? authorization.slice('Bearer '.length).trim() : '';
 
-  let queryToken = '';
-  try {
-    queryToken = new URL(requestUrl, 'http://localhost').searchParams.get('token') ?? '';
-  } catch {
-    queryToken = '';
-  }
-
-  return bearer === expectedToken || queryToken === expectedToken;
+  if (!bearer) return false;
+  const digest = (value) => createHash('sha256').update(value).digest();
+  return timingSafeEqual(digest(bearer), digest(expectedToken));
 }
 
 function normalizeEvent(input) {

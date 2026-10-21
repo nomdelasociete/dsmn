@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { appendFile, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import pg from 'pg';
+import { createMaintenance, createSerialQueue, PRUNE_INTERVAL_MS } from './maintenance.mjs';
 
 const { Pool } = pg;
 
@@ -17,12 +18,14 @@ export function createFeedbackStore() {
   const filePath = process.env.DSMN_FEEDBACK_FILE ?? join(process.cwd(), '.feedback', 'messages.jsonl');
   const pool = databaseUrl ? new Pool({ connectionString: databaseUrl }) : null;
   const rateLimiter = createFeedbackRateLimiter();
-  let setupPromise;
-  let prunePromise;
+  const fileQueue = createSerialQueue();
+  const ensureDatabase = createMaintenance(setupDatabase);
+  const pruneDatabaseOnce = createMaintenance(pruneDatabase, { intervalMs: PRUNE_INTERVAL_MS });
+  const pruneFileOnce = createMaintenance(pruneFile, { intervalMs: PRUNE_INTERVAL_MS });
 
-  async function ensureDatabase() {
+  async function setupDatabase() {
     if (!pool) return;
-    setupPromise ??= pool.query(`
+    await pool.query(`
       create table if not exists feedback_messages (
         id bigserial primary key,
         created_at timestamptz not null default now(),
@@ -43,7 +46,6 @@ export function createFeedbackStore() {
       create index if not exists feedback_messages_category_idx
         on feedback_messages (category);
     `);
-    await setupPromise;
   }
 
   async function submit(payload, request, sessionId) {
@@ -86,15 +88,17 @@ export function createFeedbackStore() {
       };
     }
 
-    await pruneFileOnce();
-    await mkdir(dirname(filePath), { recursive: true });
-    const fallbackRecord = {
-      ...feedback,
-      id: randomUUID(),
-      createdAt: new Date().toISOString()
-    };
-    await appendFile(filePath, `${JSON.stringify(fallbackRecord)}\n`);
-    return { id: fallbackRecord.id, createdAt: fallbackRecord.createdAt };
+    return fileQueue(async () => {
+      await pruneFileOnce();
+      await mkdir(dirname(filePath), { recursive: true });
+      const fallbackRecord = {
+        ...feedback,
+        id: randomUUID(),
+        createdAt: new Date().toISOString()
+      };
+      await appendFile(filePath, `${JSON.stringify(fallbackRecord)}\n`);
+      return { id: fallbackRecord.id, createdAt: fallbackRecord.createdAt };
+    });
   }
 
   async function listRecent(limit = 50) {
@@ -143,29 +147,31 @@ export function createFeedbackStore() {
       };
     }
 
-    await pruneFileOnce();
-    const contents = await readFile(filePath, 'utf8').catch((error) => {
-      if (error.code === 'ENOENT') return '';
-      throw error;
-    });
-    const messages = contents
-      .split('\n')
-      .filter(Boolean)
-      .flatMap((line) => {
-        try {
-          return [JSON.parse(line)];
-        } catch {
-          return [];
-        }
-      })
-      .slice(-safeLimit)
-      .reverse();
+    return fileQueue(async () => {
+      await pruneFileOnce();
+      const contents = await readFile(filePath, 'utf8').catch((error) => {
+        if (error.code === 'ENOENT') return '';
+        throw error;
+      });
+      const messages = contents
+        .split('\n')
+        .filter(Boolean)
+        .flatMap((line) => {
+          try {
+            return [JSON.parse(line)];
+          } catch {
+            return [];
+          }
+        })
+        .slice(-safeLimit)
+        .reverse();
 
-    return {
-      generatedAt: new Date().toISOString(),
-      storage: 'file',
-      messages
-    };
+      return {
+        generatedAt: new Date().toISOString(),
+        storage: 'file',
+        messages
+      };
+    });
   }
 
   return {
@@ -173,19 +179,17 @@ export function createFeedbackStore() {
     submit
   };
 
-  async function pruneDatabaseOnce() {
+  async function pruneDatabase() {
     if (!pool) return;
-    prunePromise ??= pool.query(
+    await pool.query(
       `delete from feedback_messages where created_at < now() - ($1::int * interval '1 day')`,
       [FEEDBACK_RETENTION_DAYS]
     );
-    await prunePromise;
   }
 
-  async function pruneFileOnce() {
+  async function pruneFile() {
     if (pool) return;
-    prunePromise ??= pruneJsonlFile(filePath, 'createdAt', FEEDBACK_RETENTION_DAYS);
-    await prunePromise;
+    await pruneJsonlFile(filePath, 'createdAt', FEEDBACK_RETENTION_DAYS);
   }
 }
 
@@ -257,7 +261,7 @@ export function createFeedbackRateLimiter({
   return { allow };
 }
 
-function feedbackClientKey(request) {
+export function feedbackClientKey(request) {
   const headers = request?.headers ?? {};
   const forwardedFor = firstHeaderValue(headers['x-forwarded-for']);
   const cloudflareIp = firstHeaderValue(headers['cf-connecting-ip']);

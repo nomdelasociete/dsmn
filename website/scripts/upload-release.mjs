@@ -31,10 +31,6 @@ const client = new S3Client({
   region
 });
 
-await uploadFile(client, appcastPath, 'appcast.xml', {
-  contentType: 'application/xml; charset=utf-8',
-  cacheControl: 'no-cache'
-});
 await uploadFile(client, archivePath, basename(archivePath), {
   contentType: 'application/zip',
   cacheControl: 'public, max-age=31536000, immutable'
@@ -50,6 +46,12 @@ await uploadFile(client, dmgPath, basename(dmgPath), {
 await uploadFile(client, dmgPath, latestDmgName, {
   contentType: 'application/x-apple-diskimage',
   cacheControl: 'public, max-age=300'
+});
+
+// Publish the feed only after every referenced artifact is available.
+await uploadFile(client, appcastPath, 'appcast.xml', {
+  contentType: 'application/xml; charset=utf-8',
+  cacheControl: 'no-cache'
 });
 
 console.log(`Uploaded appcast, ${basename(archivePath)}, and ${basename(dmgPath)} to s3://${bucketName}/${prefix || ''}`);
@@ -92,7 +94,7 @@ async function findArchive(directory) {
   const entries = await readdir(directory).catch(() => []);
   const archives = entries
     .filter((entry) => extname(entry) === '.zip' && entry !== latestName)
-    .sort();
+    .sort((a, b) => a.localeCompare(b, 'en', { numeric: true }));
 
   if (archives.length === 0) {
     fail(`no .zip archive found in ${directory}; pass --zip /path/to/archive.zip`);
@@ -105,7 +107,7 @@ async function findDmg(directory) {
   const entries = await readdir(directory).catch(() => []);
   const dmgs = entries
     .filter((entry) => extname(entry) === '.dmg' && entry !== latestDmgName)
-    .sort();
+    .sort((a, b) => a.localeCompare(b, 'en', { numeric: true }));
 
   if (dmgs.length === 0) {
     fail(`no .dmg archive found in ${directory}; pass --dmg /path/to/archive.dmg`);

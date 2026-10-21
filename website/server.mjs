@@ -1,10 +1,10 @@
 import { createReadStream, existsSync, statSync } from 'node:fs';
 import { createServer } from 'node:http';
 import { basename, extname, join, normalize } from 'node:path';
-import { Readable } from 'node:stream';
+import { Readable, pipeline } from 'node:stream';
 import { GetObjectCommand, HeadObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { classifyDownloadKind, createAnalytics, normalizeClientEvent, readJsonBody } from './analytics.mjs';
-import { createFeedbackStore, FEEDBACK_BODY_LIMIT_BYTES } from './feedback.mjs';
+import { createFeedbackStore, createFeedbackRateLimiter, feedbackClientKey, FEEDBACK_BODY_LIMIT_BYTES } from './feedback.mjs';
 
 const root = join(process.cwd(), 'dist');
 const port = Number(process.env.PORT ?? 3000);
@@ -19,6 +19,7 @@ const region = process.env.AWS_DEFAULT_REGION ?? process.env.AWS_REGION ?? 'auto
 const forcePathStyle = process.env.AWS_S3_URL_STYLE === 'path';
 const analytics = createAnalytics();
 const feedbackStore = createFeedbackStore();
+const eventLimiter = createFeedbackRateLimiter({ maxRequests: 120 });
 
 const contentTypes = {
   '.html': 'text/html; charset=utf-8',
@@ -126,16 +127,16 @@ function pipeBody(body, response) {
   }
 
   if (typeof body.pipe === 'function') {
-    body.pipe(response);
+    pipeline(body, response, () => {});
     return;
   }
 
   if (body instanceof ReadableStream) {
-    Readable.fromWeb(body).pipe(response);
+    pipeline(Readable.fromWeb(body), response, () => {});
     return;
   }
 
-  Readable.from(body).pipe(response);
+  pipeline(Readable.from(body), response, () => {});
 }
 
 async function serveLocalRelease(request, response, name, download, extraHeaders = {}) {
@@ -158,7 +159,7 @@ async function serveLocalRelease(request, response, name, download, extraHeaders
     return true;
   }
 
-  createReadStream(filePath).pipe(response);
+  pipeBody(createReadStream(filePath), response);
   return true;
 }
 
@@ -299,6 +300,11 @@ createServer(async (request, response) => {
         return;
       }
 
+      if (!eventLimiter.allow(feedbackClientKey(request))) {
+        writeJson(response, 429, { error: 'rate_limited' });
+        return;
+      }
+
       const eventSession = analytics.session(request);
       const responseHeaders = eventSession.setCookie ? { 'set-cookie': eventSession.setCookie } : {};
 
@@ -319,7 +325,7 @@ createServer(async (request, response) => {
     }
 
     if (pathname === '/api/metrics') {
-      if (!analytics.authorizeMetrics(request.url ?? '/', request.headers)) {
+      if (!analytics.authorizeMetrics(request.headers)) {
         response.writeHead(401, { 'content-type': 'text/plain; charset=utf-8' });
         response.end('Unauthorized.');
         return;
@@ -332,7 +338,7 @@ createServer(async (request, response) => {
 
     if (pathname === '/api/feedback') {
       if (request.method === 'GET') {
-        if (!analytics.authorizeMetrics(request.url ?? '/', request.headers)) {
+        if (!analytics.authorizeMetrics(request.headers)) {
           response.writeHead(401, { 'content-type': 'text/plain; charset=utf-8' });
           response.end('Unauthorized.');
           return;
@@ -405,7 +411,7 @@ createServer(async (request, response) => {
         'content-type': 'text/html; charset=utf-8',
         'cache-control': 'no-cache'
       });
-      createReadStream(notFoundPath).pipe(response);
+      pipeBody(createReadStream(notFoundPath), response);
       return;
     }
 
@@ -423,7 +429,7 @@ createServer(async (request, response) => {
     'content-type': type,
     'cache-control': staticCacheControl(filePath)
   });
-  createReadStream(filePath).pipe(response);
+  pipeBody(createReadStream(filePath), response);
 }).listen(port, '0.0.0.0', () => {
   console.log(`dsmn website listening on :${port}`);
 });

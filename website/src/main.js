@@ -79,7 +79,10 @@ document.querySelectorAll('[data-open-omarchy]').forEach((button) => {
 });
 document.querySelector('[data-close-omarchy]')?.addEventListener('click', () => omarchyDialog?.close());
 omarchyDialog?.addEventListener('click', (event) => {
-  if (event.target === omarchyDialog) omarchyDialog.close();
+  if (event.target !== omarchyDialog) return;
+  const rect = omarchyDialog.getBoundingClientRect();
+  if (event.clientX < rect.left || event.clientX > rect.right ||
+      event.clientY < rect.top || event.clientY > rect.bottom) omarchyDialog.close();
 });
 
 async function copyFrom(selector, button) {

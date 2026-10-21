@@ -58,10 +58,10 @@ This directory is part of the dsmn monorepo. See [DEPLOYMENT.md](DEPLOYMENT.md)
 for the service settings, migration cutover, rollback, and release upload setup.
 Only changes under `website/` trigger automatic website deployments from main.
 
-Railway/Nixpacks can use the included scripts:
+Railway's Railpack builder uses the included scripts:
 
 - install: `npm ci`
-- build: `npm run build`
+- build: `npm ci && npm test && npm run build`
 - start: `npm start`
 
 Point `dsmn.app` at the Railway service once deployed.
@@ -80,6 +80,8 @@ No IP address is stored. The site does not set an analytics cookie or use local
 storage for analytics, so events are counted without linking them to a visitor.
 Analytics records are pruned after 395 days by default. Override with
 `DSMN_ANALYTICS_RETENTION_DAYS` only if the legal page is updated to match.
+Retention cleanup is checked on storage access, at most once per day after a
+successful cleanup. Failed setup or cleanup is retried on the next access.
 
 Attach a Railway Postgres database to provide `DATABASE_URL`. Without
 `DATABASE_URL`, local/dev runs write to `.analytics/events.jsonl`; that fallback
@@ -87,9 +89,10 @@ is not durable on Railway.
 
 Set `DSMN_METRICS_TOKEN` to expose metrics at `/api/metrics`:
 
+Only Bearer headers are accepted; query-string credentials are rejected.
+
 ```sh
 curl -H "Authorization: Bearer $DSMN_METRICS_TOKEN" https://dsmn.app/api/metrics
-curl "https://dsmn.app/api/metrics?token=$DSMN_METRICS_TOKEN"
 ```
 
 Download metrics are split in `totals`, `last24h`, and each `byDay` row:
@@ -146,7 +149,7 @@ Recent messages are available behind the same admin token as metrics:
 
 ```sh
 curl -H "Authorization: Bearer $DSMN_METRICS_TOKEN" https://dsmn.app/api/feedback
-curl "https://dsmn.app/api/feedback?token=$DSMN_METRICS_TOKEN&limit=25"
+curl -H "Authorization: Bearer $DSMN_METRICS_TOKEN" "https://dsmn.app/api/feedback?limit=25"
 ```
 
 ## Release assets
