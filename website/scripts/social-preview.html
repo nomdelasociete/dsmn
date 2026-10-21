@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex" />
+  <title>dsmn social preview — 1200 × 630</title>
+  <style>
+    html, body { width: 1200px; height: 630px; overflow: hidden; }
+    .social-preview { position: relative; width: 1200px; height: 630px; padding: 34px 52px; }
+    .social-preview header { height: 60px; display: flex; align-items: flex-start; justify-content: space-between; border-bottom: 1px solid var(--ink); }
+    .social-preview .brand { gap: 14px; }
+    .social-preview .brand-mark { width: 56px; height: 40px; }
+    .social-preview .brand-name { font-size: 48px; }
+    .social-preview .address { font-size: 18px; padding-top: 10px; }
+    .social-preview .social-copy { position: absolute; z-index: 2; left: 52px; top: 142px; }
+    .social-preview h1 { font-size: 92px; line-height: .97; letter-spacing: -3px; }
+    .social-preview .description { font-size: 19px; line-height: 1.5; margin-top: 20px; }
+    .social-preview .device-art { position: absolute; width: 690px; height: 287.5px; left: 30px; top: 330px; }
+    .social-preview .device-art img, .social-preview .device-art canvas { width: 100%; height: 100%; }
+    .social-preview .menu-demo { top: 128px; right: 52px; width: 324px; }
+    .social-preview .demo-menu-bar { margin: 0 0 19px; }
+    .social-preview .menu-toggle { cursor: default; }
+    .social-preview .app-preview { box-shadow: 0 8px 18px #20231e20; }
+    .social-preview .signal { position: absolute; left: 0; right: 0; top: 513px; height: 4px; background: radial-gradient(circle, var(--accent) 1.6px, transparent 1.9px) 0 0 / 10px 4px repeat-x; }
+    .social-preview footer { position: absolute; left: 52px; right: 52px; bottom: 27px; border-top: 1px solid var(--ink); padding-top: 16px; display: flex; justify-content: space-between; font-size: 15px; }
+    .social-preview footer span:last-child { color: var(--sage); }
+  </style>
+</head>
+<body>
+  <main class="social-preview" id="demo" data-active="false">
+    <header>
+      <div class="brand"><img src="/assets/dsmn-pulse.svg" class="brand-mark" width="56" height="40" alt="Pixel heartbeat" /><span class="brand-name">dsmn</span></div>
+      <span class="address">dsmn.app</span>
+    </header>
+    <div class="social-copy">
+      <h1>Take a break.<br />Let it run.</h1>
+      <p class="description">Keep your Mac awake while your local AI agents work.<br />Even with the lid closed.</p>
+    </div>
+    <div class="signal" aria-hidden="true"></div>
+    <div class="device-art">
+      <img id="mac-source" src="/assets/macbook-closed.webp" alt="Closed MacBook" width="1536" height="640" />
+      <canvas id="mac-dither" aria-hidden="true"></canvas>
+    </div>
+    <div class="menu-demo" aria-label="App preview">
+      <div class="demo-menu-bar"><div class="menu-toggle"><span class="menu-pulse"><img src="/assets/dsmn-pulse.svg" width="28" height="20" alt="" /></span><span>16m</span></div></div>
+      <div class="app-preview">
+        <div class="app-status"><span class="status-dot"></span><span>Keeping Mac awake</span></div>
+        <p class="countdown">16:24</p>
+        <p class="last-activity">Last activity: Codex</p>
+        <div class="duration-controls"><button type="button">30 min</button><button type="button">90 min</button><button type="button">Custom…</button></div>
+        <button type="button" class="stop-button">Stop keeping awake</button>
+        <p class="sleep-note">Sleep allowed when the timer expires.</p>
+        <span class="setup-link">Setup &amp; troubleshooting…</span>
+      </div>
+    </div>
+    <footer><span>Free. Native. No account.</span><span>Claude Code / Codex / Cursor / Pi</span></footer>
+  </main>
+  <script type="module">
+    import '@fontsource/ibm-plex-mono/latin-400.css';
+    import '@fontsource/ibm-plex-mono/latin-500.css';
+    import '../src/styles.css';
+    import { mountDither } from '../src/dither.js';
+    mountDither({ motionPaused: () => true });
+    await document.fonts.ready;
+    await document.querySelector('#mac-source').decode();
+    // Export only after the font and the fixed dither frame have rendered.
+    await new Promise(requestAnimationFrame);
+    window.socialPreviewReady = document.querySelector('.device-art').classList.contains('is-ready');
+  </script>
+</body>
+</html>

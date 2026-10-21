@@ -21,6 +21,11 @@ Forks must clearly identify their publisher.
 
 ## Third-party material
 
+The first-party website source under `website/` follows the project license.
+Its static font and icon notices ship under `website/public/licenses/` and
+`website/public/icons/LICENSE`. Its npm dependencies retain upstream licenses.
+The import provenance is recorded in [website deployment notes](../website/DEPLOYMENT.md).
+
 These components retain their upstream licenses; they are not relicensed as
 first-party dsmn code. Versions below match the committed Swift lockfiles.
 

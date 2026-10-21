@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>dsmn — Take a break. Let it run.</title>
+  <meta name="description" content="Keep the machine awake while your local AI agents work. A native macOS app, and an Omarchy bar plugin. Free. No account." />
+  <meta name="theme-color" content="#f1f0e7" />
+  <meta property="og:title" content="dsmn — Take a break. Let it run." />
+  <meta property="og:description" content="Keep the machine awake while your local AI agents work. A Mac app, and an Omarchy bar plugin. Free. No account." />
+  <meta property="og:url" content="https://dsmn.app/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="https://dsmn.app/assets/dsmn-social-preview-pixel.png" />
+  <meta property="og:image:type" content="image/png" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="dsmn — Take a break. Let it run. Pixel heartbeat logo, dithered closed MacBook, and menu preview showing Keeping Mac awake." />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="dsmn — Take a break. Let it run." />
+  <meta name="twitter:description" content="A Mac app and an Omarchy plugin. Keep local AI agents working, then let the machine sleep." />
+  <meta name="twitter:image" content="https://dsmn.app/assets/dsmn-social-preview-pixel.png" />
+  <meta name="twitter:image:alt" content="dsmn — Take a break. Let it run. Pixel heartbeat logo, dithered closed MacBook, and menu preview showing Keeping Mac awake." />
+  <link rel="icon" type="image/svg+xml" href="/assets/dsmn-pulse-favicon.svg" />
+  <link rel="apple-touch-icon" href="/assets/dsmn-pulse-touch.png" />
+</head>
+<body class="home-page">
+  <a class="skip-link" href="#main">Skip to content</a>
+  <div class="page-shell" id="top">
+    <header class="site-header" aria-label="Primary navigation">
+      <a class="brand" href="#top" aria-label="dsmn home">
+        <img src="/assets/dsmn-pulse.svg" alt="" class="brand-mark" width="56" height="40" />
+        <span class="brand-name">dsmn</span><span class="brand-tagline">don't stop me now</span>
+      </a>
+      <nav class="nav-links" aria-label="Main">
+        <a href="#how">How it works</a>
+        <div class="nav-download-menu">
+          <button type="button" class="nav-download" id="download-menu-button" aria-expanded="false" aria-controls="download-menu">Download <img class="icon" src="/icons/arrow-down.svg" alt="" width="20" height="20" /></button>
+          <div class="download-menu" id="download-menu" hidden>
+            <a href="/download/dsmn-latest.dmg">macOS</a>
+            <button type="button" data-open-omarchy>Omarchy</button>
+          </div>
+        </div>
+      </nav>
+    </header>
+    <main id="main">
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="hero-copy">
+          <p class="eyebrow">A little utility for your Mac, and for Omarchy</p>
+          <h1 id="hero-title">Take a break.<br />Let it run.</h1>
+          <p class="hero-lede">Keep the machine awake while your local AI agents work.<br class="desktop-break" /> Sleep returns when the timer ends.</p>
+          <div class="hero-actions">
+            <a class="button primary download-button" href="/download/dsmn-latest.dmg"><span>Download for macOS</span><canvas class="button-dither" aria-hidden="true"></canvas></a>
+            <button type="button" class="button secondary download-button spark" data-open-omarchy><span>Omarchy</span><canvas class="button-dither" aria-hidden="true"></canvas></button>
+          </div>
+          <p class="hero-facts">Free. No account.</p>
+        </div>
+        <div class="hero-stage" id="demo" data-active="true">
+          <div class="signal-track" aria-hidden="true"><div class="signal-flow"></div></div>
+          <figure class="device">
+            <figcaption class="lid-callout">Lid closed</figcaption>
+            <div class="device-art">
+              <img id="mac-source" src="/assets/macbook-closed.webp" alt="A closed MacBook, illustrated in fine black and white dither." width="1536" height="640" fetchpriority="high" />
+              <canvas id="mac-dither" aria-hidden="true"></canvas>
+            </div>
+          </figure>
+          <div class="menu-demo" aria-label="Interactive app preview">
+            <div class="demo-menu-bar">
+              <button id="menu-toggle" class="menu-toggle" aria-expanded="true" aria-controls="app-preview" aria-label="Toggle app preview"><span class="menu-pulse" aria-hidden="true"><img src="/assets/dsmn-pulse.svg" width="28" height="20" alt="" /><span class="pulse-highlight"></span></span><span id="bar-countdown">16m</span></button>
+            </div>
+            <div class="app-preview" id="app-preview">
+              <div class="app-status"><span class="status-dot" aria-hidden="true"></span><span id="awake-status">Keeping Mac awake</span></div>
+              <p class="countdown" id="countdown" aria-label="Time remaining">16:24</p>
+              <p class="last-activity" id="last-activity">Last activity: Codex</p>
+              <div class="duration-controls" role="group" aria-label="Preview wake duration">
+                <button type="button" data-minutes="30">30 min</button><button type="button" data-minutes="90">90 min</button><button type="button" id="custom-duration">Custom…</button>
+              </div>
+              <button type="button" id="stop-preview" class="stop-button">Stop keeping awake</button>
+              <p class="sleep-note" id="sleep-note">Sleep allowed when the timer expires.</p>
+              <a href="#how" class="setup-link">Setup &amp; troubleshooting…</a>
+            </div>
+            <p class="demo-caption">The Mac app, in the menu bar.<span>On Omarchy, the same timer lives in the bar.</span><span>Interactive preview — try it.</span></p>
+            <p class="sr-only" id="preview-announcement" role="status" aria-live="polite"></p>
+          </div>
+        </div>
+        <p class="agent-note">On the Mac</p>
+        <div class="agent-strip" role="group" aria-label="Preview a Mac app tool">
+          <span class="agent-option"><button type="button" data-agent="Claude Code" aria-pressed="false">Claude Code</button><span aria-hidden="true">/</span></span>
+          <span class="agent-option"><button type="button" data-agent="Codex" aria-pressed="true">Codex</button><span aria-hidden="true">/</span></span>
+          <span class="agent-option"><button type="button" data-agent="Cursor" aria-pressed="false">Cursor</button><span aria-hidden="true">/</span></span>
+          <span class="agent-option"><button type="button" data-agent="Pi" aria-pressed="false">Pi</button><span aria-hidden="true">/</span></span>
+          <span class="agent-option"><button type="button" data-agent="T3 Code" aria-pressed="false">T3 Code</button><span aria-hidden="true">/</span></span>
+          <span class="agent-option"><button type="button" data-agent="Conductor" aria-pressed="false">Conductor</button><span aria-hidden="true">/</span></span>
+          <span class="agent-option"><button type="button" data-agent="cmux" aria-pressed="false">cmux</button></span>
+        </div>
+      </section>
+      <section class="intro-section" aria-labelledby="intro-title">
+        <h2 id="intro-title">Small enough to forget.</h2><p>Lives in the bar.<br />Keeps the work moving.</p>
+      </section>
+      <section class="how-section section" id="how" aria-labelledby="how-title">
+        <div class="section-heading"><p class="eyebrow">01 / Getting started</p><h2 id="how-title">Set it up.<br />Then step away.</h2><p>A small setup for a little more freedom.</p></div>
+        <div class="setup-pair">
+          <div>
+            <p class="eyebrow">macOS</p>
+            <ol class="setup-steps">
+              <li><span class="step-index">01</span><div><h3>Make yourself at home.</h3><p>Download dsmn, move it to Applications, and open it. You’ll find it in the menu bar.</p><a href="/download/dsmn-latest.dmg" class="text-link">Get dsmn <img src="/icons/arrow-right.svg" class="icon" alt="" /></a></div></li>
+            </ol>
+          </div>
+          <div>
+            <p class="eyebrow">Omarchy</p>
+            <ol class="setup-steps">
+              <li><span class="step-index">01</span><div><h3>Hand it to your agent.</h3><p>Paste the prompt, or run the command. You’ll find the pulse in the bar.</p><button type="button" class="text-link" data-open-omarchy>Open the prompt</button></div></li>
+            </ol>
+          </div>
+        </div>
+        <div class="setup-shared">
+          <div class="setup-line"><span class="step-index">02</span><h3>Give it the go-ahead.</h3></div>
+          <div class="setup-explain">
+            <p>Approve the helper. dsmn installs the hooks. The lid can stay closed.</p>
+            <p>Confirm it when Omarchy asks. Install the hooks in Settings if you want agents to renew the timer.</p>
+          </div>
+        </div>
+        <div class="setup-shared">
+          <div class="setup-line"><span class="step-index">03</span><div><h3>Leave the run to it.</h3><p>Agent activity renews a timer. When it ends, the machine can sleep. Stop ends it sooner.</p></div></div>
+        </div>
+      </section>
+      <section class="faq-section section" id="faq" aria-labelledby="faq-title">
+        <div class="section-heading"><p class="eyebrow">02 / Good to know</p><h2 id="faq-title">A few things<br />before you go.</h2></div>
+        <div class="faq-list">
+          <details><summary>When does it go back to sleep?<img src="/icons/plus.svg" class="icon" alt="" /></summary><p>When the timer reaches zero, or when you press Stop. Agent work can add about 20 minutes. It does not stack on a longer timer. On a Mac the helper lets go. On Omarchy the sleep lock is a process, and it exits with the timer. Another app can still keep the machine awake on its own.</p></details>
+          <details><summary>What about the lid?<img src="/icons/plus.svg" class="icon" alt="" /></summary><p>On a Mac, yes, once you approve the helper. Close the lid and the run continues. On Omarchy the lid still sleeps the machine until you confirm that in Settings. The screen can still lock on both.</p></details>
+          <details><summary>Why does the Mac app need a helper?<img src="/icons/plus.svg" class="icon" alt="" /></summary><p>macOS will not keep a closed laptop awake without permission. The helper holds that permission and releases it when the timer ends. The Omarchy plugin does not have one. It asks the system, and the request ends when the process does.</p></details>
+          <details><summary>What about the battery?<img src="/icons/plus.svg" class="icon" alt="" /></summary><p>The lock lets go at 20% while unplugged, after 15 minutes with no network, and at 8 hours no matter what. A desktop has no battery, so that rule simply does not apply.</p></details>
+          <details><summary>Which tools?<img src="/icons/plus.svg" class="icon" alt="" /></summary><p>The Mac app needs macOS 13 or later. It works with Claude Code, Codex, Cursor, Pi, T3 Code, Conductor, and cmux. The Omarchy plugin works with Claude Code, Cursor, Codex, Grok, and Pi.</p></details>
+          <details><summary>Is it free?<img src="/icons/plus.svg" class="icon" alt="" /></summary><p>Yes. The Mac app and the Omarchy plugin. No account and no subscription. Made by <a href="https://nomdelasociete.com">Nom de la société</a>.</p></details>
+        </div>
+      </section>
+      <section class="download-section" id="download" aria-labelledby="download-title">
+        <p class="eyebrow">Go on. You’ve got things to do.</p><h2 id="download-title">Your next break<br />is on us.</h2>
+        <div class="hero-actions">
+          <a href="/download/dsmn-latest.dmg" class="button primary download-button"><span>Download for macOS</span><canvas class="button-dither" aria-hidden="true"></canvas></a>
+          <button type="button" class="button secondary download-button spark" data-open-omarchy><span>Omarchy</span><canvas class="button-dither" aria-hidden="true"></canvas></button>
+        </div>
+        <p class="download-requirements">macOS 13 or later. Omarchy, on the bar. Free, always.</p>
+      </section>
+    </main>
+    <footer class="site-footer">
+      <a class="footer-brand" href="#top">dsmn<span>don't stop me now</span></a>
+      <nav aria-label="Footer"><button type="button" id="motion-toggle" class="motion-toggle" aria-pressed="false"><img src="/icons/pause.svg" alt="" class="icon" /><span>Pause motion</span></button><a href="#faq">FAQ</a><a href="/legal.html">Legal</a><a href="https://nomdelasociete.com">Made by Nom de la société</a></nav>
+    </footer>
+  </div>
+  <dialog id="omarchy-dialog" aria-labelledby="omarchy-title">
+    <div class="dialog-heading"><h2 id="omarchy-title">Omarchy</h2><button type="button" class="dialog-close" data-close-omarchy aria-label="Close Omarchy install"><img src="/icons/close.svg" alt="" class="icon" /></button></div>
+    <p>Paste this to your agent. It installs the bar plugin and stops before hooks.</p>
+    <pre id="agent-prompt">Install the dsmn plugin on this Omarchy machine.
+
+Read https://github.com/nomdelasociete/omarchy-dsmn before enabling it. It runs unsandboxed inside the shell.
+
+Run:
+omarchy plugin add https://github.com/nomdelasociete/omarchy-dsmn.git --enable
+
+Do not edit logind, and do not install agent hooks. I will do that from the dsmn panel if I want them.
+
+Tell me when the pulse is on the bar.</pre>
+    <button type="button" class="button primary" id="copy-prompt" autofocus><span>Copy agent prompt</span></button>
+    <p class="install-or">Or run it yourself.</p>
+    <pre id="install-command">omarchy plugin add https://github.com/nomdelasociete/omarchy-dsmn.git --enable</pre>
+    <button type="button" class="text-link" id="copy-command">Copy command</button>
+  </dialog>
+  <dialog id="duration-dialog" aria-labelledby="duration-title">
+    <form id="duration-form" novalidate>
+      <div class="dialog-heading"><h2 id="duration-title">A little more time.</h2><button type="button" class="dialog-close" aria-label="Close custom duration"><img src="/icons/close.svg" alt="" class="icon" /></button></div>
+      <p>Choose a duration for the menu preview.</p>
+      <label for="duration-input">Minutes</label>
+      <input id="duration-input" name="minutes" type="number" min="1" max="720" step="1" value="45" inputmode="numeric" required aria-describedby="duration-hint duration-error" />
+      <p id="duration-hint" class="input-hint">From 1 to 720 minutes.</p><p id="duration-error" class="form-error" role="alert"></p>
+      <button type="submit" class="button primary">Set preview timer</button>
+    </form>
+  </dialog>
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

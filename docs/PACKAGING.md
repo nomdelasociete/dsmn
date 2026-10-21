@@ -106,12 +106,14 @@ This copies the archive into `dist/updates/` and runs Sparkle's
 `https://dsmn.app/appcast.xml` and archive URLs under
 `https://dsmn.app/download/`.
 
-Upload `dist/updates/` through the website repo so the Railway service can serve
+Upload `dist/updates/` through `website/` so the Railway service can serve
 the files from its bucket-backed release routes:
 
 ```sh
-cd /Users/jb/Documents/Github/NomDeLaSociete/dsmn-website
-railway run npm run upload:release -- --dir /Users/jb/Documents/Github/NomDeLaSociete/dsmn/dist/updates
+cd website
+npm ci
+railway link --project 'DSMN Website' --environment production --service dsmn-website
+railway run npm run upload:release -- --dir ../dist/updates
 ```
 
 Override `DSMN_UPDATE_FEED_URL` and `DSMN_UPDATE_BASE_URL` only if the public

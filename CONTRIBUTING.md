@@ -40,6 +40,9 @@ not run it while someone relies on that instance. Report the tested OS and build
 
 For Raycast changes, run `npm ci --prefix raycast`,
 `npm run build --prefix raycast`, and `npm run lint --prefix raycast`.
+For website changes, run `npm ci --prefix website`, `npm test --prefix website`,
+and `npm run build --prefix website`. Deployment settings and post-merge checks
+are in [website/DEPLOYMENT.md](website/DEPLOYMENT.md).
 For distribution changes, maintainers also validate the signed archive,
 notarization, update metadata, and public artifacts using the packaging runbook.
 Contributors do not need or receive official signing/publishing keys.

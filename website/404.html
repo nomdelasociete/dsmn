@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Page not found · Don't Stop Me Now! (dsmn)</title>
+    <meta name="description" content="The requested dsmn page could not be found." />
+    <meta name="robots" content="noindex, follow" />
+    <meta name="theme-color" content="#f1f0e7" />
+    <link rel="icon" type="image/svg+xml" href="/assets/dsmn-pulse-favicon.svg" />
+    <link rel="apple-touch-icon" href="/assets/dsmn-pulse-touch.png" />
+  </head>
+  <body>
+    <div class="page-shell not-found-page">
+      <header class="site-header" aria-label="Primary navigation">
+        <a class="brand" href="/" aria-label="Don't Stop Me Now home">
+          <img src="/assets/dsmn-pulse.svg" alt="" class="brand-mark" width="56" height="40" />
+          <span class="brand-copy">
+            <strong>dsmn</strong>
+            <small>Don't Stop Me Now!</small>
+          </span>
+        </a>
+        <nav class="nav-links">
+          <a href="/">Home</a>
+          <div class="nav-download-menu">
+            <button type="button" class="nav-download" id="download-menu-button" aria-expanded="false" aria-controls="download-menu">Download <img class="icon" src="/icons/arrow-down.svg" alt="" width="20" height="20" /></button>
+            <div class="download-menu" id="download-menu" hidden>
+              <a href="/download/dsmn-latest.dmg">macOS</a>
+              <button type="button" data-open-omarchy>Omarchy</button>
+            </div>
+          </div>
+        </nav>
+      </header>
+
+      <main>
+        <section class="not-found-hero" aria-labelledby="not-found-title">
+          <div class="not-found-copy">
+            <p class="eyebrow">404</p>
+            <h1 id="not-found-title">This page went to sleep.</h1>
+            <p class="hero-lede">
+              The link is broken or the page moved. dsmn is still awake and ready on the homepage.
+            </p>
+            <div class="hero-actions" aria-label="404 actions">
+              <a class="button primary" href="/">Back home</a>
+              <a class="button secondary" href="/download/dsmn-latest.dmg">macOS</a>
+              <button type="button" class="button secondary" data-open-omarchy>Omarchy</button>
+            </div>
+          </div>
+          <div class="not-found-mark" aria-hidden="true">
+            <img src="/assets/dsmn-pulse-icon.svg" alt="" />
+            <span>404</span>
+          </div>
+        </section>
+      </main>
+
+      <footer class="site-footer">
+        <a class="footer-brand" href="/">dsmn</a>
+        <nav aria-label="Footer navigation">
+          <a href="/legal.html">Legal</a>
+          <a href="https://nomdelasociete.com">© Nom de la société</a>
+        </nav>
+      </footer>
+    </div>
+    <dialog id="omarchy-dialog" aria-labelledby="omarchy-title">
+      <div class="dialog-heading"><h2 id="omarchy-title">Omarchy</h2><button type="button" class="dialog-close" data-close-omarchy aria-label="Close Omarchy install"><img src="/icons/close.svg" alt="" class="icon" /></button></div>
+      <p>Paste this to your agent. It installs the bar plugin and stops before hooks.</p>
+      <pre id="agent-prompt">Install the dsmn plugin on this Omarchy machine.
+
+Read https://github.com/nomdelasociete/omarchy-dsmn before enabling it. It runs unsandboxed inside the shell.
+
+Run:
+omarchy plugin add https://github.com/nomdelasociete/omarchy-dsmn.git --enable
+
+Do not edit logind, and do not install agent hooks. I will do that from the dsmn panel if I want them.
+
+Tell me when the pulse is on the bar.</pre>
+      <button type="button" class="button primary" id="copy-prompt"><span>Copy agent prompt</span></button>
+      <p class="install-or">Or run it yourself.</p>
+      <pre id="install-command">omarchy plugin add https://github.com/nomdelasociete/omarchy-dsmn.git --enable</pre>
+      <button type="button" class="text-link" id="copy-command">Copy command</button>
+    </dialog>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

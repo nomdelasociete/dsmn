@@ -4,7 +4,8 @@ argument-hint: "[version] [build]"
 allowed-tools: Bash, Read, Edit, Grep
 ---
 
-Release dsmn from `main` after a merge or push.
+Release dsmn from `main` after native app or distributed-resource changes.
+Website-only merges deploy through Railway; they do not need this flow.
 
 User-supplied arguments: `$ARGUMENTS`
 
@@ -45,7 +46,9 @@ Follow this runbook exactly:
    generated churn before committing. Stop for review on any other project-file
    change.
 
-3. Bump the source version.
+3. If the intended version bump is already merged, verify the metadata below
+   and proceed to publishing. Otherwise create a `jb/release-<version>` branch
+   from current main, then bump the source version.
 
    ```sh
    ./scripts/set_version.sh <version> [build]
@@ -66,13 +69,15 @@ Follow this runbook exactly:
    Commit only tracked release metadata unless another tracked file changed for
    a deliberate reason.
 
-4. Commit and push the version bump.
+4. Commit and push the version bump on the release branch and open a PR linked
+   to its issue. After that PR merges, update a clean main checkout before
+   publishing. If the version bump was already merged, skip this step.
 
    ```sh
    git status --short --branch
    git add project.yml
    git commit -m "Bump dsmn to <version>"
-   git push origin main
+   git push -u origin HEAD
    ```
 
 5. Publish the release.
@@ -83,7 +88,7 @@ Follow this runbook exactly:
 
    Do not claim success from a local archive. The publish script must complete
    Apple notarization, staple the app and DMG, generate the signed Sparkle
-   appcast, and upload through the `dsmn-website` Railway release path.
+   appcast, and upload through `website/` using the existing Railway service.
 
 6. Verify public artifacts, not local `dist/export`.
 
