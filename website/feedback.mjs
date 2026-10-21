@@ -263,10 +263,10 @@ export function createFeedbackRateLimiter({
 
 export function feedbackClientKey(request) {
   const headers = request?.headers ?? {};
-  const forwardedFor = firstHeaderValue(headers['x-forwarded-for']);
-  const cloudflareIp = firstHeaderValue(headers['cf-connecting-ip']);
+  // Railway's public ingress supplies X-Real-IP. Other forwarding headers can
+  // contain client-controlled values and must not select rate-limit buckets.
   const railwayIp = firstHeaderValue(headers['x-real-ip']);
-  return cloudflareIp ?? railwayIp ?? forwardedFor ?? request?.socket?.remoteAddress ?? 'unknown';
+  return railwayIp ?? request?.socket?.remoteAddress ?? 'unknown';
 }
 
 function firstHeaderValue(value) {

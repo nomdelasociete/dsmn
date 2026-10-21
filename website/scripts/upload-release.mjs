@@ -24,6 +24,7 @@ const appcastPath = resolve(args.appcast ?? join(releaseDir, 'appcast.xml'));
 await assertFile(appcastPath);
 await assertFile(archivePath);
 await assertFile(dmgPath);
+assertMatchingReleasePair(archivePath, dmgPath);
 
 const client = new S3Client({
   endpoint,
@@ -101,6 +102,14 @@ async function findArchive(directory) {
   }
 
   return join(directory, archives.at(-1));
+}
+
+function assertMatchingReleasePair(archive, dmg) {
+  const zipMatch = basename(archive).match(/^dsmn-(\d+(?:\.\d+){1,2})-(\d+)\.zip$/);
+  const dmgMatch = basename(dmg).match(/^dsmn-(\d+(?:\.\d+){1,2})-(\d+)\.dmg$/);
+  if (!zipMatch || !dmgMatch || zipMatch[1] !== dmgMatch[1] || zipMatch[2] !== dmgMatch[2]) {
+    fail(`ZIP and DMG must use matching version/build names: ${basename(archive)}, ${basename(dmg)}`);
+  }
 }
 
 async function findDmg(directory) {

@@ -1,6 +1,17 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { createFeedbackRateLimiter, normalizeFeedbackSubmission } from './feedback.mjs';
+import { createFeedbackRateLimiter, feedbackClientKey, normalizeFeedbackSubmission } from './feedback.mjs';
+
+test('spoofed forwarding headers cannot rotate rate-limit buckets', () => {
+  const limiter = createFeedbackRateLimiter({ maxRequests: 1 });
+  const client = (spoof) => ({ headers: {
+    'x-real-ip': '192.0.2.1', 'cf-connecting-ip': spoof, 'x-forwarded-for': spoof
+  }, socket: { remoteAddress: '127.0.0.1' } });
+  assert.equal(limiter.allow(feedbackClientKey(client('198.51.100.1'))), true);
+  assert.equal(limiter.allow(feedbackClientKey(client('198.51.100.2'))), false);
+  assert.equal(feedbackClientKey({ headers: { 'cf-connecting-ip': 'spoof', 'x-forwarded-for': 'spoof' }, socket: { remoteAddress: '127.0.0.1' } }), '127.0.0.1');
+  assert.equal(feedbackClientKey({}), 'unknown');
+});
 
 const request = {
   headers: {

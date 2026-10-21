@@ -38,3 +38,33 @@ test('release upload selects numeric latest artifacts and publishes feed last', 
     await rm(directory, { recursive: true, force: true });
   }
 });
+
+test('mismatched discovered or explicit artifacts fail before any upload', async () => {
+  const directory = await mkdtemp(join(tmpdir(), 'dsmn-mismatch-'));
+  let requests = 0;
+  const server = createServer((request, response) => {
+    requests++;
+    request.resume(); response.end();
+  });
+  await new Promise((resolve) => server.listen(0, '127.0.0.1', resolve));
+  try {
+    for (const name of ['dsmn-0.1.10-10.zip', 'dsmn-0.1.9-9.dmg', 'appcast.xml']) {
+      await writeFile(join(directory, name), 'synthetic release');
+    }
+    for (const extra of [[], ['--zip', join(directory, 'dsmn-0.1.10-10.zip'), '--dmg', join(directory, 'dsmn-0.1.9-9.dmg')]]) {
+      await assert.rejects(promisify(execFile)(process.execPath, ['scripts/upload-release.mjs', '--dir', directory, ...extra], {
+        env: {
+          PATH: process.env.PATH,
+          AWS_ACCESS_KEY_ID: 'synthetic', AWS_SECRET_ACCESS_KEY: 'synthetic',
+          AWS_DEFAULT_REGION: 'us-east-1', AWS_S3_BUCKET_NAME: 'test', AWS_S3_URL_STYLE: 'path',
+          AWS_ENDPOINT_URL: `http://127.0.0.1:${server.address().port}`
+        }
+      }), /matching version\/build names/);
+    }
+    assert.equal(requests, 0);
+  } finally {
+    server.closeAllConnections();
+    await new Promise((resolve) => server.close(resolve));
+    await rm(directory, { recursive: true, force: true });
+  }
+});
