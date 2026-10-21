@@ -1,131 +1,87 @@
 # dsmn
 
-`dsmn` means "don't stop me now".
+**Don't stop me now.** Keep your Mac awake while local AI coding agents work,
+including with the lid closed.
 
-It is a macOS utility for intentionally keeping a Mac awake during local AI coding
-sessions, including the closed-lid case where regular `caffeinate` assertions are
-not enough.
+[Download](https://dsmn.app/download/dsmn-latest.dmg) · [Website](https://dsmn.app) ·
+[Contributing](CONTRIBUTING.md) · [Privacy](PRIVACY.md) · [Support](SUPPORT.md)
 
-## Product shape
+## Install
 
-- Native macOS menu bar app with a status icon and optional active countdown.
-- Privileged helper daemon owns power-management changes.
-- `dsmnctl` provides a local CLI contract for debugging and automation.
-- Raycast extension acts as a remote control, similar to Coffee-style duration
-  commands.
+Download the signed, notarized app for macOS 13 or later. Open dsmn and follow
+**Setup & Troubleshooting…** to register and approve its helper. Agent hooks and
+launch at login are optional. Updates are delivered through Sparkle.
 
-## Safety rule
+## What it does
 
-Only the helper daemon may apply:
+- A menu bar timer, configurable presets, and Stop.
+- Hooks for Claude Code, Cursor, Codex, Grok Build, and Pi that renew a bounded
+  awake timer while work happens.
+- A local CLI and optional [Raycast extension](raycast/README.md).
+- Doctor and Why Awake diagnostics for helper, power, and agent activity.
 
-```sh
-pmset -a disablesleep 1
-```
+Only the privileged helper changes system sleep settings. Timers have release
+deadlines and battery, network, and thermal safeguards. Ordinary `caffeinate`
+fallback does **not** provide closed-lid protection. Read the
+[safety model](docs/SAFETY.md) before changing power behavior.
 
-Every activation must have automatic release conditions. Raycast and the app only
-send intent; they never modify system sleep settings directly.
+## Build and test
 
-## Current status
-
-This repository currently contains a working signed macOS app stack:
-
-- SwiftPM package
-- core state and decision engine
-- `dsmnctl` CLI, which tries the helper XPC service before falling back to local
-  development state
-- `dsmnctl install-hooks`, which installs the shared agent hook for Claude Code,
-  Cursor, Codex, Grok Build, and Pi
-- `dsmnd` LaunchDaemon executable with an XPC Mach service
-- Xcode-built `dsmn.app` that embeds the signed helper and LaunchDaemon plist
-- menu bar controls for helper registration through `SMAppService`
-- optional launch-at-login registration through `SMAppService.mainApp`
-- first-run onboarding window for helper approval, agent hooks, and launch-at-login
-- dedicated Setup & Troubleshooting window opened from the menu bar, instead of
-  fragile nested menu bar submenus
-- last-request visibility in the menu and CLI, including agent/session context
-  when hooks provide it
-- `Why Awake?` diagnostics that separate dsmn's lock from external macOS sleep
-  assertions owned by apps such as Codex, Claude, or browsers
-- native feedback window that submits to the first-party `dsmn.app` backend,
-  with optional diagnostics and no embedded app secret
-- Raycast extension for manual duration, stop, status, and menu bar
-- Developer ID archive and notarization scripts
-- Sparkle-based self-update integration for signed builds
-
-The current local distributable is exported at `dist/export/dsmn.app`; release
-publishing creates both a Sparkle zip and a drag-and-drop DMG.
-
-## Local development
-
-Pull requests and main pushes run **macOS tests and bundle** in GitHub Actions:
-Swift tests, XcodeGen, a Debug build signed ad hoc, and bundle verification.
-No signing secrets or helper installation are needed. Validation logs are retained
-for seven days. The check is intentionally optional during its initial rollout:
-runner/toolchain reliability has not yet been established across multiple PRs.
-This avoids making an unproven infrastructure check a merge blocker; an
-administrator should require **macOS tests and bundle** once that baseline is
-established. This is not a known test failure or a waiver to merge failing code;
-a green AI review does not replace this check. Interactive menu tests
-(`./scripts/e2e_menu_setup.sh`, documented in [macOS app validation](docs/MACOS_APP.md#interactive-timer-checks))
-still require a local unlocked desktop with Accessibility permission.
+Use a Mac with Xcode providing Swift 6 or later, its command-line tools selected,
+and [XcodeGen](https://github.com/yonaskolb/XcodeGen) 2.45 or later. The deployment
+target is macOS 13; current Xcode may require a newer build host.
 
 ```sh
+git clone https://github.com/nomdelasociete/dsmn.git
+cd dsmn
 swift test
-swift run dsmn-app
-swift run dsmnctl status --json
-swift run dsmnctl manual --minutes 30 --requester Terminal
-swift run dsmnctl stop
-swift run dsmnd
-swift run dsmnd daemon-once
-./script/build_and_run.sh
-```
-
-The Xcode project is generated from `project.yml`:
-
-```sh
 xcodegen generate
-xcodebuild -project dsmn.xcodeproj -scheme dsmn -configuration Debug build
+xcodebuild -project dsmn.xcodeproj -scheme dsmn -configuration Debug \
+  -destination 'platform=macOS' -derivedDataPath DerivedData \
+  CODE_SIGN_IDENTITY=- CODE_SIGN_STYLE=Manual DEVELOPMENT_TEAM= \
+  ENABLE_HARDENED_RUNTIME=NO build
+./scripts/verify_bundle.sh DerivedData/Build/Products/Debug/dsmn.app
 ```
 
-Distribution build:
+This ad-hoc build needs no Apple signing credentials. It validates the app bundle;
+it cannot authenticate to the official privileged helper. Do not install its
+helper over a production installation. See [development modes](docs/DEVELOPMENT.md)
+for dry-run commands, UI work, and signed integration testing.
 
-```sh
-./scripts/set_version.sh 0.1.1
-git add project.yml macos/dsmn/Info.plist macos/DSMNCore/Info.plist
-git commit -m "Bump dsmn to 0.1.1"
-git push
-./scripts/publish_release.sh
-```
+Pull requests and main pushes run **macOS tests and bundle**. A successful review
+does not replace passing checks. Menu changes also need a local interactive test.
 
-`publish_release.sh` archives the app, verifies Sparkle metadata, notarizes and
-staples the bundle, creates a versioned Sparkle zip, creates and notarizes a
-versioned DMG, generates a signed appcast, uploads the release through the
-`dsmn-website` Railway service, and checks the public appcast/download URLs. It
-refuses to publish when the public appcast already has the same or a newer build
-number.
+## Your data
 
-Use `DSMN_STATE_DIR` to avoid writing to the default state directory while testing:
+Power management runs locally. Diagnostics can contain process paths, command
+arguments, project names, and session context. Review them before sharing.
+Optional feedback sends a message and version information to dsmn.app; additional
+diagnostics are off by default. Updates/downloads generate first-party service
+measurements. [Privacy details](PRIVACY.md).
 
-```sh
-DSMN_STATE_DIR=/tmp/dsmn-dev swift run dsmnctl status
-```
+## Contributing
 
-The one-shot `dsmnd` development command does not execute `pmset` unless
-explicitly enabled:
+Bug reports, ideas, documentation, and fixes are welcome. Discuss substantial
+changes in an issue first; small corrections can go straight to a PR.
+[CONTRIBUTING.md](CONTRIBUTING.md) explains the workflow and checks.
+Report vulnerabilities [privately](SECURITY.md).
 
-```sh
-DSMN_APPLY_PMSET=1 swift run dsmnd
-```
+## License
 
-The LaunchDaemon `serve` mode is intended to run as root from `SMAppService`.
-Set `DSMN_APPLY_PMSET=0` to force dry-run behavior while debugging the helper.
+Copyright (C) 2026 Nom de la société and contributors.
 
-## Documentation
+dsmn's first-party code, documentation, and artwork are licensed under the
+**GNU General Public License version 3 only** (`GPL-3.0-only`). See [LICENSE](LICENSE).
+The separately distributed [Raycast extension](raycast/LICENSE) retains its MIT
+license. Third-party components retain their own licenses; see [the inventory](docs/LICENSES.md).
+Earlier copies retain any licenses already granted with them.
 
-- `AGENTS.md`
-- `docs/ARCHITECTURE.md`
-- `docs/SAFETY.md`
-- `docs/RAYCAST.md`
-- `docs/MACOS_APP.md`
-- `docs/PACKAGING.md`
-- `docs/HOOKS.md`
+The license grants no right to imply that a fork is an official release.
+Use distinct app/service identifiers, update endpoints, and branding for forks.
+
+## Further reading
+
+- [Architecture](docs/ARCHITECTURE.md) and [agent hooks](docs/HOOKS.md)
+- [macOS app validation](docs/MACOS_APP.md) and [packaging](docs/PACKAGING.md)
+- [Support and removal](SUPPORT.md)
+- [Contributor conduct](CODE_OF_CONDUCT.md) and [agent engineering notes](AGENTS.md)

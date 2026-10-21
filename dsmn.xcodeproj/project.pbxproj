@@ -20,6 +20,7 @@
 		231FA510E94F11D4FB5D29A5 /* DSMNFeedbackView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8FA7A4EADB04DB2BFFEF1241 /* DSMNFeedbackView.swift */; };
 		24EB03DFBA1E68193D71DC83 /* CustomDurationWindowPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5AB4DC1B683AB7A7CDB9C75 /* CustomDurationWindowPresenter.swift */; };
 		2FB59C7DEAF857DA7FB0AF89 /* PreferencesWindowPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B49A63A7DC46104390534C8 /* PreferencesWindowPresenter.swift */; };
+		3131D0A7A48021A85BC262D0 /* dsmn-COPYRIGHT.txt in Resources */ = {isa = PBXBuildFile; fileRef = D5938CA567AA847D02F98596 /* dsmn-COPYRIGHT.txt */; };
 		317D2B2D40ADF21191974887 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = 9AA42F96CD573113144B9278 /* Sparkle */; };
 		37E33089D66F11DBCC9C4B85 /* LaunchAtLoginService.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAA3593C1FB4896356B24159 /* LaunchAtLoginService.swift */; };
 		3859C15BC198D9FA919AC362 /* main.swift in Sources */ = {isa = PBXBuildFile; fileRef = E0D529786998707F7F4A7C78 /* main.swift */; };
@@ -46,6 +47,7 @@
 		66D5703C1DE9B770F9944DA7 /* ControllerTelemetry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D631261B06763D0DC0CC43C /* ControllerTelemetry.swift */; };
 		6C359ECA3134D9296D0CFC5E /* DSMNPreferencesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7188691DA8A4EF3206CEF253 /* DSMNPreferencesView.swift */; };
 		6F0918E8F5D6C670806C0BC1 /* SystemSnapshotProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = F670FC14F66FBA7A602B5CBE /* SystemSnapshotProvider.swift */; };
+		6F0CFB8E15B3BD0852B0FE63 /* Sparkle-LICENSE.txt in Resources */ = {isa = PBXBuildFile; fileRef = 0E8A80CEFACD5F6AA7C4C5C9 /* Sparkle-LICENSE.txt */; };
 		6F7893D6AEF2B2C4E7287062 /* THIRD_PARTY_NOTICES.txt in Resources */ = {isa = PBXBuildFile; fileRef = 9AA8D2AB8FBD0EA6CE85C610 /* THIRD_PARTY_NOTICES.txt */; };
 		726EF89C354B1FAA841B9DC6 /* DSMNMenuView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 849E36A9D8CE4CD95098D34D /* DSMNMenuView.swift */; };
 		74003DC81175EC8FEB62C795 /* FeedbackWindowPresenter.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C80055A7FD5F82CDA2B5E5 /* FeedbackWindowPresenter.swift */; };
@@ -73,6 +75,7 @@
 		D27626225E4A18ED0785B4EB /* ReconcileSchedule.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9EBDC0E1ED5BD3418A792F0 /* ReconcileSchedule.swift */; };
 		D366B9E2BC191D283E594B97 /* DSMND.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C89A4114361C6F9FACA4919 /* DSMND.swift */; };
 		D5AAB60F45FEDADAAA13104B /* AgentHookInstaller.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22FC037E46E8EBB70D7AB405 /* AgentHookInstaller.swift */; };
+		D76D5371C5AA34241CEDBAAF /* dsmn-LICENSE.txt in Resources */ = {isa = PBXBuildFile; fileRef = 5B3993F001314E304684BE17 /* dsmn-LICENSE.txt */; };
 		D88A5BFB42135074FD094F8B /* CodexFeatureConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 160978A282A7BBC4B16EADD8 /* CodexFeatureConfiguration.swift */; };
 		D98AF5874BCF38EA0012AE27 /* CommandRunner.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6D2A8150F5191D00E4A19F5 /* CommandRunner.swift */; };
 		DD2E79C7CF00AE239050EB97 /* SoftwareUpdateController.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8AFE3A8A3B77004062353CF /* SoftwareUpdateController.swift */; };
@@ -176,6 +179,7 @@
 		05F227E11F3C8BC6AD1BECA4 /* AboutPanelPresenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutPanelPresenter.swift; sourceTree = "<group>"; };
 		07317E704BC90BFEDD42139E /* dsmn-pulse.svg */ = {isa = PBXFileReference; path = "dsmn-pulse.svg"; sourceTree = "<group>"; };
 		0B4FBFF039FC73E0D8FBFD04 /* ManualTimerRequest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManualTimerRequest.swift; sourceTree = "<group>"; };
+		0E8A80CEFACD5F6AA7C4C5C9 /* Sparkle-LICENSE.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "Sparkle-LICENSE.txt"; sourceTree = "<group>"; };
 		0F2C7905739A9F21409A0728 /* DSMNMenuStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DSMNMenuStore.swift; sourceTree = "<group>"; };
 		119D786BB6E6C5D87A9EB778 /* CheckForUpdatesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CheckForUpdatesView.swift; sourceTree = "<group>"; };
 		1428E24E9C88059C6735E168 /* com.nomdelasociete.dsmn.helper.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = com.nomdelasociete.dsmn.helper.plist; sourceTree = "<group>"; };
@@ -199,6 +203,7 @@
 		4FF12FB4F2E9D0CA91282B07 /* dsmnd */ = {isa = PBXFileReference; includeInIndex = 0; path = dsmnd; sourceTree = BUILT_PRODUCTS_DIR; };
 		52C59ECE0E6CBAFEE95D899B /* Geist-LICENSE.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "Geist-LICENSE.txt"; sourceTree = "<group>"; };
 		58E9E9A50557171FBF677FEA /* AgentHookSetupPresentation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentHookSetupPresentation.swift; sourceTree = "<group>"; };
+		5B3993F001314E304684BE17 /* dsmn-LICENSE.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "dsmn-LICENSE.txt"; sourceTree = "<group>"; };
 		5D3766DCEC1D2C419A85CAED /* ManualDuration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManualDuration.swift; sourceTree = "<group>"; };
 		5DA64BBB8035E795523E90FD /* TriggerActivitySummary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TriggerActivitySummary.swift; sourceTree = "<group>"; };
 		61FE22C17B810CA959C3CACA /* HelperXPC.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HelperXPC.swift; sourceTree = "<group>"; };
@@ -231,6 +236,7 @@
 		CC8C8661F0C29336DF4C864E /* StateStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StateStore.swift; sourceTree = "<group>"; };
 		CE9930F62AB4C8FAE97E285C /* DSMNIdentity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DSMNIdentity.swift; sourceTree = "<group>"; };
 		D0629D2C96FEDA81E3083EC7 /* DurationPreferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DurationPreferences.swift; sourceTree = "<group>"; };
+		D5938CA567AA847D02F98596 /* dsmn-COPYRIGHT.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "dsmn-COPYRIGHT.txt"; sourceTree = "<group>"; };
 		DB3D013F84E79A098A35E60B /* HookUninstallResultPresenter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HookUninstallResultPresenter.swift; sourceTree = "<group>"; };
 		DC102235C1EE46A73C04E17C /* AgentHookLogInspector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentHookLogInspector.swift; sourceTree = "<group>"; };
 		E03AF3CD060A3DFA891C3B89 /* FeedbackService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedbackService.swift; sourceTree = "<group>"; };
@@ -421,12 +427,15 @@
 		F1CC94ECFFBB89A2A9B48F3C /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				D5938CA567AA847D02F98596 /* dsmn-COPYRIGHT.txt */,
+				5B3993F001314E304684BE17 /* dsmn-LICENSE.txt */,
 				07317E704BC90BFEDD42139E /* dsmn-pulse.svg */,
 				88F8B60751F29892A00E5270 /* dsmn.icns */,
 				52C59ECE0E6CBAFEE95D899B /* Geist-LICENSE.txt */,
 				4ACF968A588BCD6F58F2422E /* GeistPixelSquare.ttf */,
 				0133BBCC4AC141EFC932321A /* IBMPlexMono-LICENSE.txt */,
 				A2428EFCE3BBD1E88BC9745B /* IBMPlexMono-Regular.ttf */,
+				0E8A80CEFACD5F6AA7C4C5C9 /* Sparkle-LICENSE.txt */,
 				9AA8D2AB8FBD0EA6CE85C610 /* THIRD_PARTY_NOTICES.txt */,
 			);
 			path = Resources;
@@ -612,7 +621,10 @@
 				601E526424DFE14D99D4E5D2 /* GeistPixelSquare.ttf in Resources */,
 				B749C526C7574CE090827FE6 /* IBMPlexMono-LICENSE.txt in Resources */,
 				1475A6663E986AFE99E53DF7 /* IBMPlexMono-Regular.ttf in Resources */,
+				6F0CFB8E15B3BD0852B0FE63 /* Sparkle-LICENSE.txt in Resources */,
 				6F7893D6AEF2B2C4E7287062 /* THIRD_PARTY_NOTICES.txt in Resources */,
+				3131D0A7A48021A85BC262D0 /* dsmn-COPYRIGHT.txt in Resources */,
+				D76D5371C5AA34241CEDBAAF /* dsmn-LICENSE.txt in Resources */,
 				8DE664FBD7F8669BBF27519B /* dsmn-pulse.svg in Resources */,
 				F20391AC430E71BFD5AA3A7C /* dsmn.icns in Resources */,
 			);
