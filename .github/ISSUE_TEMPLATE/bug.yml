@@ -1,0 +1,28 @@
+name: Bug
+description: Something does not work as expected.
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This issue is public. Use invented project names. Do not paste raw status
+        JSON, hook logs, agent configs, credentials, or unredacted screenshots.
+        Report vulnerabilities through the Security link instead.
+  - type: textarea
+    id: behavior
+    attributes:
+      label: What happened
+      description: Steps to reproduce, actual behavior, and what you expected.
+    validations:
+      required: true
+  - type: input
+    id: versions
+    attributes:
+      label: App and macOS versions
+      description: App version/build and macOS version; helper version if known and different.
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Relevant setup
+      description: If relevant, agent name, AC/battery, lid state, and whether Doctor reports helper or local fallback. No private paths or session names.

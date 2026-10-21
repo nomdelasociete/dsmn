@@ -1,0 +1,16 @@
+dsmn — Don't stop me now
+Copyright (C) 2026 Nom de la société and contributors.
+
+This program is free software: you can redistribute it and/or modify it under
+the terms of the GNU General Public License version 3 only, as published by
+the Free Software Foundation (SPDX-License-Identifier: GPL-3.0-only).
+
+This program is distributed in the hope that it will be useful, but WITHOUT
+ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
+FOR A PARTICULAR PURPOSE. See dsmn-LICENSE.txt for the full license.
+
+Source and build instructions: https://github.com/nomdelasociete/dsmn
+Contact: contact@nomdelasociete.com
+
+Third-party components retain their own licenses. See Sparkle-LICENSE.txt,
+THIRD_PARTY_NOTICES.txt, Geist-LICENSE.txt, and IBMPlexMono-LICENSE.txt.

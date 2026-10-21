@@ -43,6 +43,13 @@ codesign --verify --deep --strict --verbose=2 "$APP_PATH"
 codesign --verify --strict --verbose=2 "$HELPER_PATH"
 codesign --verify --strict --verbose=2 "$CTL_PATH"
 
+# Verify the notices that actually ship, including the explicit GPL version choice.
+cmp "$ROOT_DIR/LICENSE" "$ROOT_DIR/Sources/dsmnapp/Resources/dsmn-LICENSE.txt"
+for notice in dsmn-LICENSE.txt dsmn-COPYRIGHT.txt Sparkle-LICENSE.txt \
+  THIRD_PARTY_NOTICES.txt Geist-LICENSE.txt IBMPlexMono-LICENSE.txt; do
+  cmp "$ROOT_DIR/Sources/dsmnapp/Resources/$notice" "$APP_PATH/Contents/Resources/$notice"
+done
+
 VERIFY_STATE_DIR="$(mktemp -d)"
 trap 'rm -rf "$VERIFY_STATE_DIR"' EXIT
 DSMN_STATE_DIR="$VERIFY_STATE_DIR" "$CTL_PATH" status --json >/dev/null

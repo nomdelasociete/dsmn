@@ -12,7 +12,7 @@ From the repo root:
 ```sh
 swift build
 cd raycast
-npm install
+npm ci
 npm run dev
 ```
 
@@ -29,3 +29,10 @@ Set the `dsmnctl Path` preference when using an installed binary.
 
 The Raycast assets mirror the native app: the idle menu bar icon is the crown,
 and the active icon is the reversed crown inside a circle.
+
+## Contributing and license
+
+Follow the repository's [contribution guide](../CONTRIBUTING.md). First-party
+extension code retains its MIT license; see [LICENSE](LICENSE) and the
+[third-party inventory](../docs/LICENSES.md). Earlier copies retain licenses
+already granted. Dependencies retain their upstream licenses.
