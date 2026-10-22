@@ -1,0 +1,31 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "dsmn-website",
+  "main": "worker.mjs",
+  "compatibility_date": "2026-10-22",
+  "account_id": "0a0c8c3111c01831f0604c9ad662706b",
+  "workers_dev": true,
+  "routes": [
+    { "pattern": "dsmn.app", "custom_domain": true }
+  ],
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "404-page",
+    "run_worker_first": ["/api/*", "/download", "/download/*", "/appcast.xml", "/healthz"]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "dsmn",
+      "database_id": "b9f0e986-f5da-47a5-825b-b26690759748"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "RELEASES",
+      "bucket_name": "dsmn-releases"
+    }
+  ]
+}

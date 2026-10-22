@@ -76,9 +76,18 @@ if ! grep -q 'sparkle:edSignature' "$UPDATES_DIR/appcast.xml"; then
   exit 2
 fi
 
+R2_ENV="${DSMN_R2_ENV:-$HOME/.dsmn/r2-releases.env}"
+if [[ ! -f "$R2_ENV" ]]; then
+  echo "R2 credentials not found: $R2_ENV" >&2
+  exit 2
+fi
+set -a
+# shellcheck disable=SC1090
+source "$R2_ENV"
+set +a
 (
   cd "$WEBSITE_DIR"
-  railway run npm run upload:release -- --dir "$UPDATES_DIR"
+  npm run upload:release -- --dir "$UPDATES_DIR"
 )
 
 curl -fsSI "$DSMN_UPDATE_FEED_URL" >/dev/null

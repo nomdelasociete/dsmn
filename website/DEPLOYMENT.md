@@ -1,73 +1,47 @@
 # Website deployment
 
-The website, feedback/analytics backend, and download/appcast proxy deploy as
-one Railway service. Native macOS releases are signed and uploaded separately;
-a website deployment keeps the existing release bucket and database.
+Production is the Cloudflare Worker `dsmn-website` on account NOM DE LA SOCIETE
+(`0a0c8c3111c01831f0604c9ad662706b`). `dsmn.app` is a Worker custom domain.
+D1 database `dsmn` holds analytics and feedback. R2 bucket `dsmn-releases`
+holds the appcast and downloads. Do not copy secret values into Git.
 
-## Production service
+A push to `main` that changes `website/**` runs
+`.github/workflows/website.yml`. The workflow tests, builds, and runs
+`npx wrangler deploy`. Pushes that do not touch `website/**` do not deploy
+the site.
 
-Use the existing **DSMN Website** project, **production** environment, and
-**dsmn-website** service. Preserve its `dsmn.app` domain, Postgres database,
-bucket references, and environment variables. Do not copy secret values into Git.
-
-| Setting | Value |
-|---|---|
-| Repository | `nomdelasociete/dsmn` |
-| Branch | `main` |
-| Root directory | `/website` |
-| Watch paths (repository relative) | `/website/**` |
-| Builder | Railpack |
-| Build command | `npm ci && npm test && npm run build` |
-| Start command | `npm start` |
-| Health check | `/healthz`, 120 seconds |
-
-Service settings hold the deployment configuration. Railway's current management
-API rejects the deprecated `railway.json` config-file setting. Keep this table
-updated when changing the service. Website tests also run in GitHub Actions for
-website or website-workflow changes. The production build repeats the tests so
-a failing test cannot deploy even when GitHub CI gating is disabled.
-
-## Initial migration
-
-The import is a snapshot of `nomdelasociete/dsmn-website` commit
-`8e83b56` (2026-10-21 import). The original repository retains its history.
-Only tracked files were imported; local credentials, data, dependencies, and
-build output were excluded. Private paths in historical QA notes were removed.
-First-party website source follows the root GPL-3.0-only license; font and icon
-licenses remain under `public/licenses/` and `public/icons/LICENSE`.
-
-1. Merge the migration PR and confirm its website checks pass. Until then, keep
-   production on the old repository; the target folder is absent on main.
-2. Review the staged Railway patch. It must contain only this service's source,
-   root directory, watch paths, build/start commands, and health-check settings
-   (plus CI gating if enabled). Apply the patch after merge.
-3. Verify the deployment uses the merged commit and is healthy. Check `/`,
-   `/legal.html`, `/healthz`, `/appcast.xml`, and both `/download/dsmn-latest.zip`
-   and `/download/dsmn-latest.dmg`. Preserve release version 0.1.48 / 49 during
-   the migration. Confirm feedback validation with synthetic invalid input;
-   avoid creating production feedback records for a smoke test.
-4. On subsequent merges, confirm website changes deploy and native-only changes
-   do not. Watch paths restrict automatic GitHub deployments; manual redeploys
-   and service configuration changes can still initiate builds.
-5. Once production is verified, archive the old repository with a pointer here.
-
-Rollback: reconnect `nomdelasociete/dsmn-website` on main, restore root directory
-`/`, and clear the `/website/**` watch filter. The Node build/start commands
-work in either location. Keep the same domain, database, bucket, and variables.
-
-## Local development and release uploads
-
-From this directory, run `npm ci`, `npm test`, and `npm run build`.
-`npm start` serves the production build; `npm run dev` runs Vite.
-Do not set production database or bucket credentials for local tests.
-
-Link each new checkout before using the native release uploader:
+Deploy by hand from this directory with the same commands:
 
 ```sh
-cd website
-railway link --project 'DSMN Website' --environment production --service dsmn-website
+npm ci && npm test && npm run build
+npx wrangler deploy
 ```
 
-The root `scripts/publish_release.sh` uses this directory by default and expects
-its dependencies installed. `DSMN_WEBSITE_DIR` remains an override. Uploading
-release archives changes bucket objects; it does not require a website deploy.
+Run that from `website/`. Do not run `cloudflare deploy` from the repo root or
+from here. It scaffolds a different Worker. `wrangler.jsonc` already contains
+the account id. Non-interactive shells also need `CLOUDFLARE_ACCOUNT_ID` and
+`CLOUDFLARE_API_TOKEN`.
+
+## Local development
+
+`npm run dev` runs Vite. `npm start` serves the production build with the Node
+server. Do not point local tests at the production D1 database or R2 bucket.
+
+## Release uploads
+
+`scripts/publish_release.sh` uploads the appcast, zip, and dmg to R2. It reads
+`~/.dsmn/r2-releases.env` unless `DSMN_R2_ENV` points at another file. Mode
+600. Required variables:
+
+```text
+AWS_ACCESS_KEY_ID
+AWS_SECRET_ACCESS_KEY
+AWS_ENDPOINT_URL=https://0a0c8c3111c01831f0604c9ad662706b.r2.cloudflarestorage.com
+AWS_S3_BUCKET_NAME=dsmn-releases
+AWS_DEFAULT_REGION=auto
+AWS_S3_URL_STYLE=path
+```
+
+That file holds an R2 credential for the NOM DE LA SOCIETE account. An upload
+does not need a Worker deploy. Sparkle and the website keep
+`https://dsmn.app/appcast.xml` and `https://dsmn.app/download/`.

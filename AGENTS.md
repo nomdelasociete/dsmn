@@ -214,10 +214,11 @@ For merges changing the native app or its distributed resources, use the project
 public artifact verification flow. The command lives at
 `.claude/commands/release-dsmn.md`.
 
-Website-only merges deploy through Railway and do not require a macOS version bump
-or release. For `website/` changes, run `npm ci --prefix website`,
-`npm test --prefix website`, and `npm run build --prefix website`.
-Railway source, watch paths, and cutover checks are documented in `website/DEPLOYMENT.md`.
+A merge to `main` that changes `website/**` deploys the Cloudflare Worker
+`dsmn-website` on account NOM DE LA SOCIETE. `.github/workflows/website.yml`
+runs the tests and `npx wrangler deploy`. Native-only merges do not deploy the
+site and do not need a website version bump. Do not run `cloudflare deploy`.
+Release uploads and the manual deploy command are in `website/DEPLOYMENT.md`.
 
 Publishing a release does not automatically update the maintainer machine. If a
 release changed hook installation or helper behavior, also check the local
