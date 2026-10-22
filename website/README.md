@@ -55,8 +55,8 @@ It also exposes the release URLs used by Sparkle and the Download buttons:
 ## Deploy
 
 This directory is part of the dsmn monorepo. See [DEPLOYMENT.md](DEPLOYMENT.md).
-A merge to `main` that changes `website/` deploys the Cloudflare Worker.
-Other changes do not.
+A merge to `main` that changes `website/` or `.github/workflows/website.yml` deploys the Cloudflare Worker.
+A merge that changes neither path does not.
 
 ## Analytics
 
@@ -158,6 +158,9 @@ server falls back to `dist/updates`.
 After generating `appcast.xml`:
 
 ```sh
+set -a
+source ~/.dsmn/r2-releases.env
+set +a
 npm run upload:release -- --dir ../dist/updates
 ```
 

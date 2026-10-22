@@ -5,10 +5,9 @@ Production is the Cloudflare Worker `dsmn-website` on account NOM DE LA SOCIETE
 D1 database `dsmn` holds analytics and feedback. R2 bucket `dsmn-releases`
 holds the appcast and downloads. Do not copy secret values into Git.
 
-A push to `main` that changes `website/**` runs
-`.github/workflows/website.yml`. The workflow tests, builds, and runs
-`npx wrangler deploy`. Pushes that do not touch `website/**` do not deploy
-the site.
+A push to `main` that changes `website/**` or `.github/workflows/website.yml`
+runs `.github/workflows/website.yml`. The workflow tests, builds, and runs
+`npx wrangler deploy`. A push that changes neither path does not deploy the site.
 
 Deploy by hand from this directory with the same commands:
 

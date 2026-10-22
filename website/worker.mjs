@@ -35,15 +35,15 @@ export async function handleRequest(request, env) {
 
   try {
     if (pathname === '/healthz') return text(200, 'ok');
-    if (pathname === '/api/events') return postEvent(request, env);
-    if (pathname === '/api/metrics') return getMetrics(request, env);
-    if (pathname === '/api/feedback') return feedback(request, env, url);
-    if (pathname === '/appcast.xml') return serveRelease(request, env, 'appcast.xml', false);
+    if (pathname === '/api/events') return await postEvent(request, env);
+    if (pathname === '/api/metrics') return await getMetrics(request, env);
+    if (pathname === '/api/feedback') return await feedback(request, env, url);
+    if (pathname === '/appcast.xml') return await serveRelease(request, env, 'appcast.xml', false);
     if (pathname === '/download') return Response.redirect(new URL(`/download/${LATEST_DMG}`, url), 302);
     if (pathname.startsWith('/download/')) {
       const name = safeReleaseName(pathname.slice('/download/'.length));
       if (!name) return text(400, 'Bad download path.');
-      return serveRelease(request, env, name, true);
+      return await serveRelease(request, env, name, true);
     }
   } catch (error) {
     console.error(error);
@@ -65,7 +65,11 @@ async function postEvent(request, env) {
     if (event) await recordAnalytics(env, event);
     return new Response(null, { status: 204 });
   } catch (error) {
-    return text(error.statusCode ?? 400, 'Bad analytics event.');
+    if (!error.statusCode) {
+      console.error('analytics failed', error);
+      return text(502, 'Unable to process request.');
+    }
+    return text(error.statusCode, 'Bad analytics event.');
   }
 }
 
@@ -153,7 +157,11 @@ async function feedback(request, env, url) {
 
     return json(201, { ok: true, id: result.meta.last_row_id });
   } catch (error) {
-    const statusCode = error.statusCode ?? 400;
+    if (!error.statusCode) {
+      console.error('feedback failed', error);
+      return json(502, { ok: false, error: 'unavailable' });
+    }
+    const statusCode = error.statusCode;
     return json(statusCode, { ok: false, error: statusCode === 429 ? 'rate_limited' : 'invalid_feedback' });
   }
 }
@@ -250,16 +258,41 @@ function nodeRequest(request) {
 }
 
 async function readJson(request, maxBytes) {
-  const bytes = await request.arrayBuffer();
-  if (bytes.byteLength > maxBytes) {
+  const declared = Number(request.headers.get('content-length'));
+  if (Number.isFinite(declared) && declared > maxBytes) {
     const error = new Error('Request body too large.');
     error.statusCode = 413;
     throw error;
   }
-  if (bytes.byteLength === 0) return {};
+
+  const reader = request.body?.getReader();
+  if (!reader) return {};
+
+  const chunks = [];
+  let bytes = 0;
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    bytes += value.byteLength;
+    if (bytes > maxBytes) {
+      await reader.cancel();
+      const error = new Error('Request body too large.');
+      error.statusCode = 413;
+      throw error;
+    }
+    chunks.push(value);
+  }
+  if (bytes === 0) return {};
+
+  const body = new Uint8Array(bytes);
+  let offset = 0;
+  for (const chunk of chunks) {
+    body.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
 
   try {
-    return JSON.parse(new TextDecoder().decode(bytes));
+    return JSON.parse(new TextDecoder().decode(body));
   } catch {
     const error = new Error('Invalid JSON.');
     error.statusCode = 400;

@@ -129,6 +129,9 @@ Credentials come from `~/.dsmn/r2-releases.env`. See `website/DEPLOYMENT.md`.
 ```sh
 cd website
 npm ci
+set -a
+source ~/.dsmn/r2-releases.env
+set +a
 npm run upload:release -- --dir ../dist/updates
 ```
 

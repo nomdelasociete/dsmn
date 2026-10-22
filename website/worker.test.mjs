@@ -69,6 +69,45 @@ test('short feedback is rejected', async () => {
   assert.deepEqual(await response.json(), { ok: false, error: 'invalid_feedback' });
 });
 
+test('feedback storage failure is unavailable', async () => {
+  const failing = env();
+  failing.DB.prepare = () => ({
+    bind() { return this; },
+    async run() { throw new Error('d1 down'); },
+    async all() { return { results: [] }; }
+  });
+  const response = await handleRequest(new Request('https://dsmn.test/api/feedback', {
+    method: 'POST',
+    headers: { 'cf-connecting-ip': '192.0.2.12' },
+    body: JSON.stringify({ category: 'bug', message: 'Helper stayed stale after install.' })
+  }), failing);
+  assert.equal(response.status, 502);
+  assert.deepEqual(await response.json(), { ok: false, error: 'unavailable' });
+});
+
+test('oversized feedback is rejected before it is stored', async () => {
+  const response = await handleRequest(new Request('https://dsmn.test/api/feedback', {
+    method: 'POST',
+    headers: { 'cf-connecting-ip': '192.0.2.13' },
+    body: 'x'.repeat(8193)
+  }), env());
+  assert.equal(response.status, 413);
+});
+
+test('metrics storage failure is a bad gateway', async () => {
+  const failing = env();
+  failing.DB.prepare = () => ({
+    bind() { return this; },
+    async run() { throw new Error('d1 down'); },
+    async all() { throw new Error('d1 down'); }
+  });
+  const response = await handleRequest(new Request('https://dsmn.test/api/metrics', {
+    headers: { authorization: 'Bearer synthetic-test-token' }
+  }), failing);
+  assert.equal(response.status, 502);
+  assert.equal(await response.text(), 'Unable to process request.');
+});
+
 test('valid feedback is stored', async () => {
   const response = await handleRequest(new Request('https://dsmn.test/api/feedback', {
     method: 'POST',
