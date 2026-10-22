@@ -130,9 +130,13 @@ final class HelperXPCServiceSchedulerTests: XCTestCase {
         XCTAssertNil(try store.load().manualUntil)
         XCTAssertFalse(try store.load().ownsSleepDisable)
         XCTAssertEqual(try store.load().lastStopReason, "thermal_critical")
-        let cooled = DSMNHelperXPCService(controller: controller, powerManager: power,
-            liveSleepDisabledProvider: { nil }, thermalConditionProvider: { .nominal })
-        cooled.reconcile { _ in }
+        // A second helper has its own lock and schedules a nominal telemetry
+        // refresh. That refresh can commit the next lease while this command
+        // is clearing it. Cooling is the synchronous decision, not a second daemon.
+        _ = try controller.reconcile(
+            powerManager: power,
+            telemetry: ControllerTelemetry(snapshot: SystemSnapshot(thermalCondition: .nominal), agents: [])
+        )
         XCTAssertEqual(power.snapshot(), [false], "Cooling must not reactivate an ended lease")
         service.enableManual(minutes: 20) { _ in }
         XCTAssertNil(try store.load().manualUntil, "Hooks must not bypass critical heat")

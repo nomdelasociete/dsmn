@@ -3,15 +3,18 @@ import { appendFile, mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import pg from 'pg';
 import { createMaintenance, createSerialQueue, PRUNE_INTERVAL_MS } from './maintenance.mjs';
+import {
+  FEEDBACK_BODY_LIMIT_BYTES,
+  createFeedbackRateLimiter,
+  feedbackClientKey,
+  normalizeFeedbackSubmission
+} from './site-logic.mjs';
+
+export { FEEDBACK_BODY_LIMIT_BYTES, createFeedbackRateLimiter, feedbackClientKey, normalizeFeedbackSubmission };
 
 const { Pool } = pg;
 
-export const FEEDBACK_BODY_LIMIT_BYTES = 8192;
-
-const RATE_LIMIT_WINDOW_MS = 10 * 60 * 1000;
-const RATE_LIMIT_MAX_REQUESTS = 5;
 const FEEDBACK_RETENTION_DAYS = parseRetentionDays(process.env.DSMN_FEEDBACK_RETENTION_DAYS, 730);
-const allowedCategories = new Set(['bug', 'idea', 'question', 'other']);
 
 export function createFeedbackStore() {
   const databaseUrl = process.env.DATABASE_URL;
@@ -191,120 +194,6 @@ export function createFeedbackStore() {
     if (pool) return;
     await pruneJsonlFile(filePath, 'createdAt', FEEDBACK_RETENTION_DAYS);
   }
-}
-
-export function normalizeFeedbackSubmission(payload, request, sessionId) {
-  const category = clean(payload?.category, 32) ?? 'other';
-  const message = clean(payload?.message, 4000);
-  const email = clean(payload?.email, 254);
-  const appVersion = clean(payload?.appVersion, 40);
-  const buildNumber = clean(payload?.buildNumber, 40);
-  const osVersion = clean(payload?.osVersion, 120);
-
-  if (!message || message.length < 5) {
-    const error = new Error('Feedback message is too short.');
-    error.statusCode = 422;
-    throw error;
-  }
-
-  if (email && !isEmail(email)) {
-    const error = new Error('Invalid feedback email.');
-    error.statusCode = 422;
-    throw error;
-  }
-
-  return {
-    category: allowedCategories.has(category) ? category : 'other',
-    message,
-    email,
-    appVersion,
-    buildNumber,
-    osVersion,
-    diagnostics: safeDiagnostics(payload?.diagnostics),
-    userAgent: clean(request?.headers?.['user-agent'], 500),
-    sessionId: isSessionId(sessionId) ? sessionId : undefined
-  };
-}
-
-export function createFeedbackRateLimiter({
-  maxRequests = RATE_LIMIT_MAX_REQUESTS,
-  windowMs = RATE_LIMIT_WINDOW_MS,
-  now = () => Date.now()
-} = {}) {
-  const buckets = new Map();
-
-  function allow(key) {
-    const safeKey = key || 'unknown';
-    const timestamp = now();
-    const bucket = buckets.get(safeKey) ?? [];
-    const active = bucket.filter((entry) => timestamp - entry < windowMs);
-
-    if (active.length >= maxRequests) {
-      buckets.set(safeKey, active);
-      return false;
-    }
-
-    active.push(timestamp);
-    buckets.set(safeKey, active);
-
-    if (buckets.size > 1000) {
-      for (const [bucketKey, entries] of buckets) {
-        const remaining = entries.filter((entry) => timestamp - entry < windowMs);
-        if (remaining.length) buckets.set(bucketKey, remaining);
-        else buckets.delete(bucketKey);
-      }
-    }
-
-    return true;
-  }
-
-  return { allow };
-}
-
-export function feedbackClientKey(request) {
-  const headers = request?.headers ?? {};
-  // Railway's public ingress supplies X-Real-IP. Other forwarding headers can
-  // contain client-controlled values and must not select rate-limit buckets.
-  const railwayIp = firstHeaderValue(headers['x-real-ip']);
-  return railwayIp ?? request?.socket?.remoteAddress ?? 'unknown';
-}
-
-function firstHeaderValue(value) {
-  if (Array.isArray(value)) return firstHeaderValue(value[0]);
-  if (typeof value !== 'string') return undefined;
-  return value.split(',')[0]?.trim() || undefined;
-}
-
-function clean(value, maxLength) {
-  if (typeof value !== 'string') return undefined;
-  const trimmed = value.trim();
-  if (!trimmed) return undefined;
-  return trimmed.slice(0, maxLength);
-}
-
-function isEmail(value) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
-}
-
-function isSessionId(value) {
-  return typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
-}
-
-function safeDiagnostics(value) {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
-
-  return Object.fromEntries(
-    Object.entries(value)
-      .slice(0, 20)
-      .flatMap(([key, entry]) => {
-        const safeKey = clean(key, 60);
-        if (!safeKey) return [];
-        if (typeof entry === 'string') return [[safeKey, entry.slice(0, 500)]];
-        if (typeof entry === 'boolean') return [[safeKey, entry]];
-        if (typeof entry === 'number' && Number.isFinite(entry)) return [[safeKey, entry]];
-        return [];
-      })
-  );
 }
 
 function parseRetentionDays(value, fallback) {

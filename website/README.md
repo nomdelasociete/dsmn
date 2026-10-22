@@ -41,7 +41,7 @@ npm run build
 npm start
 ```
 
-`npm start` serves the built `dist/` directory on `PORT`, which works for Railway.
+`npm start` serves the built `dist/` directory on `PORT`.
 It also exposes the release URLs used by Sparkle and the Download buttons:
 
 ```text
@@ -52,23 +52,15 @@ It also exposes the release URLs used by Sparkle and the Download buttons:
 /download/<versioned-archive>.dmg
 ```
 
-## Deploy on Railway
+## Deploy
 
-This directory is part of the dsmn monorepo. See [DEPLOYMENT.md](DEPLOYMENT.md)
-for the service settings, migration cutover, rollback, and release upload setup.
-Only changes under `website/` trigger automatic website deployments from main.
-
-Railway's Railpack builder uses the included scripts:
-
-- install: `npm ci`
-- build: `npm ci && npm test && npm run build`
-- start: `npm start`
-
-Point `dsmn.app` at the Railway service once deployed.
+This directory is part of the dsmn monorepo. See [DEPLOYMENT.md](DEPLOYMENT.md).
+A merge to `main` that changes `website/` or `.github/workflows/website.yml` deploys the Cloudflare Worker.
+A merge that changes neither path does not.
 
 ## Analytics
 
-The site records first-party analytics through the same Node server:
+The site records first-party analytics:
 
 - `page_view`: browser page views
 - `download_click`: clicks on `/download/...` links
@@ -83,9 +75,8 @@ Analytics records are pruned after 395 days by default. Override with
 Retention cleanup is checked on storage access, at most once per day after a
 successful cleanup. Failed setup or cleanup is retried on the next access.
 
-Attach a Railway Postgres database to provide `DATABASE_URL`. Without
-`DATABASE_URL`, local/dev runs write to `.analytics/events.jsonl`; that fallback
-is not durable on Railway.
+Production stores analytics in D1. The local Node server uses `DATABASE_URL`
+when it is set, and otherwise writes to `.analytics/events.jsonl`.
 
 Set `DSMN_METRICS_TOKEN` to expose metrics at `/api/metrics`:
 
@@ -154,33 +145,23 @@ curl -H "Authorization: Bearer $DSMN_METRICS_TOKEN" "https://dsmn.app/api/feedba
 
 ## Release assets
 
-Use a Railway Bucket for the notarized app archives. Railway Buckets are private,
-so the website proxies the files through stable public URLs instead of exposing
-bucket URLs directly.
+Release archives live in the private R2 bucket `dsmn-releases`. The Worker
+streams them through `https://dsmn.app/download/` and `/appcast.xml`.
 
-Attach the bucket variables to the website service with Railway reference
-variables, not copied static credentials:
+`scripts/publish_release.sh` reads `~/.dsmn/r2-releases.env` and uploads with
+`npm run upload:release`. See `DEPLOYMENT.md` for the variables. Do not commit
+that file.
 
-```text
-AWS_ENDPOINT_URL=${{dsmn-releases.ENDPOINT}}
-AWS_ACCESS_KEY_ID=${{dsmn-releases.ACCESS_KEY_ID}}
-AWS_SECRET_ACCESS_KEY=${{dsmn-releases.SECRET_ACCESS_KEY}}
-AWS_S3_BUCKET_NAME=${{dsmn-releases.BUCKET}}
-AWS_DEFAULT_REGION=${{dsmn-releases.REGION}}
-```
+The object prefix is `updates/`. Locally, without bucket variables, the Node
+server falls back to `dist/updates`.
 
-The server reads release files from `DSMN_RELEASE_PREFIX`, defaulting to
-`updates/`. Locally, without bucket variables, it falls back to `dist/updates`.
-
-`AWS_S3_URL_STYLE` is intentionally omitted for the current Railway bucket
-because new buckets use virtual-host style and the server defaults to that.
-Only set it to `path` for an older bucket whose Credentials tab requires
-path-style URLs.
-
-After generating `appcast.xml` in the app repo:
+After generating `appcast.xml`:
 
 ```sh
-railway run npm run upload:release -- --dir ../dist/updates
+set -a
+source ~/.dsmn/r2-releases.env
+set +a
+npm run upload:release -- --dir ../dist/updates
 ```
 
 The upload command sends:
